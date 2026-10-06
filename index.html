@@ -130,6 +130,79 @@ button.active{outline:3px solid #17202a}
 <p id="regulatoryStatus" class="small" style="margin-top:12px">Loading regulatory engine status…</p>
 </div>
 
+
+<div class="card">
+<h2>V3.1 Regulatory Watch / Regulatory Change & Impact Assessment</h2>
+<p class="small">This is the first operational layer of the regulatory engine. A change is treated as <b>Review Required</b> until an auditor decides its impact.</p>
+<div class="metaGrid">
+ <div class="stat"><div class="small">Regulatory sources</div><div class="kpi" id="rwSources">—</div></div>
+ <div class="stat"><div class="small">Regulatory changes</div><div class="kpi" id="rwChanges">—</div></div>
+ <div class="stat"><div class="small">Impact assessments</div><div class="kpi" id="rwImpacts">—</div></div>
+ <div class="stat"><div class="small">Review tasks</div><div class="kpi" id="rwTasks">—</div></div>
+</div>
+<div class="row" style="margin-top:14px">
+ <div>
+  <h3>Regulatory sources</h3>
+  <div id="rwSourceList" class="sourceBox">Loading…</div>
+ </div>
+ <div>
+  <h3>Recent changes</h3>
+  <div id="rwChangeList" class="sourceBox">Loading…</div>
+ </div>
+</div>
+<div class="review" style="margin-top:14px">
+ <b>ACAF decision rule</b><br>
+ Regulatory change → <b>Review Required</b> → Impact assessment → Auditor decision.
+ <br><span class="small">No automatic finding is created solely because a regulation changed.</span>
+</div>
+<button onclick="loadRegulatoryWatch()">↻ Refresh Regulatory Watch</button>
+<button onclick="openImpactWorkspace()" class="primary">Open Impact Assessment / Hatásvizsgálat</button>
+<p id="rwMsg" class="small"></p>
+</div>
+
+<div id="impactWorkspace" class="card hidden">
+<h2>Impact Assessment Workspace / Hatásvizsgálati munkaterület</h2>
+<p class="small">Select a regulatory change and the affected requirement. The auditor records the decision; the next version will persist these decisions directly into <code>impact_assessments</code>.</p>
+<div class="row">
+ <div>
+  <label>Regulatory change</label>
+  <select id="impactChange"></select>
+ </div>
+ <div>
+  <label>Affected requirement</label>
+  <select id="impactRequirement"></select>
+ </div>
+</div>
+<div class="row">
+ <div>
+  <label>Auditor decision</label>
+  <select id="impactDecision">
+   <option value="REVIEW_REQUIRED">Review Required</option>
+   <option value="NO_IMPACT">No impact</option>
+   <option value="UPDATE_REQUIRED">Update required</option>
+   <option value="FINDING_REQUIRED">Finding required</option>
+  </select>
+ </div>
+ <div>
+  <label>Risk / priority</label>
+  <select id="impactRisk">
+   <option value="LOW">Low</option>
+   <option value="MEDIUM">Medium</option>
+   <option value="HIGH">High</option>
+   <option value="CRITICAL">Critical</option>
+  </select>
+ </div>
+</div>
+<label>Auditor rationale / Indoklás</label>
+<textarea id="impactRationale" placeholder="Why is the requirement affected or not affected? What needs to be reviewed?"></textarea>
+<div class="notice">
+ <b>Workflow preview</b><br>
+ Change detected → Requirement selected → Auditor assessment → Review task / Finding / No impact.
+</div>
+<button onclick="prepareImpactAssessment()" class="primary">Prepare assessment / Hatásvizsgálat előkészítése</button>
+<button onclick="document.getElementById('impactWorkspace').classList.add('hidden')">Close</button>
+<p id="impactMsg" class="small"></p>
+</div>
 <div class="card">
 <h2>My audits</h2>
 <div id="audits">Loading…</div>
@@ -198,7 +271,7 @@ async function signUp(){
  }catch(e){document.getElementById("authMsg").textContent=e.message}
 }
 function signOut(){session=null;localStorage.removeItem("acaf_session");document.getElementById("app").classList.add("hidden");document.getElementById("auth").classList.remove("hidden")}
-function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("status").textContent="Connected to Supabase"}
+function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("status").textContent="Connected to Supabase";initialiseRegulatoryWatch()}
 
 async function userId(){
  if(session?.user?.id)return session.user.id;
@@ -523,6 +596,91 @@ function backToDashboard(){
  document.getElementById("dashboardView").classList.remove("hidden");
  loadAudits();
 }
+
+let regulatorySources=[], regulatoryChanges=[], regulatoryImpacts=[], reviewTasks=[];
+
+function tableCountText(rows){
+ return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function loadRegulatoryWatch(){
+ const msg=document.getElementById("rwMsg");
+ try{
+  const [s,c,i,t]=await Promise.all([
+   api("/rest/v1/regulatory_sources?select=*&order=created_at.desc"),
+   api("/rest/v1/regulatory_changes?select=*&order=created_at.desc"),
+   api("/rest/v1/impact_assessments?select=*&order=created_at.desc"),
+   api("/rest/v1/review_tasks?select=*&order=created_at.desc")
+  ]);
+  regulatorySources=s||[]; regulatoryChanges=c||[]; regulatoryImpacts=i||[]; reviewTasks=t||[];
+  document.getElementById("rwSources").textContent=tableCountText(regulatorySources);
+  document.getElementById("rwChanges").textContent=tableCountText(regulatoryChanges);
+  document.getElementById("rwImpacts").textContent=tableCountText(regulatoryImpacts);
+  document.getElementById("rwTasks").textContent=tableCountText(reviewTasks);
+
+  document.getElementById("rwSourceList").innerHTML=regulatorySources.length
+   ? regulatorySources.slice(0,6).map((x,idx)=>`<div style="padding:8px 0;border-bottom:1px solid #eee">
+      <b>${esc(x.name||x.title||x.source_reference||"Source "+(idx+1))}</b>
+      <div class="small">${esc(x.source_type||x.authority||"")} ${x.version? "· "+esc(x.version):""}</div>
+     </div>`).join("")
+   : `<span class="small">No regulatory sources registered yet. The table is ready for the source registry.</span>`;
+
+  document.getElementById("rwChangeList").innerHTML=regulatoryChanges.length
+   ? regulatoryChanges.slice(0,8).map((x,idx)=>`<div style="padding:8px 0;border-bottom:1px solid #eee">
+      <b>${esc(x.title||x.name||x.reference||"Regulatory change "+(idx+1))}</b>
+      <div class="small">${esc(x.change_type||x.type||"")} ${x.effective_date?"· effective "+esc(x.effective_date):""}</div>
+      <span class="badge">${esc(x.status||"REVIEW_REQUIRED")}</span>
+     </div>`).join("")
+   : `<span class="small">No regulatory changes registered yet.</span>`;
+
+  msg.textContent="✓ Regulatory Watch loaded.";
+  msg.className="small success";
+ }catch(e){
+  msg.textContent="Regulatory Watch could not be loaded: "+e.message;
+  msg.className="small error";
+  ["rwSources","rwChanges","rwImpacts","rwTasks"].forEach(id=>document.getElementById(id).textContent="—");
+ }
+}
+
+function openImpactWorkspace(){
+ const box=document.getElementById("impactWorkspace");
+ box.classList.remove("hidden");
+ const cs=document.getElementById("impactChange");
+ const rs=document.getElementById("impactRequirement");
+ cs.innerHTML=regulatoryChanges.length
+   ? regulatoryChanges.map((x,i)=>`<option value="${esc(x.id||"")}">${esc(x.title||x.name||x.reference||("Change "+(i+1)))}</option>`).join("")
+   : `<option value="">No regulatory changes loaded</option>`;
+ rs.innerHTML=requirements.length
+   ? requirements.map(r=>`<option value="${esc(r.id||"")}">${esc(r.requirement_code||"Requirement")} — ${esc(r.framework||"")}</option>`).join("")
+   : `<option value="">No requirements loaded</option>`;
+ box.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function prepareImpactAssessment(){
+ const change=document.getElementById("impactChange").value;
+ const req=document.getElementById("impactRequirement").value;
+ const decision=document.getElementById("impactDecision").value;
+ const risk=document.getElementById("impactRisk").value;
+ const rationale=document.getElementById("impactRationale").value.trim();
+ const msg=document.getElementById("impactMsg");
+ if(!change) {msg.textContent="Select a regulatory change first.";msg.className="small error";return;}
+ if(!req) {msg.textContent="Select an affected requirement first.";msg.className="small error";return;}
+ if(!rationale) {msg.textContent="Add the auditor rationale.";msg.className="small error";return;}
+ msg.innerHTML=`✓ Assessment prepared: <b>${esc(decision)}</b> · Risk <b>${esc(risk)}</b>.`;
+ msg.className="small success";
+ /*
+  V3.1 intentionally prepares the workflow without guessing the exact required
+  database columns of impact_assessments/review_tasks. Once the table schemas
+  are confirmed, V3.2 will persist this object and create linked review tasks.
+ */
+ window.acafPreparedImpact={change_id:change,requirement_id:req,decision,risk,rationale};
+}
+
+function initialiseRegulatoryWatch(){
+ if(!session)return;
+ loadRegulatoryWatch();
+}
+
 async function checkConnection(){
  try{
   const r=await fetch(SUPABASE_URL+"/auth/v1/settings",{headers:{"apikey":SUPABASE_KEY}});
