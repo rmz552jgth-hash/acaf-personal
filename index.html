@@ -276,6 +276,34 @@ Az auditor választja ki a ténylegesen érintett requirementet és végzi el a 
 </section>
 
 
+
+<section class="card" id="findingCreateCard">
+<h2>V4.2 – Finding Creation</h2>
+<p class="small">A V4.2 a tényleges Supabase-mezőkre épül. Finding csak auditor által rögzített <b>Non-compliant</b> audit answer alapján hozható létre.</p>
+<div class="review"><b>Finding rule:</b> Regulatory Change ≠ Finding. A Finding forrása az auditban rögzített Non-compliant értékelés és annak objektív bizonyítéka.</div>
+<div class="row" style="margin-top:14px">
+ <div><label>Audit</label><select id="fcAudit"></select></div>
+ <div><label>Audit Question</label><select id="fcQuestion"></select></div>
+</div>
+<div id="fcAnswerInfo" class="sourceBox" style="margin-top:12px">Válassz auditot és auditkérdést.</div>
+<div class="row" style="margin-top:12px">
+ <div><label>Finding No.</label><input id="fcFindingNo" placeholder="e.g. F-001"></div>
+ <div><label>Classification</label><select id="fcClassification"><option value="Major">Major</option><option value="Minor">Minor</option><option value="Observation">Observation</option></select></div>
+</div>
+<div class="row">
+ <div><label>Risk</label><select id="fcRisk"><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Critical">Critical</option></select></div>
+ <div><label>Status</label><select id="fcStatus"><option value="Open">Open</option><option value="CAPA_REQUIRED">CAPA Required</option></select></div>
+</div>
+<label>Objective statement / Objektív megállapítás</label>
+<textarea id="fcObjective" placeholder="State the objective evidence-based non-compliance clearly."></textarea>
+<label>Root cause / Gyökérok</label>
+<textarea id="fcRootCause" placeholder="Initial root-cause assessment. Can be refined during CAPA investigation."></textarea>
+<div class="row">
+ <div><label>Due date</label><input id="fcDueDate" type="date"></div>
+ <div style="display:flex;align-items:end"><button class="primary" onclick="createFindingV42()">Create Finding / Finding létrehozása</button></div>
+</div>
+<p id="fcMsg" class="small"></p>
+</section>
 <section class="card" id="findingCard">
 <h2>V4.1 – Finding & CAPA Engine</h2>
 <p class="small">
@@ -1060,6 +1088,108 @@ function prepareImpactAssessment(){
 
 
 
+
+let fcQuestions=[];
+
+async function loadFindingCreateAudits(){
+ const audits=window.acafAudits||[];
+ const el=document.getElementById('fcAudit');
+ if(!el)return;
+ el.innerHTML=audits.length ? audits.map(a=>`<option value="${esc(a.id)}">${esc(a.title||a.audit_no||a.id)}</option>`).join('') : '<option value="">No audits</option>';
+ await loadFindingCreateQuestions();
+}
+async function loadFindingCreateQuestions(){
+ const auditId=document.getElementById('fcAudit')?.value, q=document.getElementById('fcQuestion');
+ if(!q)return;
+ if(!auditId){q.innerHTML='<option value="">No audit selected</option>';return;}
+ try{
+  fcQuestions=await api('/rest/v1/audit_questions?select=*&audit_id=eq.'+encodeURIComponent(auditId)+'&order=sequence_no.asc');
+  q.innerHTML=fcQuestions.length ? fcQuestions.map(x=>`<option value="${esc(x.id)}">${esc(x.sequence_no??'')} · ${esc(x.id)}</option>`).join('') : '<option value="">No questions</option>';
+  await loadFindingAnswerInfo();
+ }catch(e){q.innerHTML='<option value="">Unable to load questions</option>';}
+}
+async function loadFindingAnswerInfo(){
+ const qid=document.getElementById('fcQuestion')?.value, box=document.getElementById('fcAnswerInfo');
+ if(!box)return;
+ if(!qid){box.textContent='Válassz auditkérdést.';return;}
+ try{
+  const rows=await api('/rest/v1/audit_answers?select=*&question_id=eq.'+encodeURIComponent(qid)+'&limit=1');
+  const a=rows?.[0];
+  if(!a){box.innerHTML='<b>⚠ Nincs audit answer ehhez a kérdéshez.</b><br><span class="small">Finding csak rögzített Non-compliant válaszból hozható létre.</span>';return;}
+  const assessment=String(a.assessment||'').toLowerCase().replace(/\s+/g,'-');
+  const isNC=['non-compliant','non_compliant','noncompliant'].includes(assessment);
+  box.innerHTML='<b>Assessment: '+esc(a.assessment||'')+'</b>'+
+   (a.evidence?'<div class="small" style="margin-top:6px"><b>Evidence:</b> '+esc(a.evidence)+'</div>':'')+
+   (a.auditor_notes?'<div class="small"><b>Auditor notes:</b> '+esc(a.auditor_notes)+'</div>':'')+
+   (isNC?'<div class="small success" style="margin-top:6px">✓ Non-compliant – Finding létrehozható.</div>':'<div class="small error" style="margin-top:6px">⚠ Ez a kérdés jelenleg nem Non-compliant.</div>');
+ }catch(e){box.textContent='Answer betöltési hiba: '+e.message;}
+}
+function makeFindingNo(){
+ const d=new Date();
+ return 'F-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+String(d.getTime()).slice(-5);
+}
+async function createFindingV42(){
+ const msg=document.getElementById('fcMsg');
+ try{
+  const uid=await userId(), auditId=document.getElementById('fcAudit').value, questionId=document.getElementById('fcQuestion').value;
+  if(!auditId)throw new Error('Válassz auditot.');
+  if(!questionId)throw new Error('Válassz auditkérdést.');
+  const answers=await api('/rest/v1/audit_answers?select=*&question_id=eq.'+encodeURIComponent(questionId)+'&limit=1'), answer=answers?.[0];
+  if(!answer)throw new Error('Nincs audit answer ehhez a kérdéshez.');
+  const assessment=String(answer.assessment||'').toLowerCase().replace(/\s+/g,'-');
+  if(!['non-compliant','non_compliant','noncompliant'].includes(assessment))throw new Error('Finding csak Non-compliant audit answerből hozható létre.');
+  const objective=document.getElementById('fcObjective').value.trim();
+  if(!objective)throw new Error('Az Objective statement kötelező.');
+  const payload={
+   owner_id:uid,audit_id:auditId,question_id:questionId,
+   finding_no:document.getElementById('fcFindingNo').value.trim()||makeFindingNo(),
+   classification:document.getElementById('fcClassification').value,
+   risk:document.getElementById('fcRisk').value,
+   objective_statement:objective,
+   root_cause:document.getElementById('fcRootCause').value.trim()||null,
+   status:document.getElementById('fcStatus').value,
+   due_date:document.getElementById('fcDueDate').value||null
+  };
+  const saved=await api('/rest/v1/findings',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  const finding=Array.isArray(saved)?saved[0]:saved;
+  if(!finding?.id)throw new Error('Finding mentése nem sikerült.');
+  msg.innerHTML='✓ Finding létrehozva: <b>'+esc(finding.finding_no||finding.id)+'</b>';msg.className='small success';
+  renderCapaCreate(finding);
+ }catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
+}
+function renderCapaCreate(finding){
+ document.getElementById('capaCreateCard')?.remove();
+ const host=document.getElementById('findingCreateCard'),card=document.createElement('section');
+ card.className='card';card.id='capaCreateCard';
+ card.innerHTML=`<h2>V4.2 – CAPA Action</h2>
+ <p class="small">Finding <b>${esc(finding.finding_no||finding.id)}</b> alapján létrehozható a CAPA.</p>
+ <div class="row"><div><label>Corrective action</label><textarea id="capaCorrective" placeholder="What will correct the finding?"></textarea></div>
+ <div><label>Preventive action</label><textarea id="capaPreventive" placeholder="What prevents recurrence?"></textarea></div></div>
+ <div class="row"><div><label>Responsible person</label><input id="capaResponsible"></div>
+ <div><label>Target date</label><input id="capaTarget" type="date"></div></div>
+ <label>Effectiveness method</label><textarea id="capaEffectiveness" placeholder="How will effectiveness be verified?"></textarea>
+ <button class="primary" onclick="createCapaV42('${esc(finding.id)}')">Create CAPA / CAPA létrehozása</button><p id="capaMsg" class="small"></p>`;
+ host.after(card);card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function createCapaV42(findingId){
+ const msg=document.getElementById('capaMsg');
+ try{
+  const uid=await userId(), corrective=document.getElementById('capaCorrective').value.trim();
+  if(!corrective)throw new Error('A Corrective action kötelező.');
+  const payload={
+   owner_id:uid,finding_id:findingId,corrective_action:corrective,
+   preventive_action:document.getElementById('capaPreventive').value.trim()||null,
+   responsible_person:document.getElementById('capaResponsible').value.trim()||null,
+   target_date:document.getElementById('capaTarget').value||null,
+   effectiveness_method:document.getElementById('capaEffectiveness').value.trim()||null,
+   verification_result:null,status:'Open'
+  };
+  const saved=await api('/rest/v1/capa_actions',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  const row=Array.isArray(saved)?saved[0]:saved;
+  if(!row?.id)throw new Error('CAPA mentése nem sikerült.');
+  msg.textContent='✓ CAPA létrehozva.';msg.className='small success';
+ }catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
+}
 async function checkOneTableSchema(table){
   try{
     const rows=await api('/rest/v1/'+table+'?select=*&limit=1');
@@ -1271,6 +1401,7 @@ function initialiseRegulatoryWatch(){
    refreshOperationalSelects();
    refreshMappingSelect();
    refreshQuestionImpactSelectors();
+   loadFindingCreateAudits();
    checkFindingSchema();
 
    const c=document.getElementById('opImpactChange');
@@ -1288,6 +1419,9 @@ function initialiseRegulatoryWatch(){
    if(qr)qr.addEventListener('change',loadQuestionImpact);
    if(qa)qa.addEventListener('change',renderQuestionImpact);
    if(qs)qs.addEventListener('change',renderQuestionImpact);
+   const fa=document.getElementById('fcAudit'), fq=document.getElementById('fcQuestion');
+   if(fa)fa.addEventListener('change',loadFindingCreateQuestions);
+   if(fq)fq.addEventListener('change',loadFindingAnswerInfo);
 
    loadQuestionImpact();
  }).catch(()=>{});
