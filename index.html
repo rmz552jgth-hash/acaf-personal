@@ -679,7 +679,7 @@ async function signUp(){
  }catch(e){document.getElementById("authMsg").textContent=e.message}
 }
 function signOut(){session=null;localStorage.removeItem("acaf_session");document.getElementById("app").classList.add("hidden");document.getElementById("auth").classList.remove("hidden")}
-function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("status").textContent="Connected to Supabase";initialiseRegulatoryWatch()}
+function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("status").textContent="Connected to Supabase";initialiseRegulatoryWatch();loadAudits()}
 
 async function userId(){
  await refreshSession(false);
@@ -797,13 +797,23 @@ async function importRequirementsCsv(){
 async function loadAudits(){
  try{
   const rows=await api("/rest/v1/audits?select=*&order=created_at.desc");
-  document.getElementById("audits").innerHTML=rows.length?rows.map(x=>`
+  // Keep the loaded audits in one shared client-side list so all modules
+  // (Impact Assessment, Question Impact and Finding Creation) can use them.
+  window.acafAudits=Array.isArray(rows)?rows:[];
+  document.getElementById("audits").innerHTML=window.acafAudits.length?window.acafAudits.map(x=>`
    <div class="req">
     <b>${esc(x.title||x.audit_no||"Audit")}</b><br>
     <span class="small">Audit No.: ${esc(x.audit_no||"")} · Audit ID: ${esc(x.id||"")}</span><br>
     <button class="primary" onclick='openAudit(${JSON.stringify(x.id)})'>Open audit / Audit megnyitása</button>
    </div>`).join(""):"No audits yet.";
- }catch(e){document.getElementById("audits").textContent=e.message}
+
+  // Refresh every audit-dependent selector after the database load completes.
+  if(typeof refreshOperationalSelects==="function") refreshOperationalSelects();
+  if(typeof refreshQuestionImpactSelectors==="function") refreshQuestionImpactSelectors();
+  if(typeof loadFindingCreateAudits==="function") await loadFindingCreateAudits();
+ }catch(e){
+  document.getElementById("audits").textContent=e.message;
+ }
 }
 
 async function openAudit(id){
@@ -1401,7 +1411,6 @@ function initialiseRegulatoryWatch(){
    refreshOperationalSelects();
    refreshMappingSelect();
    refreshQuestionImpactSelectors();
-   loadFindingCreateAudits();
    checkFindingSchema();
 
    const c=document.getElementById('opImpactChange');
@@ -1440,7 +1449,7 @@ async function checkConnection(){
   try{
    session=JSON.parse(saved);
    await refreshSession(false);
-   showApp();loadAudits();return;
+   showApp();return;
   }catch(e){
    session=null;localStorage.removeItem("acaf_session");
    document.getElementById("authMsg").textContent="A munkamenet lejárt. Kérlek, jelentkezz be újra.";
