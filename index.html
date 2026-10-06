@@ -305,6 +305,7 @@ Az auditor választja ki a ténylegesen érintett requirementet és végzi el a 
 <p id="fcMsg" class="small"></p>
 </section>
 <section class="card" id="findingCard">
+<section class="card" style="margin-bottom:14px"><h2>V4.3 – CAPA Creation</h2><p class="small">A V4.3 a létrehozott Findinghoz közvetlenül kapcsolja a Corrective / Preventive Action rekordot. A CAPA státusza kezdetben <b>open</b>.</p></section>
 <h2>V4.1 – Finding & CAPA Engine</h2>
 <p class="small">
 A következő modul a Non-compliant → Finding → CAPA → Verification → Closure folyamatot kezeli.
@@ -1208,17 +1209,18 @@ function renderCapaCreate(finding){
  document.getElementById('capaCreateCard')?.remove();
  const host=document.getElementById('findingCreateCard'),card=document.createElement('section');
  card.className='card';card.id='capaCreateCard';
- card.innerHTML=`<h2>V4.2 – CAPA Action</h2>
+ card.innerHTML=`<h2>V4.3 – CAPA Creation</h2>
  <p class="small">Finding <b>${esc(finding.finding_no||finding.id)}</b> alapján létrehozható a CAPA.</p>
+ <div class="review"><b>CAPA rule:</b> a CAPA mindig egy konkrét Findinghoz kapcsolódik. A CAPA önmagában nem zárja le a Findingot; a későbbi Verification dönti el a hatékonyságot és a Closure-t.</div>
  <div class="row"><div><label>Corrective action</label><textarea id="capaCorrective" placeholder="What will correct the finding?"></textarea></div>
  <div><label>Preventive action</label><textarea id="capaPreventive" placeholder="What prevents recurrence?"></textarea></div></div>
  <div class="row"><div><label>Responsible person</label><input id="capaResponsible"></div>
  <div><label>Target date</label><input id="capaTarget" type="date"></div></div>
  <label>Effectiveness method</label><textarea id="capaEffectiveness" placeholder="How will effectiveness be verified?"></textarea>
- <button class="primary" onclick="createCapaV42('${esc(finding.id)}')">Create CAPA / CAPA létrehozása</button><p id="capaMsg" class="small"></p>`;
+ <button class="primary" onclick="createCapaV43('${esc(finding.id)}')">Create CAPA / CAPA létrehozása</button><p class="small">Kezdő státusz: <b>open</b></p><p id="capaMsg" class="small"></p>`;
  host.after(card);card.scrollIntoView({behavior:'smooth',block:'start'});
 }
-async function createCapaV42(findingId){
+async function createCapaV43(findingId){
  const msg=document.getElementById('capaMsg');
  try{
   const uid=await userId(), corrective=document.getElementById('capaCorrective').value.trim();
@@ -1229,7 +1231,7 @@ async function createCapaV42(findingId){
    responsible_person:document.getElementById('capaResponsible').value.trim()||null,
    target_date:document.getElementById('capaTarget').value||null,
    effectiveness_method:document.getElementById('capaEffectiveness').value.trim()||null,
-   verification_result:null,status:'Open'
+   verification_result:null,status:'open'
   };
   const saved=await api('/rest/v1/capa_actions',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
   const row=Array.isArray(saved)?saved[0]:saved;
