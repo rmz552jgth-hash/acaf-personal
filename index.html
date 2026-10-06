@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V3.2</title>
+<title>ACAF Personal V3.3</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -159,7 +159,7 @@ button.active{outline:3px solid #17202a}
 </div>
 </div>
 <div class="card">
-<h2>V3.2 Regulatory Watch / Regulatory Change & Impact Assessment</h2>
+<h2>V3.3 Regulatory Watch / Regulatory Change & Impact Assessment</h2>
 <p class="small">This is the first operational layer of the regulatory engine. A change is treated as <b>Review Required</b> until an auditor decides its impact.</p>
 <div class="metaGrid">
  <div class="stat"><div class="small">Regulatory sources</div><div class="kpi" id="rwSources">—</div></div>
@@ -698,7 +698,7 @@ function prepareImpactAssessment(){
  /*
   V3.1 intentionally prepares the workflow without guessing the exact required
   database columns of impact_assessments/review_tasks. Once the table schemas
-  are confirmed, V3.2 will persist this object and create linked review tasks.
+  are confirmed, V3.3 will persist this object and create linked review tasks.
  */
  window.acafPreparedImpact={change_id:change,requirement_id:req,decision,risk,rationale};
 }
@@ -721,5 +721,38 @@ async function checkConnection(){
  checkConnection();
 })();
 </script>
+
+<section class="card" id="schemaCard">
+<h2>V3.3 – Regulatory Watch Data Model Check</h2>
+<p>Ez az ellenőrzés nem módosít adatbázist. Csak megvizsgálja, hogy a Regulatory Watch négy táblája elérhető-e a bejelentkezett felhasználó számára.</p>
+<div class="row">
+<div><strong>regulatory_sources</strong><div id="chkSources">—</div></div>
+<div><strong>regulatory_changes</strong><div id="chkChanges">—</div></div>
+<div><strong>impact_assessments</strong><div id="chkImpact">—</div></div>
+<div><strong>review_tasks</strong><div id="chkTasks">—</div></div>
+</div>
+<button class="primary" onclick="runSchemaCheck()">Táblák ellenőrzése</button>
+<div id="schemaResult" class="muted" style="margin-top:12px"></div>
+<p style="margin-top:16px"><strong>Következő lépés:</strong> ha valamelyik tábla elérhető, de üres, megmutatjuk a pontos mezőstruktúrát a Supabase-ben, és csak ezután kötjük rá az automatikus mentést.</p>
+</section>
+<script>
+async function runSchemaCheck(){
+ const token=localStorage.getItem('acaf_access_token')||localStorage.getItem('supabase_access_token');
+ const base=SUPABASE_URL+'/rest/v1/';
+ const key=SUPABASE_KEY;
+ const items=[['regulatory_sources','chkSources'],['regulatory_changes','chkChanges'],['impact_assessments','chkImpact'],['review_tasks','chkTasks']];
+ let ok=0;
+ for(const [table,id] of items){
+  const el=document.getElementById(id); el.textContent='Ellenőrzés...';
+  try{
+   const r=await fetch(base+table+'?select=*&limit=1',{headers:{apikey:key,Authorization:'Bearer '+(token||key)}});
+   if(r.ok){ const data=await r.json(); el.innerHTML=data.length?'<span style="color:#18794e">✓ Elérhető – adat található</span>':'<span style="color:#18794e">✓ Elérhető – jelenleg üres</span>'; ok++; }
+   else { const t=await r.text(); el.innerHTML='<span style="color:#b42318">✕ '+r.status+' – '+escapeHtml(t.slice(0,180))+'</span>'; }
+  }catch(e){el.innerHTML='<span style="color:#b42318">✕ '+escapeHtml(e.message)+'</span>';}
+ }
+ document.getElementById('schemaResult').textContent=ok+' / 4 Regulatory Watch tábla elérhető.';
+}
+</script>
+
 </body>
 </html>
