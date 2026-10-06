@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V2.2</title>
+<title>ACAF Personal V2.5</title>
 <style>
 body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:1100px;margin:0 auto;padding:24px;background:#f6f7f9;color:#17202a}
 .card{background:white;border:1px solid #ddd;border-radius:14px;padding:20px;margin:14px 0}
@@ -46,6 +46,7 @@ input,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;m
 </div>
 <label>Scope / Hatókör</label><textarea id="scope"></textarea>
 <button onclick="createAudit()">Create audit</button>
+<p class="small">Framework and scope are currently captured on the form; the present database schema stores the audit identifier as <b>audit_no</b>. We will extend the data model after the basic workflow is working.</p>
 <p id="auditMsg" class="small" role="status"></p>
 </div>
 
@@ -132,19 +133,28 @@ async function createAudit(){
       if(!orgId) throw new Error("Organisation was not created.");
     }
 
+    // The current Supabase audits table uses the columns visible in the
+    // database: id, owner_id, organisation_id and audit_no.  Do not send
+    // unsupported fields such as name/framework/scope/status.
+    const auditNo = name || ("ACAF-" + new Date().toISOString().slice(0,10).replace(/-/g,""));
     const created=await api("/rest/v1/audits",{
       method:"POST",
       headers:{"Prefer":"return=representation"},
-      body:JSON.stringify({organisation_id:orgId,name,framework,scope,status:"draft"})
+      body:JSON.stringify({
+        owner_id:ownerId,
+        organisation_id:orgId,
+        audit_no:auditNo
+      })
     });
-    document.getElementById("auditMsg").textContent="Audit created: "+created[0].id;
+    document.getElementById("auditMsg").textContent="Audit created: "+(created?.[0]?.id || auditNo);
     loadAudits();
   }catch(e){document.getElementById("auditMsg").textContent=e.message}
 }
 async function loadAudits(){
   try{
-    const rows=await api("/rest/v1/audits?select=*&order=created_at.desc");
-    document.getElementById("audits").innerHTML=rows.length?rows.map(x=>`<div class="card"><b>${escapeHtml(x.name||"Audit")}</b><br><span class="small">${escapeHtml(x.framework||"")} · ${escapeHtml(x.status||"")}</span><br><span class="small">${x.id}</span></div>`).join(""):"No audits yet.";
+    // Keep the read query compatible with the current table schema.
+    const rows=await api("/rest/v1/audits?select=*");
+    document.getElementById("audits").innerHTML=rows.length?rows.map(x=>`<div class="card"><b>${escapeHtml(x.audit_no||"Audit")}</b><br><span class="small">Organisation ID: ${escapeHtml(x.organisation_id||"")}</span><br><span class="small">Audit ID: ${escapeHtml(x.id||"")}</span></div>`).join(""):"No audits yet.";
   }catch(e){document.getElementById("audits").textContent=e.message}
 }
 function escapeHtml(s){
