@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V2.7</title>
+<title>ACAF Personal V3.0</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -31,6 +31,11 @@ button.active{outline:3px solid #17202a}
 .stat{padding:14px;border:1px solid #e1e5e9;border-radius:12px}
 .statusbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .notice{padding:12px;border-radius:10px;background:#f1f4f7}
+.metaGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.sourceBox{border:1px solid #e1e5e9;border-radius:12px;padding:12px;background:#fbfcfd}
+.review{border-left:4px solid #c7cbd1;padding:12px;background:#f7f8fa;border-radius:8px;margin:8px 0}
+.kpi{font-size:1.35rem;font-weight:700}
+@media(max-width:800px){.metaGrid{grid-template-columns:1fr 1fr}}
 .error{color:#a40000}
 .success{color:#126b2e}
 @media(max-width:800px){.row,.grid3{grid-template-columns:1fr}}
@@ -97,6 +102,32 @@ button.active{outline:3px solid #17202a}
 <button onclick="downloadRequirementsTemplate()">Download CSV template / Sablon letöltése</button>
 <button onclick="importRequirementsCsv()" class="primary">Import requirements / Követelmények importálása</button>
 <p id="importMsg" class="small"></p>
+</div>
+
+<div class="card">
+<h2>Regulatory & Requirement Engine / Szabályozási motor</h2>
+<p class="small">V3.0: a követelmény már nem csak checklist elem. Az ACAF megőrzi a forrást, a jogi hivatkozást és a verziót, hogy később a regulatory change → impact assessment → review workflow biztonságosan felépíthető legyen.</p>
+<div class="metaGrid">
+ <div class="stat"><div class="small">Active requirements</div><div class="kpi" id="statTotal">—</div></div>
+ <div class="stat"><div class="small">Part-ORA</div><div class="kpi" id="statOra">—</div></div>
+ <div class="stat"><div class="small">Part-FCL</div><div class="kpi" id="statFcl">—</div></div>
+ <div class="stat"><div class="small">Versions</div><div class="kpi" id="statVersions">—</div></div>
+</div>
+<div class="review" style="margin-top:14px">
+ <b>Regulatory decision rule</b><br>
+ A jogszabályváltozás önmagában <b>nem</b> hoz létre automatikus non-compliance findingot. Az ACAF először <b>Review Required</b> státuszt ad, majd az auditor dönt az érintettségről.
+</div>
+</div>
+
+<div class="card">
+<h2>Regulatory Watch / Szabályozási figyelés</h2>
+<div class="row">
+ <div class="sourceBox"><b>1. Source</b><p class="small">EUR-Lex / EU Official Journal – authentic legal source<br>EASA Easy Access Rules – consolidated working source</p><span class="badge">Source-aware</span></div>
+ <div class="sourceBox"><b>2. Change</b><p class="small">New regulation, amendment, AMC/GM or revision is registered as a regulatory change.</p><span class="badge">Change detected</span></div>
+ <div class="sourceBox"><b>3. Impact assessment</b><p class="small">The change is mapped to affected requirements, audits and questions.</p><span class="badge">Review required</span></div>
+ <div class="sourceBox"><b>4. Auditor decision</b><p class="small">The auditor confirms whether action, finding or no impact is required.</p><span class="badge">Human decision</span></div>
+</div>
+<p id="regulatoryStatus" class="small" style="margin-top:12px">Loading regulatory engine status…</p>
 </div>
 
 <div class="card">
@@ -308,6 +339,7 @@ async function openAudit(id){
 async function loadRequirements(){
  try{
   requirements=await api("/rest/v1/requirements?select=*&active=eq.true&order=requirement_code.asc");
+  updateLibraryStats();
   // The current audits table stores the audit title but not a framework column,
   // so the library remains searchable instead of guessing a framework filter.
   renderRequirements();
@@ -316,6 +348,17 @@ async function loadRequirements(){
   document.getElementById("requirementsList").innerHTML='<p class="error">'+esc(e.message)+'</p>';
  }
 }
+function updateLibraryStats(){
+ const total=requirements.length;
+ const ora=requirements.filter(r=>String(r.framework||"").toLowerCase().includes("part-ora")).length;
+ const fcl=requirements.filter(r=>String(r.framework||"").toLowerCase().includes("part-fcl")).length;
+ const versions=new Set(requirements.map(r=>String(r.version||"").trim()).filter(Boolean)).size;
+ const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+ set("statTotal",total);set("statOra",ora);set("statFcl",fcl);set("statVersions",versions);
+ const rs=document.getElementById("regulatoryStatus");
+ if(rs) rs.textContent=total?"✓ Requirement Library connected. Regulatory Watch structure is ready; no regulatory change is classified automatically as non-compliance.":"Requirement Library is empty. Import verified regulatory requirements before starting production audits.";
+}
+
 function renderRequirements(){
  const q=document.getElementById("reqSearch").value.toLowerCase().trim();
  const list=requirements.filter(r=>!q||[r.requirement_code,r.framework,r.domain,r.english_text,r.hungarian_text].some(v=>String(v||"").toLowerCase().includes(q)));
@@ -377,6 +420,13 @@ async function renderQuestion(){
   <h2>${esc(r.requirement_code||"Requirement")}</h2>
   <h3>Requirement / Követelmény</h3>
   <div class="card"><b>English</b><p>${esc(r.english_text||"—")}</p><hr><b>Magyar</b><p>${esc(r.hungarian_text||"—")}</p></div>
+  <h3>Source & version / Forrás és verzió</h3>
+  <div class="sourceBox">
+   <div><b>Source type:</b> ${esc(r.source_type||"—")}</div>
+   <div><b>Source reference:</b> ${esc(r.source_reference||"—")}</div>
+   <div><b>Legal reference:</b> ${esc(r.legal_reference||"—")}</div>
+   <div><b>Version:</b> ${esc(r.version||"—")}</div>
+  </div>
   <h3>Expected evidence / Elvárt bizonyíték</h3>
   <div class="notice">${esc(r.expected_evidence||"—")}</div>
   <h3>Auditor guidance / Auditor útmutató</h3>
