@@ -279,7 +279,7 @@ Az auditor választja ki a ténylegesen érintett requirementet és végzi el a 
 
 <section class="card" id="findingCreateCard">
 <h2>V4.2 – Finding Creation</h2>
-<p class="small">A V4.2 a tényleges Supabase-mezőkre épül. Finding csak auditor által rögzített <b>Non-compliant</b> audit answer alapján hozható létre.</p>
+<p class="small">A V4.2.3 a meglévő Supabase assessment-értékekhez igazodik. Finding csak auditor által rögzített <b>Non-compliant</b> audit answer alapján hozható létre.</p>
 <div class="review"><b>Finding rule:</b> Regulatory Change ≠ Finding. A Finding forrása az auditban rögzített Non-compliant értékelés és annak objektív bizonyítéka.</div>
 <div class="row" style="margin-top:14px">
  <div><label>Audit</label><select id="fcAudit"></select></div>
@@ -891,7 +891,7 @@ async function loadExistingAnswer(){
  try{
   const rows=await api("/rest/v1/audit_answers?select=*&question_id=eq."+encodeURIComponent(selectedQuestionId)+"&limit=1");
   const a=rows?.[0];if(!a)return;
-  currentAnswerId=a.id;selectedAssessment=a.assessment||"";
+  currentAnswerId=a.id;selectedAssessment=dbAssessmentToUi(a.assessment);
   document.getElementById("evidenceField").value=a.evidence||"";
   document.getElementById("notesField").value=a.auditor_notes||"";
   markAssessmentButton();
@@ -957,6 +957,15 @@ function assessmentNotice(v){
  el.innerHTML="<b>Selected:</b> "+esc(v)+extra;
 }
 
+function uiAssessmentToDb(v){
+ const map={COMPLIANT:"compliant",PARTIAL:"partial",NON_COMPLIANT:"noncompliant","N/A":"na"};
+ return map[v] || v;
+}
+function dbAssessmentToUi(v){
+ const map={compliant:"COMPLIANT",partial:"PARTIAL",noncompliant:"NON_COMPLIANT",na:"N/A",unanswered:""};
+ return map[String(v||"").toLowerCase()] ?? v ?? "";
+}
+
 async function saveAnswer(){
  const msg=document.getElementById("saveAnswerMsg");
  try{
@@ -964,7 +973,7 @@ async function saveAnswer(){
   await ensureAuditQuestion();
   const body={
    question_id:selectedQuestionId,
-   assessment:selectedAssessment,
+   assessment:uiAssessmentToDb(selectedAssessment),
    evidence:document.getElementById("evidenceField").value.trim(),
    auditor_notes:document.getElementById("notesField").value.trim(),
    answered_at:new Date().toISOString(),
@@ -1146,7 +1155,7 @@ async function loadFindingAnswerInfo(){
   const a=rows?.[0];
   if(!a){box.innerHTML='<b>⚠ Nincs audit answer ehhez a kérdéshez.</b><br><span class="small">Finding csak rögzített Non-compliant válaszból hozható létre.</span>';return;}
   const assessment=String(a.assessment||'').toLowerCase().replace(/\s+/g,'-');
-  const isNC=['non-compliant','non_compliant','noncompliant'].includes(assessment);
+  const isNC=['non-compliant','non_compliant','noncompliant'].includes(assessment.replace(/_/g,'-'));
   box.innerHTML='<b>Assessment: '+esc(a.assessment||'')+'</b>'+
    (a.evidence?'<div class="small" style="margin-top:6px"><b>Evidence:</b> '+esc(a.evidence)+'</div>':'')+
    (a.auditor_notes?'<div class="small"><b>Auditor notes:</b> '+esc(a.auditor_notes)+'</div>':'')+
@@ -1166,7 +1175,7 @@ async function createFindingV42(){
   const answers=await api('/rest/v1/audit_answers?select=*&question_id=eq.'+encodeURIComponent(questionId)+'&limit=1'), answer=answers?.[0];
   if(!answer)throw new Error('Nincs audit answer ehhez a kérdéshez.');
   const assessment=String(answer.assessment||'').toLowerCase().replace(/\s+/g,'-');
-  if(!['non-compliant','non_compliant','noncompliant'].includes(assessment))throw new Error('Finding csak Non-compliant audit answerből hozható létre.');
+  if(!['non-compliant','non_compliant','noncompliant'].includes(assessment.replace(/_/g,'-')))throw new Error('Finding csak Non-compliant audit answerből hozható létre.');
   const objective=document.getElementById('fcObjective').value.trim();
   if(!objective)throw new Error('Az Objective statement kötelező.');
   const payload={
