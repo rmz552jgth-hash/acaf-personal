@@ -230,6 +230,129 @@ button.active{outline:3px solid #17202a}
 <button onclick="document.getElementById('impactWorkspace').classList.add('hidden')">Close</button>
 <p id="impactMsg" class="small"></p>
 </div>
+<section class="card" id="operationalCard">
+<h2>V3.5 – Operational Regulatory Watch</h2>
+<p class="small">Ebben a verzióban a Regulatory Watch már ténylegesen írhat a Supabase-be. A rendszer először lekéri a PostgREST séma-információt, és csak olyan mezőt küld, amely valóban létezik az adott táblában.</p>
+<div class="review"><b>Biztonsági szabály:</b> a jogszabályváltozás önmagában nem hoz létre findingot. Az alapállapot <b>Review Required</b>.</div>
+<div class="row" style="margin-top:14px">
+ <div class="sourceBox"><b>Schema status</b><div id="schemaLiveStatus" class="small">Not checked</div><button onclick="loadLiveSchema()">↻ Séma frissítése</button></div>
+ <div class="sourceBox"><b>Operational status</b><div id="opStatus" class="small">Ready</div></div>
+</div>
+<div id="schemaDetails" class="sourceBox" style="margin-top:14px">A pontos mezők a „Séma frissítése” után jelennek meg.</div>
+
+<h3 style="margin-top:20px">1. Regulatory Source létrehozása</h3>
+<div class="row">
+ <div><label>Source name / Forrás neve</label><input id="srcName" value="EASA Aircrew – Regulation (EU) No 1178/2011"></div>
+ <div><label>Source type</label><select id="srcType"><option>EASA</option><option>EUR-Lex</option><option>EU Official Journal</option><option>Other</option></select></div>
+</div>
+<div class="row">
+ <div><label>URL</label><input id="srcUrl" value="https://www.easa.europa.eu/en/regulations/aircrew"></div>
+ <div><label>Legal reference</label><input id="srcLegal" value="Regulation (EU) No 1178/2011"></div>
+</div>
+<label>Description / Leírás</label><textarea id="srcDesc">EASA Aircrew regulatory source. EASA Easy Access Rules are treated as a consolidated working source; EUR-Lex / Official Journal remains the authentic EU legal source.</textarea>
+<button class="primary" onclick="createRegulatorySource()">Save source / Forrás mentése</button>
+<p id="srcMsg" class="small"></p>
+
+<h3 style="margin-top:20px">2. Regulatory Change létrehozása</h3>
+<div class="row">
+ <div><label>Source</label><select id="changeSource"></select></div>
+ <div><label>Change type</label><select id="changeType"><option>REGULATION</option><option>AMENDMENT</option><option>AMC_GM</option><option>REVISION</option><option>CORRIGENDUM</option></select></div>
+</div>
+<div class="row">
+ <div><label>Title</label><input id="changeTitle" value="Commission Implementing Regulation (EU) 2026/781"></div>
+ <div><label>Reference</label><input id="changeReference" value="EU 2026/781"></div>
+</div>
+<div class="row">
+ <div><label>Publication date</label><input id="changePublished" type="date"></div>
+ <div><label>Effective date</label><input id="changeEffective" type="date"></div>
+</div>
+<label>Description / Változás leírása</label>
+<textarea id="changeDesc">Regulatory change requiring auditor review. No automatic non-compliance finding is generated.</textarea>
+<button class="primary" onclick="createRegulatoryChange()">Save change / Változás mentése</button>
+<p id="changeMsg" class="small"></p>
+
+<h3 style="margin-top:20px">3. Impact Assessment / Hatásvizsgálat</h3>
+<div class="row">
+ <div><label>Regulatory change</label><select id="opImpactChange"></select></div>
+ <div><label>Affected requirement</label><select id="opImpactRequirement"></select></div>
+</div>
+<div class="row">
+ <div><label>Auditor decision</label><select id="opImpactDecision"><option value="REVIEW_REQUIRED">Review Required</option><option value="NO_IMPACT">No impact</option><option value="UPDATE_REQUIRED">Update required</option><option value="FINDING_REQUIRED">Finding required</option></select></div>
+ <div><label>Risk / priority</label><select id="opImpactRisk"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option></select></div>
+</div>
+<label>Auditor rationale / Indoklás</label>
+<textarea id="opImpactRationale" placeholder="Why is this requirement affected? What needs to be reviewed or changed?"></textarea>
+<button class="primary" onclick="saveOperationalImpact()">Save assessment / Hatásvizsgálat mentése</button>
+<p id="opImpactMsg" class="small"></p>
+</section>
+<script>
+let liveSchema={};
+function schemaProps(table){const x=liveSchema[table];return x?.properties||{};}
+function hasCol(table,name){return Object.prototype.hasOwnProperty.call(schemaProps(table),name);}
+function firstCol(table,names){return names.find(n=>hasCol(table,n))||null;}
+function putMapped(payload,table,names,value){if(value===undefined||value===null||value==='')return;const col=firstCol(table,names);if(col)payload[col]=value;}
+function requiredCols(table){const x=liveSchema[table]||{};return Array.isArray(x.required)?x.required:[];}
+function validatePayload(table,payload){const req=requiredCols(table).filter(c=>!['id','created_at','updated_at'].includes(c));return req.filter(c=>payload[c]===undefined||payload[c]===null||payload[c]==='');}
+async function loadLiveSchema(){
+ const st=document.getElementById('schemaLiveStatus');st.textContent='Loading…';
+ try{
+  await refreshSession(false);
+  const r=await fetch(SUPABASE_URL+'/rest/v1/',{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+(session?.access_token||SUPABASE_KEY),'Accept':'application/openapi+json'}});
+  const d=await r.json();if(!r.ok)throw new Error(d?.message||d?.error_description||'Schema request failed');
+  const defs=d.definitions||d.components?.schemas||{};liveSchema={};
+  ['regulatory_sources','regulatory_changes','impact_assessments','review_tasks'].forEach(t=>{liveSchema[t]=defs[t]||{};});
+  const lines=Object.keys(liveSchema).map(t=>{const p=Object.keys(liveSchema[t].properties||{});const req=requiredCols(t);return '<div style="margin:8px 0"><b>'+esc(t)+'</b><br><span class="small">Fields: '+esc(p.join(', ')||'not exposed')+(req.length?' · Required: '+esc(req.join(', ')):'')+'</span></div>';});
+  document.getElementById('schemaDetails').innerHTML=lines.join('')||'No schema definitions returned.';
+  st.innerHTML='<span class="success">✓ Schema loaded</span>';refreshOperationalSelects();return true;
+ }catch(e){st.innerHTML='<span class="error">✕ '+esc(e.message)+'</span>';throw e;}
+}
+function refreshOperationalSelects(){
+ const sources=regulatorySources||[],changes=regulatoryChanges||[];
+ const s=document.getElementById('changeSource');if(!s)return;
+ s.innerHTML=sources.length?sources.map((x,i)=>'<option value="'+esc(x.id||'')+'">'+esc(x.name||x.title||x.source_reference||('Source '+(i+1)))+'</option>').join(''):'<option value="">No sources yet</option>';
+ const c=document.getElementById('opImpactChange');c.innerHTML=changes.length?changes.map((x,i)=>'<option value="'+esc(x.id||'')+'">'+esc(x.title||x.name||x.reference||('Change '+(i+1)))+'</option>').join(''):'<option value="">No changes yet</option>';
+ const r=document.getElementById('opImpactRequirement');r.innerHTML=requirements.length?requirements.map(x=>'<option value="'+esc(x.id||'')+'">'+esc(x.requirement_code||'Requirement')+' — '+esc(x.framework||'')+'</option>').join(''):'<option value="">No requirements loaded</option>';
+}
+async function createRegulatorySource(){
+ const msg=document.getElementById('srcMsg');msg.textContent='';
+ try{
+  if(!Object.keys(liveSchema).length)await loadLiveSchema();
+  const payload={},uid=await userId(),name=document.getElementById('srcName').value.trim(),type=document.getElementById('srcType').value,url=document.getElementById('srcUrl').value.trim(),legal=document.getElementById('srcLegal').value.trim(),desc=document.getElementById('srcDesc').value.trim();
+  putMapped(payload,'regulatory_sources',['owner_id','created_by','user_id'],uid);putMapped(payload,'regulatory_sources',['name','title','source_name'],name);putMapped(payload,'regulatory_sources',['source_type','type','category'],type);putMapped(payload,'regulatory_sources',['url','source_url','link'],url);putMapped(payload,'regulatory_sources',['legal_reference','legal_ref'],legal);putMapped(payload,'regulatory_sources',['description','notes'],desc);putMapped(payload,'regulatory_sources',['active','is_active'],true);
+  const missing=validatePayload('regulatory_sources',payload);if(missing.length)throw new Error('Kötelező mezők hiányoznak a regulatory_sources táblában: '+missing.join(', '));
+  await api('/rest/v1/regulatory_sources',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  msg.innerHTML='✓ Forrás mentve.';msg.className='small success';await loadRegulatoryWatch();refreshOperationalSelects();
+ }catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
+}
+async function createRegulatoryChange(){
+ const msg=document.getElementById('changeMsg');msg.textContent='';
+ try{
+  if(!Object.keys(liveSchema).length)await loadLiveSchema();
+  const payload={},uid=await userId(),source=document.getElementById('changeSource').value;
+  putMapped(payload,'regulatory_changes',['owner_id','created_by','user_id'],uid);putMapped(payload,'regulatory_changes',['source_id','regulatory_source_id'],source);putMapped(payload,'regulatory_changes',['title','name'],document.getElementById('changeTitle').value.trim());putMapped(payload,'regulatory_changes',['change_type','type','category'],document.getElementById('changeType').value);putMapped(payload,'regulatory_changes',['reference','source_reference','legal_reference'],document.getElementById('changeReference').value.trim());putMapped(payload,'regulatory_changes',['publication_date','published_at','published_on'],document.getElementById('changePublished').value||null);putMapped(payload,'regulatory_changes',['effective_date','effective_at','effective_on'],document.getElementById('changeEffective').value||null);putMapped(payload,'regulatory_changes',['description','summary','notes'],document.getElementById('changeDesc').value.trim());putMapped(payload,'regulatory_changes',['status'],'REVIEW_REQUIRED');
+  const missing=validatePayload('regulatory_changes',payload);if(missing.length)throw new Error('Kötelező mezők hiányoznak a regulatory_changes táblában: '+missing.join(', '));
+  await api('/rest/v1/regulatory_changes',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  msg.innerHTML='✓ Regulatory change mentve.';msg.className='small success';await loadRegulatoryWatch();refreshOperationalSelects();
+ }catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
+}
+async function saveOperationalImpact(){
+ const msg=document.getElementById('opImpactMsg');msg.textContent='';
+ try{
+  if(!Object.keys(liveSchema).length)await loadLiveSchema();
+  const change=document.getElementById('opImpactChange').value,req=document.getElementById('opImpactRequirement').value,decision=document.getElementById('opImpactDecision').value,risk=document.getElementById('opImpactRisk').value,rationale=document.getElementById('opImpactRationale').value.trim();
+  if(!change||!req)throw new Error('Válassz regulatory change-et és affected requirementet.');if(!rationale)throw new Error('Az auditori indoklás kötelező.');
+  const uid=await userId(),p={};putMapped(p,'impact_assessments',['owner_id','created_by','user_id','assessed_by'],uid);putMapped(p,'impact_assessments',['change_id','regulatory_change_id'],change);putMapped(p,'impact_assessments',['requirement_id','affected_requirement_id'],req);putMapped(p,'impact_assessments',['decision','assessment','assessment_decision','status'],decision);putMapped(p,'impact_assessments',['risk','risk_level','priority'],risk);putMapped(p,'impact_assessments',['rationale','auditor_notes','notes','reason'],rationale);putMapped(p,'impact_assessments',['assessed_at','assessment_date'],new Date().toISOString());
+  const missing=validatePayload('impact_assessments',p);if(missing.length)throw new Error('Kötelező mezők hiányoznak az impact_assessments táblában: '+missing.join(', '));
+  const saved=await api('/rest/v1/impact_assessments',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(p)}),impactId=Array.isArray(saved)?saved[0]?.id:saved?.id;let taskMsg='';
+  if(decision!=='NO_IMPACT'){
+   const t={};putMapped(t,'review_tasks',['owner_id','created_by','assigned_by'],uid);putMapped(t,'review_tasks',['change_id','regulatory_change_id'],change);putMapped(t,'review_tasks',['impact_assessment_id','assessment_id'],impactId);putMapped(t,'review_tasks',['requirement_id','affected_requirement_id'],req);putMapped(t,'review_tasks',['title','name'],decision==='FINDING_REQUIRED'?'Regulatory change – finding review':'Regulatory change – review required');putMapped(t,'review_tasks',['task_type','type','category'],'REGULATORY_REVIEW');putMapped(t,'review_tasks',['status'],'OPEN');putMapped(t,'review_tasks',['priority','risk','risk_level'],risk);putMapped(t,'review_tasks',['description','notes'],rationale);
+   const tm=validatePayload('review_tasks',t);if(tm.length)throw new Error('A hatásvizsgálat mentve, de a Review Task nem hozható létre. Kötelező mezők: '+tm.join(', '));await api('/rest/v1/review_tasks',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(t)});taskMsg=' + Review Task létrehozva';
+  }
+  msg.innerHTML='✓ Impact Assessment mentve'+taskMsg+'.';msg.className='small success';await loadRegulatoryWatch();refreshOperationalSelects();
+ }catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
+}
+</script>
+
 <div class="card">
 <h2>My audits</h2>
 <div id="audits">Loading…</div>
@@ -723,7 +846,7 @@ function prepareImpactAssessment(){
 
 function initialiseRegulatoryWatch(){
  if(!session)return;
- loadRegulatoryWatch();
+ loadRegulatoryWatch().then(()=>refreshOperationalSelects()).catch(()=>{});
 }
 
 async function checkConnection(){
@@ -750,7 +873,7 @@ async function checkConnection(){
 </script>
 
 <section class="card" id="schemaCard">
-<h2>V3.4 – Regulatory Watch Data Model Check</h2>
+<h2>V3.5 – Regulatory Watch Data Model Check</h2>
 <p>Ez az ellenőrzés nem módosít adatbázist. Csak megvizsgálja, hogy a Regulatory Watch négy táblája elérhető-e a bejelentkezett felhasználó számára.</p>
 <div class="row">
 <div><strong>regulatory_sources</strong><div id="chkSources">—</div></div>
@@ -760,7 +883,7 @@ async function checkConnection(){
 </div>
 <button class="primary" onclick="runSchemaCheck()">Táblák ellenőrzése</button>
 <div id="schemaResult" class="muted" style="margin-top:12px"></div>
-<p style="margin-top:16px"><strong>Következő lépés:</strong> ha valamelyik tábla elérhető, de üres, megmutatjuk a pontos mezőstruktúrát a Supabase-ben, és csak ezután kötjük rá az automatikus mentést.</p>
+<p style="margin-top:16px"><strong>Következő lépés:</strong> ha valamelyik tábla elérhető, de üres, a V3.5 a PostgREST séma-információt is megpróbálja lekérni, hogy az automatikus mentés csak létező mezőket használjon.</p>
 </section>
 <script>
 async function runSchemaCheck(){
