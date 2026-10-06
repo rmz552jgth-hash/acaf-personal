@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V3.0</title>
+<title>ACAF Personal V3.2</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -131,8 +131,35 @@ button.active{outline:3px solid #17202a}
 </div>
 
 
+
 <div class="card">
-<h2>V3.1 Regulatory Watch / Regulatory Change & Impact Assessment</h2>
+<h2>Official Regulatory Sources / Hivatalos szabályozási források</h2>
+<p class="small">Az ACAF két szintet különít el: az <b>EUR-Lex / Official Journal</b> az autentikus jogforrás, az <b>EASA Easy Access Rules XML</b> pedig a gépi feldolgozásra alkalmas konszolidált munkaforrás.</p>
+<div class="row">
+ <div class="sourceBox">
+  <b>EASA Aircrew – Regulation (EU) No 1178/2011</b>
+  <p class="small">Az EASA Aircrew szabályozási oldala jelenleg felsorolja többek között a 2026/781, 2025/2293 és 2025/134 módosításokat.</p>
+  <a href="https://www.easa.europa.eu/en/regulations/aircrew" target="_blank" rel="noopener">EASA Aircrew regulations ↗</a><br>
+  <a href="https://www.easa.europa.eu/en/document-library/easy-access-rules/easy-access-rules-aircrew-regulation-eu-no-11782011" target="_blank" rel="noopener">EASA Aircrew Easy Access Rules / XML ↗</a>
+ </div>
+ <div class="sourceBox">
+  <b>EUR-Lex / Official Journal</b>
+  <p class="small">Az autentikus EU-jogi forrás, amelyre az ACAF jogi hivatkozása épül.</p>
+  <a href="https://eur-lex.europa.eu/" target="_blank" rel="noopener">EUR-Lex ↗</a>
+ </div>
+</div>
+<div class="review" style="margin-top:14px">
+ <b>Current watch candidates / Jelenlegi figyelési jelöltek</b>
+ <ul class="small">
+  <li><b>Commission Implementing Regulation (EU) 2026/781</b> – FSTD-kre és azok pilot training/testing/checking célú használatára vonatkozó követelmények.</li>
+  <li><b>Commission Implementing Regulation (EU) 2025/2293</b> – többek között a 1178/2011-et érintő információbiztonsági módosítások és korrekciók.</li>
+  <li><b>Commission Implementing Regulation (EU) 2025/134</b> – gyroplane pilot licence szabályozási keret.</li>
+ </ul>
+ <span class="small">Ezek <b>Review Required</b> jelöltek, nem automatikus findings.</span>
+</div>
+</div>
+<div class="card">
+<h2>V3.2 Regulatory Watch / Regulatory Change & Impact Assessment</h2>
 <p class="small">This is the first operational layer of the regulatory engine. A change is treated as <b>Review Required</b> until an auditor decides its impact.</p>
 <div class="metaGrid">
  <div class="stat"><div class="small">Regulatory sources</div><div class="kpi" id="rwSources">—</div></div>
