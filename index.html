@@ -279,7 +279,7 @@ Az auditor választja ki a ténylegesen érintett requirementet és végzi el a 
 
 <section class="card" id="findingCreateCard">
 <h2>V4.2 – Finding Creation</h2>
-<p class="small">A V4.2.4 a tényleges Supabase mezőtípusokhoz igazodik: a Finding No. adatbázisban egész szám.</p><p class="small"> Finding csak auditor által rögzített <b>Non-compliant</b> audit answer alapján hozható létre.</p>
+<p class="small">A V4.2.5 a tényleges Supabase mezőtípusokhoz igazodik: a Finding No. egész szám, a Finding státusz pedig a meglévő adatbázis-értékeket használja.</p><p class="small"> Finding csak auditor által rögzített <b>Non-compliant</b> audit answer alapján hozható létre.</p>
 <div class="review"><b>Finding rule:</b> Regulatory Change ≠ Finding. A Finding forrása az auditban rögzített Non-compliant értékelés és annak objektív bizonyítéka.</div>
 <div class="row" style="margin-top:14px">
  <div><label>Audit</label><select id="fcAudit"></select></div>
@@ -292,7 +292,7 @@ Az auditor választja ki a ténylegesen érintett requirementet és végzi el a 
 </div>
 <div class="row">
  <div><label>Risk</label><select id="fcRisk"><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Critical">Critical</option></select></div>
- <div><label>Status</label><select id="fcStatus"><option value="Open">Open</option><option value="CAPA_REQUIRED">CAPA Required</option></select></div>
+ <div><label>Status</label><select id="fcStatus"><option value="open">Open</option><option value="in_progress">In progress</option><option value="submitted">Submitted</option><option value="verification">Verification</option><option value="closed">Closed</option></select></div>
 </div>
 <label>Objective statement / Objektív megállapítás</label>
 <textarea id="fcObjective" placeholder="State the objective evidence-based non-compliance clearly."></textarea>
