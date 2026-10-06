@@ -274,6 +274,39 @@ Az auditor választja ki a ténylegesen érintett requirementet és végzi el a 
   követelményeket. Ez csak hatásvizsgálati kiindulópont.
 </div>
 </section>
+
+<section class="card" id="questionImpactCard">
+<h2>V4.0 – Audit Question Auto-Impact</h2>
+<p class="small">
+A Regulatory Change alapján az ACAF megkeresi a kapcsolódó Requirementeket, majd az adott
+Requirementhez tartozó audit kérdéseket. Az eredmény mindig <b>Review Required</b>;
+a rendszer nem állítja át automatikusan a kérdés megfelelőségi értékelését.
+</p>
+
+<div class="review">
+<b>Workflow:</b>
+Regulatory Change → Requirement → Audit Question → Review Required → Auditor decision
+</div>
+
+<div class="row" style="margin-top:14px">
+ <div><label>Regulatory Change</label><select id="qiChange"></select></div>
+ <div><label>Requirement</label><select id="qiRequirement"></select></div>
+</div>
+
+<div class="row">
+ <div><label>Audit (optional filter)</label><select id="qiAudit"><option value="">All audits</option></select></div>
+ <div><label>Status filter</label>
+   <select id="qiStatus">
+    <option value="all">All</option>
+    <option value="review_required">Review Required</option>
+    <option value="not_reviewed">Not yet reviewed</option>
+   </select>
+ </div>
+</div>
+
+<div id="qiSummary" class="sourceBox" style="margin-top:12px">Válassz regulatory change-et és requirementet.</div>
+<div id="qiResults" class="stack" style="margin-top:12px"></div>
+</section>
 <section class="card" id="operationalCard">
 <h2>V3.6 – Operational Regulatory Watch</h2>
 <p class="small">
@@ -1070,17 +1103,120 @@ function refreshMappingSelect(){
   renderMapping();
 }
 
+
+let questionImpactRows=[];
+
+function refreshQuestionImpactSelectors(){
+ const c=document.getElementById('qiChange');
+ const r=document.getElementById('qiRequirement');
+ const a=document.getElementById('qiAudit');
+ if(c)c.innerHTML=(regulatoryChanges||[]).map(x=>`<option value="${esc(x.id)}">${esc(x.title||x.new_version||'Change')}</option>`).join('') || '<option value="">No changes</option>';
+ if(r)r.innerHTML=(requirements||[]).map(x=>`<option value="${esc(x.id)}">${esc(x.requirement_code||'Requirement')} — ${esc(x.framework||'')}</option>`).join('') || '<option value="">No requirements</option>';
+ if(a){
+   const audits=window.acafAudits||[];
+   a.innerHTML='<option value="">All audits</option>'+audits.map(x=>`<option value="${esc(x.id)}">${esc(x.title||x.audit_no||x.id)}</option>`).join('');
+ }
+ renderQuestionImpact();
+}
+
+async function loadQuestionImpact(){
+ const changeId=document.getElementById('qiChange')?.value;
+ const reqId=document.getElementById('qiRequirement')?.value;
+ if(!changeId || !reqId){
+   renderQuestionImpact();
+   return;
+ }
+ try{
+   let url='/rest/v1/audit_questions?select=*,audits(id,title,audit_no)&requirement_id=eq.'+encodeURIComponent(reqId)+'&order=sequence_no.asc';
+   questionImpactRows=await api(url);
+ }catch(e){
+   questionImpactRows=[];
+ }
+ renderQuestionImpact();
+}
+
+function renderQuestionImpact(){
+ const changeId=document.getElementById('qiChange')?.value;
+ const reqId=document.getElementById('qiRequirement')?.value;
+ const auditId=document.getElementById('qiAudit')?.value||'';
+ const status=document.getElementById('qiStatus')?.value||'all';
+ const summary=document.getElementById('qiSummary');
+ const results=document.getElementById('qiResults');
+ if(!summary||!results)return;
+
+ const req=(requirements||[]).find(x=>x.id===reqId);
+ const change=(regulatoryChanges||[]).find(x=>x.id===changeId);
+
+ if(!change||!req){
+   summary.textContent='Válassz regulatory change-et és requirementet.';
+   results.innerHTML='';
+   return;
+ }
+
+ const filtered=(questionImpactRows||[]).filter(q=>{
+   const a=q.audits||{};
+   if(auditId && a.id!==auditId)return false;
+   return true;
+ });
+
+ summary.innerHTML=
+   '<b>'+esc(req.requirement_code||'Requirement')+'</b> → <b>'+esc(change.title||'Regulatory change')+'</b>'+
+   '<div class="small">'+filtered.length+' audit question található ehhez a requirementhez.</div>';
+
+ if(!filtered.length){
+   results.innerHTML='<div class="muted">Jelenleg nincs ehhez a requirementhez audit question. Ha egy auditban használni szeretnéd, először nyisd meg az auditot és add hozzá a requirementet.</div>';
+   return;
+ }
+
+ results.innerHTML=filtered.map(q=>{
+   const a=q.audits||{};
+   return `<div class="sourceBox" style="margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;gap:10px">
+      <div>
+       <b>${esc(a.title||a.audit_no||'Audit')}</b>
+       <div class="small">Question ID: ${esc(q.id||'')} · Sequence: ${esc(q.sequence_no??'')}</div>
+       <div class="small" style="margin-top:5px">
+         <span class="review">REVIEW REQUIRED</span>
+       </div>
+      </div>
+      <button class="secondary" onclick="openImpactedAudit('${esc(a.id||'')}')">Open audit</button>
+    </div>
+   </div>`;
+ }).join('');
+}
+
+function openImpactedAudit(auditId){
+ if(!auditId)return;
+ const input=document.getElementById('auditId');
+ if(input)input.value=auditId;
+ if(typeof openAudit==='function')openAudit();
+ else document.getElementById('auditCard')?.scrollIntoView({behavior:'smooth'});
+}
+
 function initialiseRegulatoryWatch(){
  if(!session)return;
  Promise.all([loadRegulatoryWatch(), loadRequirements()]).then(()=>{
    refreshOperationalSelects();
    refreshMappingSelect();
+   refreshQuestionImpactSelectors();
+
    const c=document.getElementById('opImpactChange');
    if(c)c.addEventListener('change',updateLoadedChangeInfo);
    const mc=document.getElementById('mappingChange');
    if(mc)mc.addEventListener('change',renderMapping);
    const mf=document.getElementById('mappingFramework');
    if(mf)mf.addEventListener('change',renderMapping);
+
+   const qc=document.getElementById('qiChange');
+   const qr=document.getElementById('qiRequirement');
+   const qa=document.getElementById('qiAudit');
+   const qs=document.getElementById('qiStatus');
+   if(qc)qc.addEventListener('change',loadQuestionImpact);
+   if(qr)qr.addEventListener('change',loadQuestionImpact);
+   if(qa)qa.addEventListener('change',renderQuestionImpact);
+   if(qs)qs.addEventListener('change',renderQuestionImpact);
+
+   loadQuestionImpact();
  }).catch(()=>{});
 }
 
