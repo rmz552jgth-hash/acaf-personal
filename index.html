@@ -335,7 +335,14 @@ indulhat Finding. A Regulatory Change önmagában soha nem generál Findingot.
 </div>
 
 <div id="findingPreview" class="notice" style="margin-top:12px">
-A tényleges Finding űrlapot a schema ellenőrzése után kötjük rá a Supabase-re.
+A Finding/CAPA adatok elérhetők. Válassz egy meglévő Findingot a CAPA létrehozásához.
+</div>
+<div class="card" id="capaExistingCard" style="margin-top:14px">
+<h3>3. CAPA létrehozása meglévő Findinghoz</h3>
+<p class="small">A már létrehozott Findingok itt jelennek meg. A CAPA mindig a kiválasztott Findinghoz kapcsolódik.</p>
+<div class="row"><div><label>Finding / Megállapítás</label><select id="capaFindingSelect"><option value="">Findingok betöltése…</option></select></div><div style="display:flex;align-items:end"><button class="secondary" onclick="loadCapaFindings()">↻ Findingok frissítése</button></div></div>
+<div id="capaSelectedInfo" class="sourceBox" style="margin-top:12px">Válassz Findingot.</div>
+<div id="capaFormHost"></div>
 </div>
 </section>
 <section class="card" id="questionImpactCard">
@@ -1248,6 +1255,28 @@ async function checkOneTableSchema(table){
   }
 }
 
+async function loadCapaFindings(){
+ const sel=document.getElementById('capaFindingSelect'), info=document.getElementById('capaSelectedInfo');
+ if(!sel)return; sel.innerHTML='<option value="">Betöltés…</option>';
+ try{ const rows=await api('/rest/v1/findings?select=*&order=created_at.desc');
+  if(!rows.length){sel.innerHTML='<option value="">Nincs Finding</option>'; if(info)info.textContent='Nincs még Finding.'; return;}
+  window.acafFindings=rows;
+  sel.innerHTML=rows.map(f=>`<option value="${esc(f.id)}">Finding #${esc(f.finding_no??f.id)} — ${esc(f.classification||'')} — ${esc(f.status||'')}</option>`).join('');
+  renderExistingCapaForm();
+ }catch(e){sel.innerHTML='<option value="">Betöltési hiba</option>'; if(info)info.innerHTML='<span class="error">✕ '+esc(e.message||'Ismeretlen hiba')+'</span>';}
+}
+function renderExistingCapaForm(){
+ const sel=document.getElementById('capaFindingSelect'), host=document.getElementById('capaFormHost'), info=document.getElementById('capaSelectedInfo'); if(!sel||!host)return;
+ const finding=(window.acafFindings||[]).find(x=>x.id===sel.value); if(!finding){host.innerHTML=''; if(info)info.textContent='Válassz Findingot.'; return;}
+ if(info)info.innerHTML=`<b>Finding #${esc(finding.finding_no??finding.id)}</b> · ${esc(finding.classification||'')} · Risk: ${esc(finding.risk||'')} · Status: ${esc(finding.status||'')}<br><span class="small">${esc(finding.objective_statement||'')}</span>`;
+ host.innerHTML=`<div class="sourceBox" style="margin-top:12px"><div class="row"><div><label>Corrective action / Helyesbítő intézkedés</label><textarea id="existingCapaCorrective" placeholder="What will correct the finding?"></textarea></div><div><label>Preventive action / Megelőző intézkedés</label><textarea id="existingCapaPreventive" placeholder="What prevents recurrence?"></textarea></div></div><div class="row"><div><label>Responsible person / Felelős</label><input id="existingCapaResponsible"></div><div><label>Target date / Céldátum</label><input id="existingCapaTarget" type="date"></div></div><label>Effectiveness method / Hatékonyság ellenőrzése</label><textarea id="existingCapaEffectiveness" placeholder="How will effectiveness be verified?"></textarea><button class="primary" onclick="createExistingCapa()">Create CAPA / CAPA létrehozása</button><p class="small">Kezdő státusz: <b>open</b></p><p id="existingCapaMsg" class="small"></p></div>`;
+}
+async function createExistingCapa(){
+ const msg=document.getElementById('existingCapaMsg'); try{ const findingId=document.getElementById('capaFindingSelect')?.value; if(!findingId)throw new Error('Válassz Findingot.'); const uid=await userId(); const corrective=document.getElementById('existingCapaCorrective').value.trim(); if(!corrective)throw new Error('A Corrective action kötelező.');
+  const payload={owner_id:uid,finding_id:findingId,corrective_action:corrective,preventive_action:document.getElementById('existingCapaPreventive').value.trim()||null,responsible_person:document.getElementById('existingCapaResponsible').value.trim()||null,target_date:document.getElementById('existingCapaTarget').value||null,effectiveness_method:document.getElementById('existingCapaEffectiveness').value.trim()||null,status:'open'};
+  const saved=await api('/rest/v1/capa_actions',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)}); const row=Array.isArray(saved)?saved[0]:saved; if(!row?.id)throw new Error('CAPA mentése nem sikerült.'); msg.innerHTML='✓ CAPA létrehozva. ID: <b>'+esc(row.id)+'</b>'; msg.className='small success';
+ }catch(e){msg.textContent='✕ '+(e.message||'Ismeretlen hiba'); msg.className='small error';}
+}
 async function checkFindingSchema(){
  const box=document.getElementById('findingSchemaResult');
  box.innerHTML='<div class="small">Ellenőrzés folyamatban…</div>';
@@ -1470,6 +1499,7 @@ function initialiseRegulatoryWatch(){
    const fa=document.getElementById('fcAudit'), fq=document.getElementById('fcQuestion');
    if(fa)fa.addEventListener('change',loadFindingCreateQuestions);
    if(fq)fq.addEventListener('change',loadFindingAnswerInfo);
+   const cfs=document.getElementById('capaFindingSelect'); if(cfs)cfs.addEventListener('change',renderExistingCapaForm);
 
    loadQuestionImpact();
  }).catch(()=>{});
@@ -1497,7 +1527,7 @@ async function checkConnection(){
  checkConnection();
 })();
 
-setTimeout(()=>{ if(session) initialiseRegulatoryWatch(); }, 900);
+setTimeout(()=>{ if(session) { initialiseRegulatoryWatch(); setTimeout(()=>loadCapaFindings(), 1200); } }, 900);
 </script>
 
 <section class="card" id="schemaCard">
