@@ -230,6 +230,50 @@ button.active{outline:3px solid #17202a}
 <button onclick="document.getElementById('impactWorkspace').classList.add('hidden')">Close</button>
 <p id="impactMsg" class="small"></p>
 </div>
+
+<section class="card" id="mappingCard">
+<h2>V3.9 – Regulatory Change → Requirement Mapping</h2>
+<p class="small">
+Ez az első ACAF change-impact mapping réteg. A rendszer egy regulatory change alapján
+azonosítja a lehetséges érintett követelményeket, de <b>nem minősíti őket automatikusan non-compliantnak</b>.
+Az auditor választja ki a ténylegesen érintett requirementet és végzi el a hatásvizsgálatot.
+</p>
+
+<div class="review">
+<b>Decision rule:</b> Regulatory change → Candidate requirements → Auditor review → Impact Assessment.
+<br>Az automatikus mapping csak <b>jelölt</b> kapcsolatot hoz létre.
+</div>
+
+<div class="row" style="margin-top:14px">
+  <div>
+    <label>Regulatory Change / Változás</label>
+    <select id="mappingChange"></select>
+  </div>
+  <div>
+    <label>Framework</label>
+    <select id="mappingFramework">
+      <option value="all">All</option>
+      <option value="Part-ORA">Part-ORA</option>
+      <option value="Part-FCL">Part-FCL</option>
+    </select>
+  </div>
+</div>
+
+<div id="mappingSummary" class="sourceBox" style="margin-top:12px">
+  Válassz regulatory change-et.
+</div>
+
+<div style="margin-top:14px">
+  <h3>Candidate requirements / Lehetséges érintett követelmények</h3>
+  <div id="mappingCandidates" class="stack"></div>
+</div>
+
+<div class="notice" style="margin-top:14px">
+  <b>2026/781 special mapping:</b> az ismert FSTD-változásokhoz az ACAF jelöltként
+  kezeli az ORA.ATO.135, ORA.FSTD.100, ORA.FSTD.105, ORA.FSTD.110 és ORA.FSTD.210
+  követelményeket. Ez csak hatásvizsgálati kiindulópont.
+</div>
+</section>
 <section class="card" id="operationalCard">
 <h2>V3.6 – Operational Regulatory Watch</h2>
 <p class="small">
@@ -947,12 +991,96 @@ function prepareImpactAssessment(){
  window.acafPreparedImpact={change_id:change,requirement_id:req,decision,risk,rationale};
 }
 
+
+function mappingCandidatesForChange(change){
+  if(!change) return [];
+  const version=String(change.new_version||'').trim();
+  const title=String(change.title||'').toLowerCase();
+  let codes=[];
+  if(version==='2026/781' || title.includes('2026/781')){
+    codes=['ORA.ATO.135','ORA.FSTD.100','ORA.FSTD.105','ORA.FSTD.110','ORA.FSTD.210'];
+  }
+  const fw=document.getElementById('mappingFramework')?.value||'all';
+  return (requirements||[]).filter(r=>{
+    if(fw!=='all' && String(r.framework||'')!==fw)return false;
+    return codes.includes(String(r.requirement_code||''));
+  });
+}
+
+function renderMapping(){
+  const changeId=document.getElementById('mappingChange')?.value;
+  const change=(regulatoryChanges||[]).find(x=>x.id===changeId);
+  const summary=document.getElementById('mappingSummary');
+  const list=document.getElementById('mappingCandidates');
+  if(!summary||!list)return;
+  if(!change){
+    summary.textContent='Válassz regulatory change-et.';
+    list.innerHTML='';
+    return;
+  }
+  summary.innerHTML=
+    '<b>'+esc(change.title||'Regulatory change')+'</b>'+
+    '<div class="small">'+
+    (change.new_version?'Version: '+esc(change.new_version)+' · ':'')+
+    (change.publication_date?'Published: '+esc(change.publication_date)+' · ':'')+
+    'Status: '+esc(change.status||'review_required')+
+    '</div>'+
+    (change.change_summary?'<p class="small">'+esc(change.change_summary)+'</p>':'');
+
+  const candidates=mappingCandidatesForChange(change);
+  if(!candidates.length){
+    list.innerHTML='<div class="muted">Nincs előre definiált jelölt mapping. Az auditor kézzel választhat requirementet az Impact Assessmentben.</div>';
+    return;
+  }
+  list.innerHTML=candidates.map(r=>{
+    const existing=(regulatoryImpacts||[]).find(i=>i.regulatory_change_id===change.id && i.requirement_id===r.id);
+    return `<div class="sourceBox" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div>
+          <b>${esc(r.requirement_code||'')}</b>
+          <div class="small">${esc(r.domain||'')} · ${esc(r.version||'')}</div>
+          <div class="small" style="margin-top:5px">${esc(r.english_text||'').slice(0,260)}${(r.english_text||'').length>260?'…':''}</div>
+        </div>
+        <button class="secondary" onclick="useMappingRequirement('${esc(r.id)}')">Use in assessment</button>
+      </div>
+      <div class="small ${existing?'success':'muted'}" style="margin-top:7px">
+        ${existing?'✓ Existing impact assessment':'Candidate only – auditor review required'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function useMappingRequirement(reqId){
+  const c=document.getElementById('mappingChange')?.value;
+  const target=document.getElementById('opImpactChange2');
+  const req=document.getElementById('opImpactRequirement');
+  if(target && c) target.value=c;
+  if(req) req.value=reqId;
+  document.getElementById('operationalCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+  const msg=document.getElementById('opImpactMsg');
+  if(msg){msg.textContent='Requirement kiválasztva. Végezd el az auditor Impact Assessmentet.';msg.className='small';}
+}
+
+function refreshMappingSelect(){
+  const el=document.getElementById('mappingChange');
+  if(!el)return;
+  el.innerHTML=(regulatoryChanges||[]).length
+    ? regulatoryChanges.map(x=>`<option value="${esc(x.id)}">${esc(x.title||x.new_version||'Regulatory change')}</option>`).join('')
+    : '<option value="">No regulatory changes loaded</option>';
+  renderMapping();
+}
+
 function initialiseRegulatoryWatch(){
  if(!session)return;
- loadRegulatoryWatch().then(()=>{
+ Promise.all([loadRegulatoryWatch(), loadRequirements()]).then(()=>{
    refreshOperationalSelects();
+   refreshMappingSelect();
    const c=document.getElementById('opImpactChange');
    if(c)c.addEventListener('change',updateLoadedChangeInfo);
+   const mc=document.getElementById('mappingChange');
+   if(mc)mc.addEventListener('change',renderMapping);
+   const mf=document.getElementById('mappingFramework');
+   if(mf)mf.addEventListener('change',renderMapping);
  }).catch(()=>{});
 }
 
@@ -977,10 +1105,12 @@ async function checkConnection(){
  }
  checkConnection();
 })();
+
+setTimeout(()=>{ if(session) initialiseRegulatoryWatch(); }, 900);
 </script>
 
 <section class="card" id="schemaCard">
-<h2>V3.5 – Regulatory Watch Data Model Check</h2>
+<h2>V3.9 – Regulatory Watch Data Model Check</h2>
 <p>Ez az ellenőrzés nem módosít adatbázist. Csak megvizsgálja, hogy a Regulatory Watch négy táblája elérhető-e a bejelentkezett felhasználó számára.</p>
 <div class="row">
 <div><strong>regulatory_sources</strong><div id="chkSources">—</div></div>
