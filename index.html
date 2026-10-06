@@ -188,6 +188,7 @@ async function openAudit(id){
  try{
   const rows=await api("/rest/v1/audits?select=*&id=eq."+encodeURIComponent(id)+"&limit=1");
   currentAudit=rows?.[0];if(!currentAudit)throw new Error("Audit not found.");
+  selectedRequirement=null;selectedAssessment="";selectedQuestionId=null;currentAnswerId=null;
   document.getElementById("dashboardView").classList.add("hidden");
   document.getElementById("auditView").classList.remove("hidden");
   document.getElementById("auditTitle").textContent=currentAudit.title||currentAudit.audit_no||"Audit";
@@ -220,7 +221,46 @@ function renderRequirements(){
 async function selectRequirement(id){
  selectedRequirement=requirements.find(r=>r.id===id);renderRequirements();renderQuestion();
 }
-function renderQuestion(){
+let selectedAssessment="";
+let selectedQuestionId=null;
+let currentAnswerId=null;
+
+async function ensureAuditQuestion(){
+ if(!currentAudit||!selectedRequirement)throw new Error("Select an audit and requirement first.");
+ const existing=await api("/rest/v1/audit_questions?select=*&audit_id=eq."+encodeURIComponent(currentAudit.id)+"&requirement_id=eq."+encodeURIComponent(selectedRequirement.id)+"&limit=1");
+ if(existing?.[0]){selectedQuestionId=existing[0].id;return existing[0];}
+ const count=await api("/rest/v1/audit_questions?select=id&audit_id=eq."+encodeURIComponent(currentAudit.id));
+ const created=await api("/rest/v1/audit_questions",{
+  method:"POST",
+  headers:{"Prefer":"return=representation"},
+  body:JSON.stringify({audit_id:currentAudit.id,requirement_id:selectedRequirement.id,sequence_no:(count?.length||0)+1})
+ });
+ const q=created?.[0];if(!q?.id)throw new Error("Audit question was not created.");
+ selectedQuestionId=q.id;return q;
+}
+
+async function loadExistingAnswer(){
+ currentAnswerId=null; selectedAssessment="";
+ if(!selectedQuestionId)return;
+ try{
+  const rows=await api("/rest/v1/audit_answers?select=*&question_id=eq."+encodeURIComponent(selectedQuestionId)+"&limit=1");
+  const a=rows?.[0];if(!a)return;
+  currentAnswerId=a.id;selectedAssessment=a.assessment||"";
+  document.getElementById("evidenceField").value=a.evidence||"";
+  document.getElementById("notesField").value=a.auditor_notes||"";
+  markAssessmentButton();
+ }catch(e){}
+}
+
+function markAssessmentButton(){
+ document.querySelectorAll("#assessmentButtons button").forEach(b=>b.classList.toggle("active",b.dataset.value===selectedAssessment));
+}
+
+async function selectRequirement(id){
+ selectedRequirement=requirements.find(r=>r.id===id);renderRequirements();await renderQuestion();
+}
+
+async function renderQuestion(){
  const r=selectedRequirement;if(!r)return;
  document.getElementById("questionPanel").innerHTML=`
   <div class="small">${esc(r.framework||"")} · ${esc(r.domain||"")}</div>
@@ -232,30 +272,90 @@ function renderQuestion(){
   <h3>Auditor guidance / Auditor útmutató</h3>
   <div class="notice">${esc(r.auditor_guidance||"—")}</div>
   <h3>Assessment / Értékelés</h3>
-  <div>
-   <button class="good" onclick="assessmentNotice('COMPLIANT')">🟢 Compliant</button>
-   <button class="warn" onclick="assessmentNotice('PARTIAL')">🟡 Partially compliant</button>
-   <button class="bad" onclick="assessmentNotice('NON_COMPLIANT')">🔴 Non-compliant</button>
-   <button onclick="assessmentNotice('N/A')">⚪ Not applicable</button>
+  <div id="assessmentButtons">
+   <button class="good" data-value="COMPLIANT" onclick="assessmentNotice('COMPLIANT')">🟢 Compliant</button>
+   <button class="warn" data-value="PARTIAL" onclick="assessmentNotice('PARTIAL')">🟡 Partially compliant</button>
+   <button class="bad" data-value="NON_COMPLIANT" onclick="assessmentNotice('NON_COMPLIANT')">🔴 Non-compliant</button>
+   <button data-value="N/A" onclick="assessmentNotice('N/A')">⚪ Not applicable</button>
   </div>
-  <div id="assessmentMessage" class="notice" style="margin-top:10px">
-   Assessment is ready. Saving the answer will be enabled after we map the exact audit_answers schema.
-  </div>
+  <div id="assessmentMessage" class="notice" style="margin-top:10px">Select an assessment.</div>
   <h3>Evidence / Bizonyíték</h3>
-  <textarea placeholder="Evidence reference, document ID, observation…"></textarea>
+  <textarea id="evidenceField" placeholder="Evidence reference, document ID, observation…"></textarea>
   <h3>Notes / Megjegyzés</h3>
-  <textarea placeholder="Auditor notes…"></textarea>
+  <textarea id="notesField" placeholder="Auditor notes…"></textarea>
+  <button class="primary" onclick="saveAnswer()">Save answer / Válasz mentése</button>
+  <span id="saveAnswerMsg" class="small"></span>
  `;
+ try{
+  await ensureAuditQuestion();
+  await loadExistingAnswer();
+ }catch(e){
+  document.getElementById("assessmentMessage").innerHTML='<span class="error">'+esc(e.message)+'</span>';
+ }
 }
+
 function assessmentNotice(v){
+ selectedAssessment=v;markAssessmentButton();
  const el=document.getElementById("assessmentMessage");
  if(!el)return;
- el.innerHTML="<b>Selected:</b> "+esc(v)+"<br><span class='small'>The assessment engine is ready. Database saving is intentionally not enabled yet so we do not guess the audit_answers column structure.</span>";
+ let extra="";
+ if(v==="NON_COMPLIANT") extra="<br><b>Finding workflow:</b> the next ACAF step will open Finding → Risk → CAPA.";
+ else if(v==="PARTIAL") extra="<br><b>Follow-up:</b> additional evidence/questions can be added in the next workflow step.";
+ el.innerHTML="<b>Selected:</b> "+esc(v)+extra;
 }
-function updateProgress(){
+
+async function saveAnswer(){
+ const msg=document.getElementById("saveAnswerMsg");
+ try{
+  if(!selectedAssessment)throw new Error("Select an assessment first.");
+  await ensureAuditQuestion();
+  const body={
+   question_id:selectedQuestionId,
+   assessment:selectedAssessment,
+   evidence:document.getElementById("evidenceField").value.trim(),
+   auditor_notes:document.getElementById("notesField").value.trim(),
+   answered_at:new Date().toISOString(),
+   updated_at:new Date().toISOString()
+  };
+  let result;
+  if(currentAnswerId){
+   result=await api("/rest/v1/audit_answers?id=eq."+encodeURIComponent(currentAnswerId),{
+    method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(body)
+   });
+  }else{
+   result=await api("/rest/v1/audit_answers",{
+    method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify(body)
+   });
+  }
+  const saved=result?.[0];
+  if(saved?.id)currentAnswerId=saved.id;
+  msg.textContent="✓ Saved";
+  msg.className="small success";
+  updateProgress();
+ }catch(e){
+  msg.textContent=e.message;
+  msg.className="small error";
+ }
+}
+async function updateProgress(){
  const n=requirements.length;
- document.getElementById("progressText").textContent=n?"Requirement Library loaded":"Requirement Library";
- document.getElementById("progressBar").style.width=n?"5%":"0%";
+ if(!n){
+  document.getElementById("progressText").textContent="Requirement Library";
+  document.getElementById("progressBar").style.width="0%";return;
+ }
+ let answered=0;
+ try{
+  const qs=await api("/rest/v1/audit_questions?select=id&audit_id=eq."+encodeURIComponent(currentAudit?.id||""));
+  if(qs?.length){
+   const ids=qs.map(x=>x.id).join(",");
+   if(ids) {
+    const ans=await api("/rest/v1/audit_answers?select=id&question_id=in.("+ids+")");
+    answered=ans?.length||0;
+   }
+  }
+ }catch(e){}
+ document.getElementById("progressText").textContent=`Progress / Haladás: ${answered} / ${n}`;
+ document.getElementById("progressBar").style.width=Math.min(100,Math.round(answered/n*100))+"%";
 }
 function backToDashboard(){
  currentAudit=null;selectedRequirement=null;requirements=[];
