@@ -77,6 +77,29 @@ button.active{outline:3px solid #17202a}
 </div>
 
 <div class="card">
+<h2>Requirement Library / Követelménykönyvtár</h2>
+<p class="small">Import structured requirements into the existing <code>requirements</code> table. No database schema changes are made.</p>
+<div class="row">
+<div>
+<label>CSV file / CSV fájl</label>
+<input id="requirementsCsv" type="file" accept=".csv,text/csv">
+</div>
+<div>
+<label>Framework filter / Keretrendszer</label>
+<select id="libraryFramework">
+<option value="">All / Mind</option>
+<option>Part-ORA</option>
+<option>Part-FCL</option>
+<option>Part-ORA / Part-FCL</option>
+</select>
+</div>
+</div>
+<button onclick="downloadRequirementsTemplate()">Download CSV template / Sablon letöltése</button>
+<button onclick="importRequirementsCsv()" class="primary">Import requirements / Követelmények importálása</button>
+<p id="importMsg" class="small"></p>
+</div>
+
+<div class="card">
 <h2>My audits</h2>
 <div id="audits">Loading…</div>
 </div>
@@ -172,6 +195,91 @@ async function createAudit(){
  }catch(e){document.getElementById("auditMsg").textContent=e.message}
 }
 
+
+const REQUIREMENT_COLUMNS=[
+ "requirement_code","framework","domain","source_type","source_reference",
+ "legal_reference","version","english_text","hungarian_text","expected_evidence",
+ "auditor_guidance","assessment_logic","finding_logic","risk_logic","capa_logic","active"
+];
+
+function parseCsv(text){
+ const rows=[]; let row=[], cell="", quoted=false;
+ for(let i=0;i<text.length;i++){
+  const c=text[i], n=text[i+1];
+  if(c==='"' && quoted && n==='"'){cell+='"';i++;continue}
+  if(c==='"'){quoted=!quoted;continue}
+  if(c===',' && !quoted){row.push(cell);cell="";continue}
+  if((c==='\n'||c==='\r') && !quoted){
+   if(c==='\r'&&n==='\n')i++;
+   row.push(cell);cell="";
+   if(row.some(x=>x.trim()!==""))rows.push(row);
+   row=[];continue;
+  }
+  cell+=c;
+ }
+ if(cell!==""||row.length){row.push(cell);if(row.some(x=>x.trim()!==""))rows.push(row)}
+ if(!rows.length)return [];
+ const headers=rows[0].map(x=>x.trim());
+ return rows.slice(1).map(r=>{
+  const o={};headers.forEach((h,i)=>o[h]=(r[i]??"").trim());return o;
+ });
+}
+
+function downloadRequirementsTemplate(){
+ const header=REQUIREMENT_COLUMNS.join(",");
+ const example=[
+  "DEMO-001","Part-ORA","Demo / Test","EASA","EASA Easy Access Rules",
+  "Demo reference","2026","Example English requirement","Példa magyar követelmény",
+  "Example evidence","Example auditor guidance","Manual assessment",
+  "Manual finding decision","Manual risk assessment","Manual CAPA decision","true"
+ ].map(v=>'"'+String(v).replaceAll('"','""')+'"').join(",");
+ const blob=new Blob([header+"\n"+example+"\n"],{type:"text/csv;charset=utf-8"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+ a.download="ACAF_requirements_template.csv";a.click();URL.revokeObjectURL(a.href);
+}
+
+async function importRequirementsCsv(){
+ const msg=document.getElementById("importMsg");
+ try{
+  const file=document.getElementById("requirementsCsv").files?.[0];
+  if(!file)throw new Error("Select a CSV file first.");
+  const framework=document.getElementById("libraryFramework").value;
+  const rows=parseCsv(await file.text());
+  if(!rows.length)throw new Error("The CSV contains no data rows.");
+  const valid=rows.filter(r=>r.requirement_code);
+  if(!valid.length)throw new Error("CSV must contain a requirement_code column with data.");
+  const payload=valid.map(r=>{
+   const o={};
+   REQUIREMENT_COLUMNS.forEach(k=>{
+    if(k==="active")o[k]=r[k]===""?true:!["false","0","no"].includes(String(r[k]).toLowerCase());
+    else o[k]=r[k]||null;
+   });
+   if(framework)o.framework=framework;
+   return o;
+  });
+  let created=0;
+  for(const item of payload){
+   const existing=await api("/rest/v1/requirements?select=id&requirement_code=eq."+encodeURIComponent(item.requirement_code)+"&limit=1");
+   if(existing?.[0]){
+    await api("/rest/v1/requirements?id=eq."+encodeURIComponent(existing[0].id),{
+     method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify(item)
+    });
+   }else{
+    await api("/rest/v1/requirements",{
+     method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(item)
+    });
+   }
+   created++;
+  }
+  msg.textContent="✓ Imported/updated "+created+" requirement(s).";
+  msg.className="small success";
+  if(currentAudit)await loadRequirements();
+ }catch(e){
+  msg.textContent=e.message;
+  msg.className="small error";
+ }
+}
+
 async function loadAudits(){
  try{
   const rows=await api("/rest/v1/audits?select=*&order=created_at.desc");
@@ -200,6 +308,8 @@ async function openAudit(id){
 async function loadRequirements(){
  try{
   requirements=await api("/rest/v1/requirements?select=*&active=eq.true&order=requirement_code.asc");
+  // The current audits table stores the audit title but not a framework column,
+  // so the library remains searchable instead of guessing a framework filter.
   renderRequirements();
   updateProgress();
  }catch(e){
