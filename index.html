@@ -1114,10 +1114,29 @@ async function loadFindingCreateQuestions(){
  if(!auditId){q.innerHTML='<option value="">No audit selected</option>';return;}
  try{
   fcQuestions=await api('/rest/v1/audit_questions?select=*&audit_id=eq.'+encodeURIComponent(auditId)+'&order=sequence_no.asc');
-  q.innerHTML=fcQuestions.length ? fcQuestions.map(x=>`<option value="${esc(x.id)}">${esc(x.sequence_no??'')} · ${esc(x.id)}</option>`).join('') : '<option value="">No questions</option>';
-  await loadFindingAnswerInfo();
- }catch(e){q.innerHTML='<option value="">Unable to load questions</option>';}
+  if(fcQuestions.length){
+    q.innerHTML=fcQuestions.map(x=>{
+      const req=(requirements||[]).find(r=>r.id===x.requirement_id);
+      const label=req ? (req.requirement_code+' — '+(req.english_text||'').slice(0,90)) : ('Question '+(x.sequence_no??''));
+      return `<option value="${esc(x.id)}">${esc(label)}</option>`;
+    }).join('');
+    await loadFindingAnswerInfo();
+  }else{
+    q.innerHTML='<option value="">Nincs kérdés ebben az auditban</option>';
+    const box=document.getElementById('fcAnswerInfo');
+    if(box) box.innerHTML='<b>Az auditban még nincs audit question.</b><br><span class="small">Először nyisd meg az auditot, válassz egy Requirementet a Requirement Library-ból, majd mentsd az első auditkérdést.</span><br><button class="secondary" style="margin-top:8px" onclick="openSelectedFindingAudit()">Open selected audit</button>';
+  }
+ }catch(e){
+  q.innerHTML='<option value="">Unable to load questions</option>';
+  const box=document.getElementById('fcAnswerInfo');
+  if(box) box.innerHTML='<b>Audit question betöltési hiba.</b><br><span class="small error">'+esc(e.message||'Unknown error')+'</span>';
+ }
 }
+function openSelectedFindingAudit(){
+ const id=document.getElementById('fcAudit')?.value;
+ if(id && typeof openAudit==='function') openAudit(id);
+}
+
 async function loadFindingAnswerInfo(){
  const qid=document.getElementById('fcQuestion')?.value, box=document.getElementById('fcAnswerInfo');
  if(!box)return;
