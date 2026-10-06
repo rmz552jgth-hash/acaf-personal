@@ -275,6 +275,40 @@ Az auditor választja ki a ténylegesen érintett requirementet és végzi el a 
 </div>
 </section>
 
+
+<section class="card" id="findingCard">
+<h2>V4.1 – Finding & CAPA Engine</h2>
+<p class="small">
+A következő modul a Non-compliant → Finding → CAPA → Verification → Closure folyamatot kezeli.
+Első lépésként biztonságosan ellenőrizzük a meglévő Supabase-táblákat; adatot még nem írunk.
+</p>
+
+<div class="review">
+<b>Safety rule:</b> csak az auditor által véglegesített <b>Non-compliant</b> értékelésből
+indulhat Finding. A Regulatory Change önmagában soha nem generál Findingot.
+</div>
+
+<h3 style="margin-top:16px">1. Finding / CAPA adatmodell ellenőrzése</h3>
+<button class="primary" onclick="checkFindingSchema()">↻ Finding/CAPA schema ellenőrzése</button>
+<div id="findingSchemaResult" style="margin-top:12px"></div>
+
+<h3 style="margin-top:18px">2. Tervezett workflow</h3>
+<div class="sourceBox">
+  <b>Audit Answer</b> → <b>Non-compliant</b>
+  → <b>Finding</b>
+  → <b>Risk / Severity</b>
+  → <b>Root Cause</b>
+  → <b>CAPA Action</b>
+  → <b>Due Date</b>
+  → <b>Evidence</b>
+  → <b>Verification</b>
+  → <b>Closure</b>
+</div>
+
+<div id="findingPreview" class="notice" style="margin-top:12px">
+A tényleges Finding űrlapot a schema ellenőrzése után kötjük rá a Supabase-re.
+</div>
+</section>
 <section class="card" id="questionImpactCard">
 <h2>V4.0 – Audit Question Auto-Impact</h2>
 <p class="small">
@@ -1025,6 +1059,44 @@ function prepareImpactAssessment(){
 }
 
 
+
+async function checkOneTableSchema(table){
+  try{
+    const rows=await api('/rest/v1/'+table+'?select=*&limit=1');
+    return {table,ok:true,rows:Array.isArray(rows)?rows:[]};
+  }catch(e){
+    return {table,ok:false,error:e.message};
+  }
+}
+
+async function checkFindingSchema(){
+ const box=document.getElementById('findingSchemaResult');
+ box.innerHTML='<div class="small">Ellenőrzés folyamatban…</div>';
+ const names=['findings','capa_actions'];
+ const results=[];
+ for(const n of names) results.push(await checkOneTableSchema(n));
+
+ box.innerHTML=results.map(r=>{
+   if(!r.ok){
+     return `<div class="sourceBox" style="margin-bottom:8px">
+       <b>❌ ${esc(r.table)}</b>
+       <div class="small error">${esc(r.error||'Unknown error')}</div>
+     </div>`;
+   }
+   const sample=r.rows[0]||{};
+   const keys=Object.keys(sample);
+   return `<div class="sourceBox" style="margin-bottom:8px">
+     <b>✓ ${esc(r.table)} elérhető</b>
+     <div class="small">${keys.length?('Felismert mezők: '+keys.map(esc).join(', ')):'A tábla üres – a mezők nem olvashatók mintarekordon keresztül.'}</div>
+   </div>`;
+ }).join('');
+
+ const ok=results.every(x=>x.ok);
+ document.getElementById('findingPreview').innerHTML=ok
+   ? '<b>✓ A két tábla elérhető.</b><br>A következő verzióban a tényleges mezőkre kötjük a Finding és CAPA mentést.'
+   : '<b>⚠ Schema/RLS ellenőrzés szükséges.</b><br>Ne módosítsd az RLS-t és ne adj meg Secret API key-t.';
+}
+
 function mappingCandidatesForChange(change){
   if(!change) return [];
   const version=String(change.new_version||'').trim();
@@ -1199,6 +1271,7 @@ function initialiseRegulatoryWatch(){
    refreshOperationalSelects();
    refreshMappingSelect();
    refreshQuestionImpactSelectors();
+   checkFindingSchema();
 
    const c=document.getElementById('opImpactChange');
    if(c)c.addEventListener('change',updateLoadedChangeInfo);
