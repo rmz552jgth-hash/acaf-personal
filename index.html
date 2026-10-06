@@ -1,21 +1,43 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V2.6</title>
+<title>ACAF Personal V2.7</title>
 <style>
-body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:1100px;margin:0 auto;padding:24px;background:#f6f7f9;color:#17202a}
-.card{background:white;border:1px solid #ddd;border-radius:14px;padding:20px;margin:14px 0}
-button{padding:10px 16px;border:0;border-radius:9px;cursor:pointer}
-input,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin:6px 0 12px;box-sizing:border-box}
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{margin:0;background:#f5f7fa;color:#17202a}
+.container{max-width:1180px;margin:auto;padding:24px}
+.card{background:#fff;border:1px solid #dfe3e8;border-radius:16px;padding:22px;margin:14px 0;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+h1,h2,h3{margin-top:0}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eef2ff}
+input,textarea,select{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #cfd5dc;border-radius:9px;margin:6px 0 12px;background:#fff}
+textarea{min-height:100px;resize:vertical}
+button{border:0;border-radius:9px;padding:10px 15px;cursor:pointer;margin:4px 6px 4px 0;background:#e5e7eb;color:#17202a}
+button.primary{background:#17202a;color:#fff}
+button.good{background:#dff4e5}
+button.warn{background:#fff0c2}
+button.bad{background:#ffdede}
+button.active{outline:3px solid #17202a}
 .hidden{display:none}
-.small{color:#68707a;font-size:.9rem}
+.small{font-size:.9rem;color:#66707a}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eef2ff;margin-right:6px}
+.progress{height:10px;background:#e7ebef;border-radius:999px;overflow:hidden}
+.progress>div{height:100%;background:#17202a;width:0}
+.req{border:1px solid #e1e5e9;border-radius:12px;padding:15px;margin:10px 0;cursor:pointer}
+.req:hover{background:#fafbfc}
+.req.selected{border-color:#17202a;background:#f7f8fa}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{padding:14px;border:1px solid #e1e5e9;border-radius:12px}
+.statusbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.notice{padding:12px;border-radius:10px;background:#f1f4f7}
+.error{color:#a40000}
+.success{color:#126b2e}
+@media(max-width:800px){.row,.grid3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<div class="container">
 <h1>ACAF Personal</h1>
 <div id="status" class="small">Connecting…</div>
 
@@ -25,163 +47,233 @@ input,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;m
 <div><label>Email</label><input id="email" type="email"></div>
 <div><label>Password</label><input id="password" type="password"></div>
 </div>
-<button onclick="signIn()">Sign in</button>
+<button onclick="signIn()" class="primary">Sign in</button>
 <button onclick="signUp()">Create account</button>
-<p id="authMsg" class="small" role="status"></p>
+<p id="authMsg" class="small"></p>
 </section>
 
 <section id="app" class="hidden">
 <div class="card">
-<h2>Dashboard</h2>
-<p><span class="badge">Online Supabase connected</span></p>
+<div class="statusbar">
+<h2 style="margin:0">Dashboard</h2>
+<span class="badge">Online Supabase connected</span>
 <button onclick="signOut()">Sign out</button>
 </div>
+</div>
 
+<div id="dashboardView">
 <div class="card">
 <h2>New Audit / Új audit</h2>
-<label>Organisation / Szervezet</label><input id="org" placeholder="MALÉV Aero Club ATO">
+<label>Organisation / Szervezet</label>
+<input id="org" placeholder="MALÉV Aero Club ATO">
 <div class="row">
 <div><label>Audit name / Audit neve</label><input id="auditName" placeholder="ATO Compliance Audit"></div>
 <div><label>Framework</label><input id="framework" value="Part-ORA / Part-FCL"></div>
 </div>
-<label>Scope / Hatókör</label><textarea id="scope"></textarea>
-<button onclick="createAudit()">Create audit</button>
-<p class="small">Framework and scope are currently captured on the form; the current database schema also requires the audit <b>title</b>. Framework/scope will be linked to the audit data model in the next step.</p>
-<p id="auditMsg" class="small" role="status"></p>
+<label>Scope / Hatókör</label>
+<textarea id="scope" placeholder="Compliance Part-ORA / Part-FCL"></textarea>
+<button onclick="createAudit()" class="primary">Create audit</button>
+<p id="auditMsg" class="small"></p>
 </div>
 
 <div class="card">
 <h2>My audits</h2>
 <div id="audits">Loading…</div>
 </div>
+</div>
+
+<div id="auditView" class="hidden">
+<div class="card">
+<button onclick="backToDashboard()">← Back / Vissza</button>
+<h2 id="auditTitle">Audit</h2>
+<div id="auditMeta" class="small"></div>
+<div style="margin:15px 0">
+<div class="statusbar"><b id="progressText">Requirements</b><span id="reqCount" class="small"></span></div>
+<div class="progress"><div id="progressBar"></div></div>
+</div>
+</div>
+
+<div class="row">
+<div class="card">
+<h3>Requirements / Követelmények</h3>
+<input id="reqSearch" placeholder="Search code, text, domain…" oninput="renderRequirements()">
+<div id="requirementsList"></div>
+</div>
+
+<div class="card">
+<div id="questionPanel">
+<div class="notice">
+<b>Requirement library</b><br>
+Select a requirement on the left. The audit engine will display the bilingual requirement, expected evidence and auditor guidance here.
+</div>
+</div>
+</div>
+</div>
+</div>
 </section>
+</div>
 
 <script>
-const SUPABASE_URL = "https://ajxktmacnkieqayiogxa.supabase.co";
-const SUPABASE_KEY = "sb_publishable_yqGYD_c_WanfAjiPhuj60Q_o9sGSqlp";
-let session = null;
+const SUPABASE_URL="https://ajxktmacnkieqayiogxa.supabase.co";
+const SUPABASE_KEY="sb_publishable_yqGYD_c_WanfAjiPhuj60Q_o9sGSqlp";
+let session=null, currentAudit=null, requirements=[], selectedRequirement=null;
 
-async function api(path, opts={}) {
-  const headers = Object.assign({
-    "apikey": SUPABASE_KEY,
-    "Authorization": "Bearer " + (session?.access_token || SUPABASE_KEY),
-    "Content-Type":"application/json"
-  }, opts.headers||{});
-  const r = await fetch(SUPABASE_URL + path, {...opts, headers});
-  const text = await r.text();
-  let data; try { data = text ? JSON.parse(text) : null; } catch { data=text; }
-  if(!r.ok) throw new Error(typeof data==="string"?data:(data?.message||JSON.stringify(data)));
-  return data;
+async function api(path,opts={}){
+ const headers=Object.assign({"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(session?.access_token||SUPABASE_KEY),"Content-Type":"application/json"},opts.headers||{});
+ const r=await fetch(SUPABASE_URL+path,{...opts,headers});
+ const text=await r.text(); let data; try{data=text?JSON.parse(text):null}catch{data=text}
+ if(!r.ok)throw new Error(typeof data==="string"?data:(data?.message||JSON.stringify(data)));
+ return data;
 }
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 async function signIn(){
-  try{
-    const email=document.getElementById("email").value, password=document.getElementById("password").value;
-    const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
-      method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify({email,password})
-    });
-    const d=await r.json(); if(!r.ok) throw new Error(d.msg||d.message||"Login failed");
-    session=d; localStorage.setItem("acaf_session",JSON.stringify(d)); showApp(); loadAudits();
-  }catch(e){document.getElementById("authMsg").textContent=e.message}
+ try{
+  const email=document.getElementById("email").value,password=document.getElementById("password").value;
+  const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  const d=await r.json(); if(!r.ok)throw new Error(d.msg||d.message||"Login failed");
+  session=d;localStorage.setItem("acaf_session",JSON.stringify(d));showApp();loadAudits();
+ }catch(e){document.getElementById("authMsg").textContent=e.message}
 }
 async function signUp(){
-  try{
-    const email=document.getElementById("email").value, password=document.getElementById("password").value;
-    const r=await fetch(SUPABASE_URL+"/auth/v1/signup",{
-      method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify({email,password})
-    });
-    const d=await r.json(); if(!r.ok) throw new Error(d.msg||d.message||"Signup failed");
-    document.getElementById("authMsg").textContent="Account created. Check your email if confirmation is enabled.";
-  }catch(e){document.getElementById("authMsg").textContent=e.message}
+ try{
+  const email=document.getElementById("email").value,password=document.getElementById("password").value;
+  const r=await fetch(SUPABASE_URL+"/auth/v1/signup",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  const d=await r.json();if(!r.ok)throw new Error(d.msg||d.message||"Signup failed");
+  document.getElementById("authMsg").textContent="Account created. Check your email if confirmation is enabled.";
+ }catch(e){document.getElementById("authMsg").textContent=e.message}
 }
-function signOut(){session=null;localStorage.removeItem("acaf_session");document.getElementById("app").classList.add("hidden");document.getElementById("auth").classList.remove("hidden");}
-function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("status").textContent="Connected to Supabase";}
-async function getCurrentUserId(){
-  if(session?.user?.id) return session.user.id;
-  if(!session?.access_token) throw new Error("No active login session.");
-  const r=await fetch(SUPABASE_URL+"/auth/v1/user",{
-    headers:{
-      "apikey":SUPABASE_KEY,
-      "Authorization":"Bearer "+session.access_token
-    }
-  });
-  const d=await r.json();
-  if(!r.ok || !d?.id) throw new Error(d?.message||"Could not determine the logged-in user.");
-  session.user=d;
-  localStorage.setItem("acaf_session",JSON.stringify(session));
-  return d.id;
+function signOut(){session=null;localStorage.removeItem("acaf_session");document.getElementById("app").classList.add("hidden");document.getElementById("auth").classList.remove("hidden")}
+function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("status").textContent="Connected to Supabase"}
+
+async function userId(){
+ if(session?.user?.id)return session.user.id;
+ if(!session?.access_token)throw new Error("No active login session.");
+ const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token}});
+ const d=await r.json();if(!r.ok||!d?.id)throw new Error(d?.message||"Could not determine user.");
+ session.user=d;localStorage.setItem("acaf_session",JSON.stringify(session));return d.id;
 }
 
 async function createAudit(){
-  try{
-    const name=document.getElementById("auditName").value, framework=document.getElementById("framework").value, scope=document.getElementById("scope").value;
-    const orgName=document.getElementById("org").value || "My Organisation";
-    const ownerId=await getCurrentUserId();
-
-    // RLS on organisations requires owner_id = auth.uid().
-    const orgs=await api("/rest/v1/organisations?select=id&name=eq."+encodeURIComponent(orgName)+"&limit=1");
-    let orgId=orgs?.[0]?.id;
-    if(!orgId){
-      const created=await api("/rest/v1/organisations",{
-        method:"POST",
-        headers:{"Prefer":"return=representation"},
-        body:JSON.stringify({name:orgName, owner_id:ownerId})
-      });
-      orgId=created?.[0]?.id;
-      if(!orgId) throw new Error("Organisation was not created.");
-    }
-
-    // The current Supabase audits table uses the columns visible in the
-    // database: id, owner_id, organisation_id and audit_no.  Do not send
-    // unsupported fields such as name/framework/scope/status.
-    const auditNo = name || ("ACAF-" + new Date().toISOString().slice(0,10).replace(/-/g,""));
-    const created=await api("/rest/v1/audits",{
-      method:"POST",
-      headers:{"Prefer":"return=representation"},
-      body:JSON.stringify({
-        owner_id:ownerId,
-        organisation_id:orgId,
-        audit_no:auditNo,
-        title:name || auditNo
-      })
-    });
-    document.getElementById("auditMsg").textContent="Audit created: "+(created?.[0]?.id || auditNo);
-    loadAudits();
-  }catch(e){document.getElementById("auditMsg").textContent=e.message}
+ try{
+  const name=document.getElementById("auditName").value.trim(),orgName=document.getElementById("org").value.trim()||"My Organisation";
+  if(!name)throw new Error("Please enter an audit name.");
+  const ownerId=await userId();
+  const orgs=await api("/rest/v1/organisations?select=id&name=eq."+encodeURIComponent(orgName)+"&limit=1");
+  let orgId=orgs?.[0]?.id;
+  if(!orgId){
+   const createdOrg=await api("/rest/v1/organisations",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify({name:orgName,owner_id:ownerId})});
+   orgId=createdOrg?.[0]?.id;if(!orgId)throw new Error("Organisation was not created.");
+  }
+  const created=await api("/rest/v1/audits",{method:"POST",headers:{"Prefer":"return=representation"},body:JSON.stringify({owner_id:ownerId,organisation_id:orgId,audit_no:name,title:name})});
+  const audit=created?.[0];if(!audit?.id)throw new Error("Audit was not created.");
+  document.getElementById("auditMsg").textContent="Audit created: "+audit.id;
+  loadAudits();
+ }catch(e){document.getElementById("auditMsg").textContent=e.message}
 }
+
 async function loadAudits(){
-  try{
-    // Keep the read query compatible with the current table schema.
-    const rows=await api("/rest/v1/audits?select=*");
-    document.getElementById("audits").innerHTML=rows.length?rows.map(x=>`<div class="card"><b>${escapeHtml(x.audit_no||"Audit")}</b><br><span class="small">Organisation ID: ${escapeHtml(x.organisation_id||"")}</span><br><span class="small">Audit ID: ${escapeHtml(x.id||"")}</span></div>`).join(""):"No audits yet.";
-  }catch(e){document.getElementById("audits").textContent=e.message}
+ try{
+  const rows=await api("/rest/v1/audits?select=*&order=created_at.desc");
+  document.getElementById("audits").innerHTML=rows.length?rows.map(x=>`
+   <div class="req">
+    <b>${esc(x.title||x.audit_no||"Audit")}</b><br>
+    <span class="small">Audit No.: ${esc(x.audit_no||"")} · Audit ID: ${esc(x.id||"")}</span><br>
+    <button class="primary" onclick='openAudit(${JSON.stringify(x.id)})'>Open audit / Audit megnyitása</button>
+   </div>`).join(""):"No audits yet.";
+ }catch(e){document.getElementById("audits").textContent=e.message}
 }
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[c]));
+
+async function openAudit(id){
+ try{
+  const rows=await api("/rest/v1/audits?select=*&id=eq."+encodeURIComponent(id)+"&limit=1");
+  currentAudit=rows?.[0];if(!currentAudit)throw new Error("Audit not found.");
+  document.getElementById("dashboardView").classList.add("hidden");
+  document.getElementById("auditView").classList.remove("hidden");
+  document.getElementById("auditTitle").textContent=currentAudit.title||currentAudit.audit_no||"Audit";
+  document.getElementById("auditMeta").textContent="Audit ID: "+currentAudit.id;
+  await loadRequirements();
+ }catch(e){alert(e.message)}
+}
+
+async function loadRequirements(){
+ try{
+  requirements=await api("/rest/v1/requirements?select=*&active=eq.true&order=requirement_code.asc");
+  renderRequirements();
+  updateProgress();
+ }catch(e){
+  document.getElementById("requirementsList").innerHTML='<p class="error">'+esc(e.message)+'</p>';
+ }
+}
+function renderRequirements(){
+ const q=document.getElementById("reqSearch").value.toLowerCase().trim();
+ const list=requirements.filter(r=>!q||[r.requirement_code,r.framework,r.domain,r.english_text,r.hungarian_text].some(v=>String(v||"").toLowerCase().includes(q)));
+ document.getElementById("requirementsList").innerHTML=list.length?list.map(r=>`
+  <div class="req ${selectedRequirement?.id===r.id?"selected":""}" onclick='selectRequirement(${JSON.stringify(r.id)})'>
+   <b>${esc(r.requirement_code||"Requirement")}</b>
+   <span class="badge">${esc(r.framework||"")}</span>
+   <div class="small">${esc(r.domain||"")}</div>
+   <div>${esc((r.english_text||r.hungarian_text||"").slice(0,180))}${(r.english_text||r.hungarian_text||"").length>180?"…":""}</div>
+  </div>`).join(""):'<div class="notice">No active requirements found. The Requirement Library is currently empty.</div>';
+ document.getElementById("reqCount").textContent=list.length+" visible / "+requirements.length+" total";
+}
+async function selectRequirement(id){
+ selectedRequirement=requirements.find(r=>r.id===id);renderRequirements();renderQuestion();
+}
+function renderQuestion(){
+ const r=selectedRequirement;if(!r)return;
+ document.getElementById("questionPanel").innerHTML=`
+  <div class="small">${esc(r.framework||"")} · ${esc(r.domain||"")}</div>
+  <h2>${esc(r.requirement_code||"Requirement")}</h2>
+  <h3>Requirement / Követelmény</h3>
+  <div class="card"><b>English</b><p>${esc(r.english_text||"—")}</p><hr><b>Magyar</b><p>${esc(r.hungarian_text||"—")}</p></div>
+  <h3>Expected evidence / Elvárt bizonyíték</h3>
+  <div class="notice">${esc(r.expected_evidence||"—")}</div>
+  <h3>Auditor guidance / Auditor útmutató</h3>
+  <div class="notice">${esc(r.auditor_guidance||"—")}</div>
+  <h3>Assessment / Értékelés</h3>
+  <div>
+   <button class="good" onclick="assessmentNotice('COMPLIANT')">🟢 Compliant</button>
+   <button class="warn" onclick="assessmentNotice('PARTIAL')">🟡 Partially compliant</button>
+   <button class="bad" onclick="assessmentNotice('NON_COMPLIANT')">🔴 Non-compliant</button>
+   <button onclick="assessmentNotice('N/A')">⚪ Not applicable</button>
+  </div>
+  <div id="assessmentMessage" class="notice" style="margin-top:10px">
+   Assessment is ready. Saving the answer will be enabled after we map the exact audit_answers schema.
+  </div>
+  <h3>Evidence / Bizonyíték</h3>
+  <textarea placeholder="Evidence reference, document ID, observation…"></textarea>
+  <h3>Notes / Megjegyzés</h3>
+  <textarea placeholder="Auditor notes…"></textarea>
+ `;
+}
+function assessmentNotice(v){
+ const el=document.getElementById("assessmentMessage");
+ if(!el)return;
+ el.innerHTML="<b>Selected:</b> "+esc(v)+"<br><span class='small'>The assessment engine is ready. Database saving is intentionally not enabled yet so we do not guess the audit_answers column structure.</span>";
+}
+function updateProgress(){
+ const n=requirements.length;
+ document.getElementById("progressText").textContent=n?"Requirement Library loaded":"Requirement Library";
+ document.getElementById("progressBar").style.width=n?"5%":"0%";
+}
+function backToDashboard(){
+ currentAudit=null;selectedRequirement=null;requirements=[];
+ document.getElementById("auditView").classList.add("hidden");
+ document.getElementById("dashboardView").classList.remove("hidden");
+ loadAudits();
 }
 async function checkConnection(){
-  const el=document.getElementById("status");
-  try{
-    const r=await fetch(SUPABASE_URL+"/auth/v1/settings",{headers:{"apikey":SUPABASE_KEY}});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    el.textContent="Connected to Supabase";
-  }catch(e){
-    el.textContent="Supabase connection error: "+e.message;
-    console.error("Supabase connection error",e);
-  }
+ try{
+  const r=await fetch(SUPABASE_URL+"/auth/v1/settings",{headers:{"apikey":SUPABASE_KEY}});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  document.getElementById("status").textContent="Connected to Supabase";
+ }catch(e){document.getElementById("status").textContent="Supabase connection error: "+e.message}
 }
 (function(){
-  const saved=localStorage.getItem("acaf_session");
-  if(saved){try{session=JSON.parse(saved);showApp();loadAudits();return}catch{}}
-  checkConnection();
+ const saved=localStorage.getItem("acaf_session");
+ if(saved){try{session=JSON.parse(saved);showApp();loadAudits();return}catch{}}
+ checkConnection();
 })();
 </script>
 </body>
