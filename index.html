@@ -1630,5 +1630,157 @@ async function runSchemaCheck(){
 }
 </script>
 
+
+<section class="card" id="v5ReportCard">
+<h2>V5.0 – Audit Report Generator</h2>
+<p>Az audit lezárása után az ACAF automatikusan összeállítja a jelentés fő részeit a Supabase-ben tárolt audit, követelmény, válasz, Finding és CAPA adatokból.</p>
+<div class="row">
+  <div>
+    <label>Audit / Ellenőrzés</label>
+    <select id="v5AuditSelect"><option value="">Audit kiválasztása...</option></select>
+  </div>
+  <div>
+    <label>Report language / Jelentés nyelve</label>
+    <select id="v5Language"><option value="en">English</option><option value="hu">Magyar</option></select>
+  </div>
+</div>
+<div class="row">
+  <div>
+    <label>Report title / Jelentés címe</label>
+    <input id="v5ReportTitle" placeholder="ACAF Audit Report / ACAF Audit Jelentés">
+  </div>
+  <div>
+    <label>Auditor / Auditor</label>
+    <input id="v5Auditor" placeholder="Auditor name / Auditor neve">
+  </div>
+</div>
+<div class="row">
+  <div>
+    <label>Scope / Hatókör</label>
+    <textarea id="v5Scope" placeholder="Audit scope / Audit hatóköre"></textarea>
+  </div>
+  <div>
+    <label>Methodology / Módszertan</label>
+    <textarea id="v5Methodology" placeholder="Document review, interviews, evidence review... / Dokumentumvizsgálat, interjúk, bizonyítékok...">Document review, evidence review, auditor assessment and Finding/CAPA verification.</textarea>
+  </div>
+</div>
+<button class="primary" onclick="v5GenerateReport()">Generate Report / Jelentés generálása</button>
+<button onclick="v5PrintReport()">Print / PDF</button>
+<button onclick="v5WordReport()">Word export</button>
+<div id="v5Status" class="small" style="margin-top:10px"></div>
+</section>
+
+<section class="card hidden" id="v5PreviewCard">
+<div class="row">
+  <div><h2 id="v5PreviewHeading">Audit Report</h2></div>
+  <div style="text-align:right"><span class="badge" id="v5PreviewStatus">Draft</span></div>
+</div>
+<div id="v5ReportPreview"></div>
+</section>
+
+<style>
+@media print{
+  body{background:#fff!important}
+  body>*{display:none!important}
+  #v5PreviewCard{display:block!important;box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;max-width:none!important}
+  #v5PreviewCard *{visibility:visible!important}
+  .no-print{display:none!important}
+}
+.v5-report{font-family:Arial,Helvetica,sans-serif;color:#1f2937;line-height:1.45}
+.v5-cover{border-bottom:3px solid #17202a;padding:8px 0 22px;margin-bottom:24px}
+.v5-cover h1{font-size:28px;margin:0 0 8px}.v5-cover .meta{color:#5f6b76}
+.v5-section{margin:24px 0}.v5-section h3{border-bottom:1px solid #d9dee4;padding-bottom:7px}
+.v5-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.v5-kpi{border:1px solid #dfe3e8;border-radius:10px;padding:12px;text-align:center}.v5-kpi strong{font-size:24px;display:block}
+.v5-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}.v5-table th,.v5-table td{border:1px solid #dfe3e8;padding:7px;text-align:left;vertical-align:top}.v5-table th{background:#f4f6f8}
+.v5-finding{border:1px solid #dfe3e8;border-left:5px solid #17202a;border-radius:8px;padding:12px;margin:10px 0}.v5-muted{color:#66707a}.v5-ok{color:#18794e}.v5-warn{color:#9a6700}.v5-bad{color:#b42318}
+@media(max-width:800px){.v5-kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+
+<script>
+let v5ReportData=null;
+
+function v5Esc(v){ return escapeHtml(v==null?'':String(v)); }
+function v5FmtDate(v){ if(!v)return '—'; try{return new Date(v).toLocaleDateString('en-GB')}catch(e){return v} }
+function v5Text(v, fallback='—'){ return v && String(v).trim()?v5Esc(v):fallback; }
+function v5Assessment(a,lang){
+ const m={compliant:{en:'Compliant',hu:'Megfelelő'},partial:{en:'Partially compliant',hu:'Részben megfelelő'},noncompliant:{en:'Non-compliant',hu:'Nem megfelelő'},na:{en:'N/A',hu:'N/A'},unanswered:{en:'Unanswered',hu:'Nincs válasz'}};
+ return (m[a]||{en:a||'—',hu:a||'—'})[lang]||a||'—';
+}
+function v5StatusLabel(s,lang){
+ const m={open:{en:'Open',hu:'Nyitott'},in_progress:{en:'In progress',hu:'Folyamatban'},submitted:{en:'Submitted',hu:'Benyújtva'},verification:{en:'Verification',hu:'Ellenőrzés alatt'},closed:{en:'Closed',hu:'Lezárt'}};
+ return (m[s]||{en:s||'—',hu:s||'—'})[lang]||s||'—';
+}
+async function v5LoadAudits(){
+ try{
+  await refreshSession(false);
+  const rows=await api('/rest/v1/audits?select=*&order=created_at.desc');
+  const sel=document.getElementById('v5AuditSelect');
+  sel.innerHTML='<option value="">Audit kiválasztása...</option>'+(rows||[]).map(a=>`<option value="${v5Esc(a.id)}">${v5Esc(a.audit_no||'')} – ${v5Esc(a.title||'')} (${v5Esc(a.id)})</option>`).join('');
+ }catch(e){document.getElementById('v5Status').textContent='Auditok betöltése sikertelen: '+e.message;}
+}
+async function v5GenerateReport(){
+ const auditId=document.getElementById('v5AuditSelect').value;
+ if(!auditId){alert('Válassz ki egy auditot.');return;}
+ const lang=document.getElementById('v5Language').value;
+ const status=document.getElementById('v5Status'); status.textContent='Adatok betöltése és jelentés összeállítása...';
+ try{
+  await refreshSession(false);
+  const [audits,questions,answers,reqs,findings,capas]=await Promise.all([
+   api('/rest/v1/audits?select=*&id=eq.'+encodeURIComponent(auditId)),
+   api('/rest/v1/audit_questions?select=*&audit_id=eq.'+encodeURIComponent(auditId)+'&order=sequence_no.asc'),
+   api('/rest/v1/audit_answers?select=*'),
+   api('/rest/v1/requirements?select=*'),
+   api('/rest/v1/findings?select=*&audit_id=eq.'+encodeURIComponent(auditId)+'&order=finding_no.asc'),
+   api('/rest/v1/capa_actions?select=*')
+  ]);
+  const audit=(audits||[])[0]; if(!audit)throw new Error('Audit nem található.');
+  const qs=questions||[], ans=answers||[], rr=reqs||[], ff=findings||[], cc=capas||[];
+  const reqMap=new Map(rr.map(r=>[r.id,r]));
+  const ansMap=new Map(ans.map(a=>[a.question_id,a]));
+  const findingIds=new Set(ff.map(f=>f.id));
+  const auditCapas=cc.filter(c=>findingIds.has(c.finding_id));
+  const counts={total:qs.length,answered:0,compliant:0,partial:0,noncompliant:0,na:0};
+  const questionRows=qs.map(q=>{const a=ansMap.get(q.id)||{};const r=reqMap.get(q.requirement_id)||{};const assessment=a.assessment||'unanswered';if(assessment!=='unanswered')counts.answered++;if(counts[assessment]!=null)counts[assessment]++;return {q,a,r};});
+  const title=document.getElementById('v5ReportTitle').value.trim()||(lang==='hu'?'ACAF Audit Jelentés':'ACAF Audit Report');
+  const auditor=document.getElementById('v5Auditor').value.trim();
+  const scope=document.getElementById('v5Scope').value.trim();
+  const methodology=document.getElementById('v5Methodology').value.trim();
+  const orgId=audit.organisation_id||'—';
+  const overall=counts.noncompliant?'Non-compliant':counts.partial?'Partially compliant':counts.answered?'Compliant':'Draft';
+  const L=lang==='hu'?{exec:'Vezetői összefoglaló',info:'Audit adatok',scope:'Hatókör és módszertan',overview:'Megfelelőségi áttekintés',questions:'Audit követelmények és értékelések',findings:'Megállapítások / Findings',capa:'CAPA és hatékonyság-ellenőrzés',conclusion:'Következtetés',evidence:'Bizonyíték',notes:'Auditori megjegyzés',req:'Követelmény',assessment:'Értékelés',status:'Státusz',risk:'Kockázat',classification:'Osztályozás',due:'Határidő',action:'Intézkedés',verification:'Verification / Ellenőrzés',date:'Dátum',auditNo:'Audit szám',organisation:'Szervezet',auditor:'Auditor',methodology:'Módszertan'}:{exec:'Executive Summary',info:'Audit Information',scope:'Scope and Methodology',overview:'Compliance Overview',questions:'Audit Requirements and Assessments',findings:'Findings',capa:'CAPA and Effectiveness Verification',conclusion:'Conclusion',evidence:'Evidence',notes:'Auditor Notes',req:'Requirement',assessment:'Assessment',status:'Status',risk:'Risk',classification:'Classification',due:'Due Date',action:'Action',verification:'Verification',date:'Date',auditNo:'Audit No.',organisation:'Organisation',auditor:'Auditor',methodology:'Methodology'};
+  let html=`<div class="v5-report" id="v5PrintableReport">
+   <div class="v5-cover"><h1>${v5Esc(title)}</h1><div class="meta">ACAF Personal • ${v5Esc(audit.title||'')} • ${v5FmtDate(audit.created_at)}</div></div>
+   <div class="v5-section"><h3>${L.info}</h3><table class="v5-table"><tr><th>${L.auditNo}</th><td>${v5Text(audit.audit_no)}</td><th>${L.organisation}</th><td>${v5Text(orgId)}</td></tr><tr><th>${L.date}</th><td>${v5FmtDate(audit.created_at)}</td><th>${L.auditor}</th><td>${v5Text(auditor)}</td></tr></table></div>
+   <div class="v5-section"><h3>${L.exec}</h3><p>${lang==='hu'?'Az audit a rendelkezésre álló követelmények, válaszok, bizonyítékok és megállapítások alapján került értékelésre.':'The audit was assessed based on the available requirements, responses, evidence and findings.'}</p><div class="v5-kpis"><div class="v5-kpi"><strong>${counts.total}</strong>${L.questions}</div><div class="v5-kpi"><strong>${counts.answered}</strong>Answered</div><div class="v5-kpi"><strong>${counts.compliant}</strong>Compliant</div><div class="v5-kpi"><strong>${ff.length}</strong>Findings</div></div></div>
+   <div class="v5-section"><h3>${L.scope}</h3><p><strong>${L.scope}:</strong><br>${v5Text(scope)}</p><p><strong>${L.methodology}:</strong><br>${v5Text(methodology)}</p></div>
+   <div class="v5-section"><h3>${L.overview}</h3><table class="v5-table"><tr><th>Compliant</th><th>Partial</th><th>Non-compliant</th><th>N/A</th><th>Unanswered</th></tr><tr><td>${counts.compliant}</td><td>${counts.partial}</td><td>${counts.noncompliant}</td><td>${counts.na}</td><td>${counts.total-counts.answered}</td></tr></table></div>
+   <div class="v5-section"><h3>${L.questions}</h3><table class="v5-table"><tr><th>#</th><th>${L.req}</th><th>Framework</th><th>${L.assessment}</th><th>${L.evidence}</th><th>${L.notes}</th></tr>`;
+  questionRows.forEach((x,i)=>{const r=x.r,a=x.a;const reqText=lang==='hu'?(r.hungarian_text||r.english_text):(r.english_text||r.hungarian_text);html+=`<tr><td>${i+1}</td><td><strong>${v5Text(r.requirement_code)}</strong><br>${v5Text(reqText)}</td><td>${v5Text(r.framework)}</td><td>${v5Esc(v5Assessment(a.assessment||'unanswered',lang))}</td><td>${v5Text(a.evidence)}</td><td>${v5Text(a.auditor_notes)}</td></tr>`});
+  html+=`</table></div>`;
+  html+=`<div class="v5-section"><h3>${L.findings}</h3>`;
+  if(!ff.length) html+='<p class="v5-ok">No findings recorded / Nincs rögzített megállapítás.</p>';
+  ff.forEach(f=>{html+=`<div class="v5-finding"><strong>Finding #${v5Text(f.finding_no)}</strong><br><b>${L.classification}:</b> ${v5Text(f.classification)} &nbsp; <b>${L.risk}:</b> ${v5Text(f.risk)} &nbsp; <b>${L.status}:</b> ${v5Esc(v5StatusLabel(f.status,lang))}<br><b>Objective statement:</b> ${v5Text(f.objective_statement)}<br><b>Root cause:</b> ${v5Text(f.root_cause)}<br><b>${L.due}:</b> ${v5FmtDate(f.due_date)}</div>`});
+  html+=`</div><div class="v5-section"><h3>${L.capa}</h3>`;
+  if(!auditCapas.length) html+='<p>No CAPA actions recorded / Nincs CAPA intézkedés rögzítve.</p>';
+  auditCapas.forEach(c=>{html+=`<div class="v5-finding"><b>${L.status}:</b> ${v5Text(c.status)}<br><b>${L.action}:</b> ${v5Text(c.corrective_action)}<br><b>Preventive:</b> ${v5Text(c.preventive_action)}<br><b>Responsible:</b> ${v5Text(c.responsible_person)}<br><b>Target:</b> ${v5FmtDate(c.target_date)}<br><b>${L.verification}:</b> ${v5Text(c.verification_result)}</div>`});
+  html+=`</div><div class="v5-section"><h3>${L.conclusion}</h3><p>${lang==='hu'?'Az audit lezárásának véglegesítése az összes releváns Finding és CAPA státuszának, valamint a verification eredményének ellenőrzése után történik.':'Final audit closure should be confirmed after reviewing all relevant Finding and CAPA statuses and the verification outcome.'}</p></div></div>`;
+  v5ReportData={audit,questions:questionRows,findings:ff,capas:auditCapas,html,title,lang};
+  document.getElementById('v5PreviewHeading').textContent=title;
+  document.getElementById('v5PreviewStatus').textContent=overall;
+  document.getElementById('v5ReportPreview').innerHTML=html;
+  document.getElementById('v5PreviewCard').classList.remove('hidden');
+  status.textContent='Jelentés elkészült. A Print / PDF gombbal PDF-be menthető, a Word export HTML-alapú .doc fájlt készít.';
+  document.getElementById('v5PreviewCard').scrollIntoView({behavior:'smooth'});
+ }catch(e){status.textContent='Report generation error: '+e.message;console.error(e);}
+}
+function v5PrintReport(){if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}window.print();}
+function v5WordReport(){
+ if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}
+ const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>'],{type:'application/msword'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(v5ReportData.audit.audit_no||'ACAF_Audit')+'_Report.doc';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+setTimeout(()=>{if(session)v5LoadAudits();},1200);
+</script>
+
 </body>
 </html>
