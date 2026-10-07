@@ -2065,6 +2065,7 @@ function v5WordReport(){
     extra+='</table></div>';
     return Object.assign({},built,{html:built.html.replace(/<div class="v5-section"><h3>(Conclusion|Következtetés)[^<]*<\/h3>/,extra+'$&')});
   }
+  window.v531RefreshHistory=history;
   function install(){
     const sel=document.getElementById('v5AuditSelect');
     if(sel&&!sel.dataset.v531hook){sel.addEventListener('change',function(){history(sel.value);});sel.dataset.v531hook='1';}
@@ -2101,7 +2102,13 @@ function v5WordReport(){
    sel.onchange=async function(){
     try{await v52LoadLatestReport(sel.value);}
     catch(e){const m=document.getElementById('v52LifecycleMsg');if(m)m.textContent='Report betöltési hiba: '+e.message;}
+    try{
+     if(typeof window.v531RefreshHistory==='function') await window.v531RefreshHistory(sel.value);
+    }catch(e){}
    };
+   try{
+    if(typeof window.v531RefreshHistory==='function') await window.v531RefreshHistory(sel.value);
+   }catch(e){}
    v52CurrentReport=null;
    v52RenderLifecycle();
   }catch(e){
