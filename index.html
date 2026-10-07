@@ -1699,7 +1699,7 @@ async function runSchemaCheck(){
 <script>
 let v5ReportData=null;
 
-function v5Esc(v){ return escapeHtml(v==null?'':String(v)); }
+function v5Esc(v){ return esc(v==null?'':String(v)); }
 function v5FmtDate(v){ if(!v)return '—'; try{return new Date(v).toLocaleDateString('en-GB')}catch(e){return v} }
 function v5Text(v, fallback='—'){ return v && String(v).trim()?v5Esc(v):fallback; }
 function v5Assessment(a,lang){
