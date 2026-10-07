@@ -1616,6 +1616,21 @@ async function checkConnection(){
 setTimeout(()=>{ if(session) { initialiseRegulatoryWatch(); setTimeout(()=>{loadCapaFindings(); loadVerificationCapas();}, 1200); } }, 900);
 </script>
 
+<!-- V5.2 FINAL INITIALIZATION: this script runs after the V5.2 functions have been defined. -->
+<script>
+window.addEventListener("load", async function(){
+  try {
+    if (typeof session !== "undefined" && session) {
+      if (typeof loadAudits === "function") await loadAudits();
+      if (typeof v5LoadAudits === "function") await v5LoadAudits();
+    }
+  } catch(e) {
+    const el=document.getElementById("v52LifecycleMsg");
+    if(el) el.textContent="V5.2 auditlista betöltési hiba: "+e.message;
+  }
+});
+</script>
+
 <section class="card" id="schemaCard">
 <h2>V3.9 – Regulatory Watch Data Model Check</h2>
 <p>Ez az ellenőrzés nem módosít adatbázist. Csak megvizsgálja, hogy a Regulatory Watch négy táblája elérhető-e a bejelentkezett felhasználó számára.</p>
