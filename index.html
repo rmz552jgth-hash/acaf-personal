@@ -843,6 +843,9 @@ async function loadAudits(){
   if(typeof refreshOperationalSelects==="function") refreshOperationalSelects();
   if(typeof refreshQuestionImpactSelectors==="function") refreshQuestionImpactSelectors();
   if(typeof loadFindingCreateAudits==="function") await loadFindingCreateAudits();
+  // V5.2 must use the same authenticated audit list as the rest of the application.
+  // This hook was missing in the previous build, leaving the V5.2 selector empty.
+  if(typeof v5LoadAudits==="function") await v5LoadAudits();
  }catch(e){
   document.getElementById("audits").textContent=e.message;
  }
