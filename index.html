@@ -2019,4 +2019,45 @@ async function v52Finalize(){try{await v52Transition('final')}catch(e){document.
 function v5PrintReport(){if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}window.print();}
 function v5WordReport(){
  if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}
- const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>
+ const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>'],{type:'application/msword'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download=(v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report.doc';
+ document.body.appendChild(a);
+ a.click();
+ setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+</script>
+
+<!-- V5.2.6 FINAL BOOTSTRAP: runs after every V5.2 function has been parsed. -->
+<script>
+(function(){
+ async function bootV52(){
+  try{
+   const sel=document.getElementById('v5AuditSelect');
+   if(!sel || typeof session==='undefined' || !session)return;
+   if(!Array.isArray(window.acafAudits) || !window.acafAudits.length){
+    const rows=await api('/rest/v1/audits?select=*&order=created_at.desc');
+    window.acafAudits=Array.isArray(rows)?rows:[];
+   }
+   const rows=window.acafAudits||[];
+   sel.innerHTML='<option value="">Audit kiválasztása...</option>'+rows.map(a=>
+    '<option value="'+v5Esc(a.id)+'">'+v5Esc(a.audit_no||'')+' – '+v5Esc(a.title||'')+'</option>'
+   ).join('');
+   sel.onchange=async function(){
+    try{await v52LoadLatestReport(sel.value);}
+    catch(e){const m=document.getElementById('v52LifecycleMsg');if(m)m.textContent='Report betöltési hiba: '+e.message;}
+   };
+   v52CurrentReport=null;
+   v52RenderLifecycle();
+  }catch(e){
+   const m=document.getElementById('v52LifecycleMsg');
+   if(m)m.textContent='V5.2 auditlista betöltési hiba: '+e.message;
+  }
+ }
+ function start(){setTimeout(bootV52,100);}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
+</body>
+</html>
