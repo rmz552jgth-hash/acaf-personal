@@ -2065,7 +2065,6 @@ function v5WordReport(){
     extra+='</table></div>';
     return Object.assign({},built,{html:built.html.replace(/<div class="v5-section"><h3>(Conclusion|Következtetés)[^<]*<\/h3>/,extra+'$&')});
   }
-  window.v531RefreshHistory=history;
   function install(){
     const sel=document.getElementById('v5AuditSelect');
     if(sel&&!sel.dataset.v531hook){sel.addEventListener('change',function(){history(sel.value);});sel.dataset.v531hook='1';}
@@ -2102,13 +2101,7 @@ function v5WordReport(){
    sel.onchange=async function(){
     try{await v52LoadLatestReport(sel.value);}
     catch(e){const m=document.getElementById('v52LifecycleMsg');if(m)m.textContent='Report betöltési hiba: '+e.message;}
-    try{
-     if(typeof window.v531RefreshHistory==='function') await window.v531RefreshHistory(sel.value);
-    }catch(e){}
    };
-   try{
-    if(typeof window.v531RefreshHistory==='function') await window.v531RefreshHistory(sel.value);
-   }catch(e){}
    v52CurrentReport=null;
    v52RenderLifecycle();
   }catch(e){
@@ -2120,5 +2113,53 @@ function v5WordReport(){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
+
+<!-- V5.3.2 ROBUST REPORT BOOTSTRAP: ensures the audit selector is populated even if the dashboard load order is delayed. -->
+<script>
+(function(){
+  async function bootReportModule(){
+    const sel=document.getElementById('v5AuditSelect');
+    if(!sel) return;
+    try{
+      if(typeof session==='undefined' || !session) return;
+      let rows=Array.isArray(window.acafAudits) ? window.acafAudits : [];
+      if(!rows.length){
+        rows=await api('/rest/v1/audits?select=id,audit_no,title,organisation_id,created_at&order=created_at.desc');
+        window.acafAudits=Array.isArray(rows)?rows:[];
+      }
+      const old=sel.value;
+      sel.innerHTML='<option value="">Audit kiválasztása...</option>'+
+        (rows||[]).map(a=>'<option value="'+v5Esc(a.id)+'">'+v5Esc(a.audit_no||'')+' – '+v5Esc(a.title||'')+'</option>').join('');
+      if(old && rows.some(a=>a.id===old)) sel.value=old;
+      if(!sel.dataset.v532hook){
+        sel.addEventListener('change',async function(){
+          try{
+            if(typeof v52LoadLatestReport==='function') await v52LoadLatestReport(sel.value);
+            const box=document.getElementById('v531History');
+            if(box && typeof api==='function' && sel.value){
+              const hs=await api('/rest/v1/audit_reports?select=id,version,language,status,generated_at,approved_at,finalized_at&audit_id=eq.'+encodeURIComponent(sel.value)+'&order=version.desc');
+              if(!Array.isArray(hs)||!hs.length) box.innerHTML='<span class="v531-muted">Ehhez az audithoz még nincs mentett report.</span>';
+              else box.innerHTML=hs.map(r=>'<div class="v531-row"><b>V'+v5Esc(r.version)+'</b><span>'+v5Esc(r.status||'')+'</span><span>'+v5FmtDate(r.generated_at)+'</span><span>'+v5Esc(r.language||'')+'</span></div>').join('');
+            }
+          }catch(e){
+            const m=document.getElementById('v52LifecycleMsg'); if(m)m.textContent='Report betöltési hiba: '+e.message;
+          }
+        });
+        sel.dataset.v532hook='1';
+      }
+    }catch(e){
+      const m=document.getElementById('v52LifecycleMsg');
+      if(m)m.textContent='Auditlista betöltési hiba: '+e.message;
+    }
+  }
+  function retry(n){
+    if(n<=0)return;
+    setTimeout(async()=>{await bootReportModule(); if(!(document.getElementById('v5AuditSelect')?.options.length>1)) retry(n-1);}, n===8?100:n>4?500:1000);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>retry(8));
+  else retry(8);
+})();
+</script>
+
 </body>
 </html>
