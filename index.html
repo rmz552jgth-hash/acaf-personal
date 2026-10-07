@@ -2161,5 +2161,52 @@ function v5WordReport(){
 })();
 </script>
 
+
+<!-- V5.3.3 FINAL AUDIT SELECTOR BOOT: wait for authenticated session and force population. -->
+<script>
+(function(){
+  let attempts=0, timer=null;
+  async function forceAuditSelector(){
+    const sel=document.getElementById('v5AuditSelect');
+    if(!sel) return false;
+    try{
+      if(typeof session==='undefined' || !session?.access_token) return false;
+      if(typeof refreshSession==='function') await refreshSession(false);
+      let rows=Array.isArray(window.acafAudits) ? window.acafAudits : [];
+      if(!rows.length && typeof api==='function'){
+        rows=await api('/rest/v1/audits?select=id,audit_no,title,organisation_id,created_at&order=created_at.desc');
+        window.acafAudits=Array.isArray(rows)?rows:[];
+      }
+      rows=Array.isArray(rows)?rows:[];
+      const current=sel.value;
+      sel.innerHTML='<option value="">Audit kiválasztása...</option>'+
+        rows.map(a=>'<option value="'+(typeof v5Esc==='function'?v5Esc(a.id):String(a.id))+'">'+
+        (typeof v5Esc==='function'?v5Esc(a.audit_no||''):String(a.audit_no||''))+' – '+
+        (typeof v5Esc==='function'?v5Esc(a.title||''):String(a.title||''))+'</option>').join('');
+      if(current && rows.some(a=>a.id===current)) sel.value=current;
+      if(typeof v52RenderLifecycle==='function') v52RenderLifecycle();
+      return rows.length>0;
+    }catch(e){
+      const m=document.getElementById('v52LifecycleMsg');
+      if(m) m.textContent='Auditlista betöltési hiba: '+e.message;
+      return false;
+    }
+  }
+  function start(){
+    attempts=0;
+    clearInterval(timer);
+    timer=setInterval(async function(){
+      attempts++;
+      const ok=await forceAuditSelector();
+      const sel=document.getElementById('v5AuditSelect');
+      if(ok || (sel && sel.options.length>1) || attempts>=30) clearInterval(timer);
+    },1000);
+    forceAuditSelector();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(start,500));
+  else setTimeout(start,500);
+  window.addEventListener('load',start);
+})();
+</script>
 </body>
 </html>
