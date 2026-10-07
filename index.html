@@ -1736,6 +1736,17 @@ A FINAL jelentés nem módosítható.
 <div id="v5Status" class="small" style="margin-top:10px"></div>
 </section>
 
+<section class="card" id="v531ControlsCard">
+<h2>V5.3.1 – Professional Report Controls</h2>
+<p class="small">Kiegészítő jelentés-ellenőrzés és jelentésverziók. A V5.2.6 működő audit/report logikája változatlan marad.</p>
+<div class="row">
+  <div><strong>Report history / Jelentésverziók</strong><div id="v531History" class="v531-history"><span class="v531-muted">Válassz auditot.</span></div></div>
+  <div><strong>Release checklist / Kiadási ellenőrzőlista</strong><ul class="v531-checklist"><li>All relevant questions assessed</li><li>Findings and CAPA reviewed</li><li>Verification result checked</li><li>Report lifecycle status confirmed</li></ul></div>
+</div>
+</section>
+<style>
+.v531-history{margin-top:8px;border:1px solid #dfe3e8;border-radius:8px;overflow:hidden}.v531-row{display:grid;grid-template-columns:55px 1fr 95px 60px;gap:8px;padding:8px;border-bottom:1px solid #eef1f4;font-size:12px}.v531-row:last-child{border-bottom:0}.v531-muted{color:#66707a;font-size:12px}.v531-error{color:#b42318;font-size:12px}.v531-checklist{margin:8px 0 0 18px;padding:0;font-size:12px;line-height:1.8}@media(max-width:800px){.v531-row{grid-template-columns:1fr 1fr}}
+</style>
 <section class="card hidden" id="v5PreviewCard">
 <div class="row">
   <div><h2 id="v5PreviewHeading">Audit Report</h2></div>
@@ -2029,6 +2040,49 @@ function v5WordReport(){
 }
 </script>
 
+<script>
+/* V5.3.1: isolated enhancement layer. Does not alter V5.2.6 database or lifecycle logic. */
+(function(){
+  function esc(v){ try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');} }
+  function date(v){ try{return typeof v5FmtDate==='function'?v5FmtDate(v):(v?new Date(v).toLocaleDateString('en-GB'):'—');}catch(e){return v||'—';} }
+  async function history(auditId){
+    const box=document.getElementById('v531History'); if(!box)return;
+    if(!auditId){box.innerHTML='<span class="v531-muted">Válassz auditot.</span>';return;}
+    try{
+      const rows=await api('/rest/v1/audit_reports?select=id,version,language,status,generated_at,approved_at,finalized_at&audit_id=eq.'+encodeURIComponent(auditId)+'&order=version.desc');
+      if(!Array.isArray(rows)||!rows.length){box.innerHTML='<span class="v531-muted">Ehhez az audithoz még nincs mentett report.</span>';return;}
+      box.innerHTML=rows.map(r=>'<div class="v531-row"><b>V'+esc(r.version)+'</b><span>'+esc(r.status||'')+'</span><span>'+date(r.generated_at)+'</span><span>'+esc(r.language||'')+'</span></div>').join('');
+    }catch(e){box.innerHTML='<span class="v531-error">History error: '+esc(e.message)+'</span>';}
+  }
+  function enhance(built){
+    if(!built||!built.html)return built;
+    const lang=built.lang||'en';
+    const title=lang==='hu'?'Auditori döntési összefoglaló':'Auditor Decision Summary';
+    const evidence=lang==='hu'?'Bizonyíték-nyilvántartás':'Evidence Register';
+    let extra='<div class="v5-section"><h3>'+title+'</h3><table class="v5-table"><tr><th>Findings</th><th>CAPA</th><th>Overall</th></tr><tr><td>'+esc((built.findings||[]).length)+'</td><td>'+esc((built.capas||[]).length)+'</td><td>'+esc(built.overall||'—')+'</td></tr></table></div>';
+    extra+='<div class="v5-section"><h3>'+evidence+'</h3><table class="v5-table"><tr><th>#</th><th>Requirement</th><th>Assessment</th><th>Evidence</th><th>Auditor notes</th></tr>';
+    (built.questions||[]).forEach(function(x,i){const a=x.a||{},r=x.r||{};let assess='unanswered';try{assess=v5Assessment(a.assessment||'unanswered',lang)}catch(e){} extra+='<tr><td>'+(i+1)+'</td><td>'+esc(r.requirement_code||'')+'</td><td>'+esc(assess)+'</td><td>'+ (typeof v5Text==='function'?v5Text(a.evidence,'—'):esc(a.evidence||'—')) +'</td><td>'+ (typeof v5Text==='function'?v5Text(a.auditor_notes,'—'):esc(a.auditor_notes||'—')) +'</td></tr>';});
+    extra+='</table></div>';
+    return Object.assign({},built,{html:built.html.replace(/<div class="v5-section"><h3>(Conclusion|Következtetés)[^<]*<\/h3>/,extra+'$&')});
+  }
+  function install(){
+    const sel=document.getElementById('v5AuditSelect');
+    if(sel&&!sel.dataset.v531hook){sel.addEventListener('change',function(){history(sel.value);});sel.dataset.v531hook='1';}
+    if(sel&&sel.value)history(sel.value);
+    // Wrap only the preview builder after V5.2.6 functions exist.
+    if(typeof window.v5GenerateReport==='function'&&!window.__v531PreviewWrapped){
+      const original=window.v5GenerateReport;
+      window.v5GenerateReport=async function(){
+        const old=window.v53EnhanceReport;
+        window.v53EnhanceReport=enhance;
+        try{return await original();}finally{if(old)window.v53EnhanceReport=old;else delete window.v53EnhanceReport;}
+      };
+      window.__v531PreviewWrapped=true;
+    }
+  }
+  setTimeout(install,1200);setTimeout(install,2500);
+})();
+</script>
 <!-- V5.2.6 FINAL BOOTSTRAP: runs after every V5.2 function has been parsed. -->
 <script>
 (function(){
