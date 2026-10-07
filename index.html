@@ -1737,16 +1737,17 @@ async function v5GenerateReport(){
  const status=document.getElementById('v5Status'); status.textContent='Adatok betöltése és jelentés összeállítása...';
  try{
   await refreshSession(false);
-  const [audits,questions,answers,reqs,findings,capas]=await Promise.all([
+  const [audits,questions,answers,reqs,findings,capas,orgs]=await Promise.all([
    api('/rest/v1/audits?select=*&id=eq.'+encodeURIComponent(auditId)),
    api('/rest/v1/audit_questions?select=*&audit_id=eq.'+encodeURIComponent(auditId)+'&order=sequence_no.asc'),
    api('/rest/v1/audit_answers?select=*'),
    api('/rest/v1/requirements?select=*'),
    api('/rest/v1/findings?select=*&audit_id=eq.'+encodeURIComponent(auditId)+'&order=finding_no.asc'),
-   api('/rest/v1/capa_actions?select=*')
+   api('/rest/v1/capa_actions?select=*'),
+   api('/rest/v1/organisations?select=id,name')
   ]);
   const audit=(audits||[])[0]; if(!audit)throw new Error('Audit nem található.');
-  const qs=questions||[], ans=answers||[], rr=reqs||[], ff=findings||[], cc=capas||[];
+  const qs=questions||[], ans=answers||[], rr=reqs||[], ff=findings||[], cc=capas||[], oo=orgs||[];
   const reqMap=new Map(rr.map(r=>[r.id,r]));
   const ansMap=new Map(ans.map(a=>[a.question_id,a]));
   const findingIds=new Set(ff.map(f=>f.id));
@@ -1757,13 +1758,15 @@ async function v5GenerateReport(){
   const auditor=document.getElementById('v5Auditor').value.trim();
   const scope=document.getElementById('v5Scope').value.trim();
   const methodology=document.getElementById('v5Methodology').value.trim();
-  const orgId=audit.organisation_id||'—';
-  const overall=counts.noncompliant?'Non-compliant':counts.partial?'Partially compliant':counts.answered?'Compliant':'Draft';
+  const orgRec=oo.find(o=>o.id===audit.organisation_id);
+  const orgName=orgRec?.name||audit.organisation_id||'—';
+  const allFindingsClosed=ff.length>0 && ff.every(f=>f.status==='closed');
+  const overall=ff.length && allFindingsClosed && counts.noncompliant ? (lang==='hu'?'Lezárt – megfelelőség helyreállítva':'Closed – compliance restored') : counts.noncompliant?(lang==='hu'?'Nem megfelelő':'Non-compliant'):counts.partial?(lang==='hu'?'Részben megfelelő':'Partially compliant'):counts.answered?(lang==='hu'?'Megfelelő':'Compliant'):(lang==='hu'?'Tervezet':'Draft');
   const L=lang==='hu'?{exec:'Vezetői összefoglaló',info:'Audit adatok',scope:'Hatókör és módszertan',overview:'Megfelelőségi áttekintés',questions:'Audit követelmények és értékelések',findings:'Megállapítások / Findings',capa:'CAPA és hatékonyság-ellenőrzés',conclusion:'Következtetés',evidence:'Bizonyíték',notes:'Auditori megjegyzés',req:'Követelmény',assessment:'Értékelés',status:'Státusz',risk:'Kockázat',classification:'Osztályozás',due:'Határidő',action:'Intézkedés',verification:'Verification / Ellenőrzés',date:'Dátum',auditNo:'Audit szám',organisation:'Szervezet',auditor:'Auditor',methodology:'Módszertan'}:{exec:'Executive Summary',info:'Audit Information',scope:'Scope and Methodology',overview:'Compliance Overview',questions:'Audit Requirements and Assessments',findings:'Findings',capa:'CAPA and Effectiveness Verification',conclusion:'Conclusion',evidence:'Evidence',notes:'Auditor Notes',req:'Requirement',assessment:'Assessment',status:'Status',risk:'Risk',classification:'Classification',due:'Due Date',action:'Action',verification:'Verification',date:'Date',auditNo:'Audit No.',organisation:'Organisation',auditor:'Auditor',methodology:'Methodology'};
   let html=`<div class="v5-report" id="v5PrintableReport">
    <div class="v5-cover"><h1>${v5Esc(title)}</h1><div class="meta">ACAF Personal • ${v5Esc(audit.title||'')} • ${v5FmtDate(audit.created_at)}</div></div>
-   <div class="v5-section"><h3>${L.info}</h3><table class="v5-table"><tr><th>${L.auditNo}</th><td>${v5Text(audit.audit_no)}</td><th>${L.organisation}</th><td>${v5Text(orgId)}</td></tr><tr><th>${L.date}</th><td>${v5FmtDate(audit.created_at)}</td><th>${L.auditor}</th><td>${v5Text(auditor)}</td></tr></table></div>
-   <div class="v5-section"><h3>${L.exec}</h3><p>${lang==='hu'?'Az audit a rendelkezésre álló követelmények, válaszok, bizonyítékok és megállapítások alapján került értékelésre.':'The audit was assessed based on the available requirements, responses, evidence and findings.'}</p><div class="v5-kpis"><div class="v5-kpi"><strong>${counts.total}</strong>${L.questions}</div><div class="v5-kpi"><strong>${counts.answered}</strong>Answered</div><div class="v5-kpi"><strong>${counts.compliant}</strong>Compliant</div><div class="v5-kpi"><strong>${ff.length}</strong>Findings</div></div></div>
+   <div class="v5-section"><h3>${L.info}</h3><table class="v5-table"><tr><th>${L.auditNo}</th><td>${v5Text(audit.audit_no)}</td><th>${L.organisation}</th><td>${v5Text(orgName)}</td></tr><tr><th>${L.date}</th><td>${v5FmtDate(audit.created_at)}</td><th>${L.auditor}</th><td>${v5Text(auditor)}</td></tr></table></div>
+   <div class="v5-section"><h3>${L.exec}</h3><p>${lang==='hu'?'Az audit a rendelkezésre álló követelmények, válaszok, bizonyítékok és megállapítások alapján került értékelésre.':'The audit was assessed based on the available requirements, responses, evidence and findings.'}</p><div class="v5-kpis"><div class="v5-kpi"><strong>${counts.total}</strong>${L.questions}</div><div class="v5-kpi"><strong>${counts.answered}</strong>${lang==='hu'?'Megválaszolt':'Answered'}</div><div class="v5-kpi"><strong>${counts.compliant}</strong>Compliant</div><div class="v5-kpi"><strong>${ff.length}</strong>Findings</div></div></div>
    <div class="v5-section"><h3>${L.scope}</h3><p><strong>${L.scope}:</strong><br>${v5Text(scope)}</p><p><strong>${L.methodology}:</strong><br>${v5Text(methodology)}</p></div>
    <div class="v5-section"><h3>${L.overview}</h3><table class="v5-table"><tr><th>Compliant</th><th>Partial</th><th>Non-compliant</th><th>N/A</th><th>Unanswered</th></tr><tr><td>${counts.compliant}</td><td>${counts.partial}</td><td>${counts.noncompliant}</td><td>${counts.na}</td><td>${counts.total-counts.answered}</td></tr></table></div>
    <div class="v5-section"><h3>${L.questions}</h3><table class="v5-table"><tr><th>#</th><th>${L.req}</th><th>Framework</th><th>${L.assessment}</th><th>${L.evidence}</th><th>${L.notes}</th></tr>`;
@@ -1775,7 +1778,7 @@ async function v5GenerateReport(){
   html+=`</div><div class="v5-section"><h3>${L.capa}</h3>`;
   if(!auditCapas.length) html+='<p>No CAPA actions recorded / Nincs CAPA intézkedés rögzítve.</p>';
   auditCapas.forEach(c=>{html+=`<div class="v5-finding"><b>${L.status}:</b> ${v5Text(c.status)}<br><b>${L.action}:</b> ${v5Text(c.corrective_action)}<br><b>Preventive:</b> ${v5Text(c.preventive_action)}<br><b>Responsible:</b> ${v5Text(c.responsible_person)}<br><b>Target:</b> ${v5FmtDate(c.target_date)}<br><b>${L.verification}:</b> ${v5Text(c.verification_result)}</div>`});
-  html+=`</div><div class="v5-section"><h3>${L.conclusion}</h3><p>${lang==='hu'?'Az audit lezárásának véglegesítése az összes releváns Finding és CAPA státuszának, valamint a verification eredményének ellenőrzése után történik.':'Final audit closure should be confirmed after reviewing all relevant Finding and CAPA statuses and the verification outcome.'}</p></div></div>`;
+  html+=`</div><div class="v5-section"><h3>${L.conclusion}</h3><p>${ff.length===0 ? (lang==='hu'?'Nem került rögzítésre megállapítás. Az audit következtetését az összes értékelés és bizonyíték alapján kell véglegesíteni.':'No findings were recorded. The audit conclusion should be finalised based on all assessments and evidence.') : allFindingsClosed ? (lang==='hu'?'Minden rögzített Finding lezárt, és a rendelkezésre álló CAPA verification eredmény alapján a kapcsolódó intézkedések hatékonynak minősültek. Az audit lezárható, feltéve hogy minden kötelező értékelés és bizonyíték ellenőrzése megtörtént.':'All recorded Findings are closed, and the available CAPA verification indicates that the related actions were effective. The audit may be closed provided all mandatory assessments and evidence have been reviewed.') : (lang==='hu'?'Az audit még nem tekinthető teljes körűen lezártnak, amíg valamennyi releváns Finding és CAPA státusza, valamint a verification eredmények ellenőrzése meg nem történik.':'The audit should not be considered fully closed until all relevant Finding and CAPA statuses and verification outcomes have been reviewed.')}</p></div></div>`;
   v5ReportData={audit,questions:questionRows,findings:ff,capas:auditCapas,html,title,lang};
   document.getElementById('v5PreviewHeading').textContent=title;
   document.getElementById('v5PreviewStatus').textContent=overall;
