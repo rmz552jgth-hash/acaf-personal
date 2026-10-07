@@ -1840,12 +1840,26 @@ async function v52LoadLatestReport(auditId, render=true){
 }
 async function v5LoadAudits(){
  try{
-  await refreshSession(false);
-  const rows=await api('/rest/v1/audits?select=*&order=created_at.desc');
   const sel=document.getElementById('v5AuditSelect');
-  sel.innerHTML='<option value="">Audit kiválasztása...</option>'+(rows||[]).map(a=>`<option value="${v5Esc(a.id)}">${v5Esc(a.audit_no||'')} – ${v5Esc(a.title||'')} (${v5Esc(a.id)})</option>`).join('');
+  if(!sel) return;
+  // Use the same authenticated audit list already loaded by the dashboard.
+  // This avoids a second session refresh and guarantees that V5.2 sees the
+  // exact same audits as My Audits / Finding / Impact Assessment.
+  let rows=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  if(!rows.length){
+   rows=await api('/rest/v1/audits?select=*&order=created_at.desc');
+   window.acafAudits=Array.isArray(rows)?rows:[];
+  }
+  const current=sel.value;
+  sel.innerHTML='<option value="">Audit kiválasztása...</option>'+(rows||[]).map(a=>`<option value="${v5Esc(a.id)}">${v5Esc(a.audit_no||'')} – ${v5Esc(a.title||'')}</option>`).join('');
   sel.onchange=()=>v52LoadLatestReport(sel.value);
- }catch(e){document.getElementById('v5Status').textContent='Auditok betöltése sikertelen: '+e.message;}
+  if(current && rows.some(a=>a.id===current)){
+   sel.value=current;
+  }
+ }catch(e){
+  const msg=document.getElementById('v52LifecycleMsg');
+  if(msg) msg.textContent='Auditok betöltése sikertelen: '+e.message;
+ }
 }
 
 async function v5BuildReport(){
