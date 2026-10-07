@@ -1736,32 +1736,6 @@ A FINAL jelentés nem módosítható.
 <div id="v5Status" class="small" style="margin-top:10px"></div>
 </section>
 
-
-<section class="card" id="v53ControlsCard">
-<h2>V5.3 – Professional Audit Report Controls</h2>
-<p class="small">A V5.3 a kiadható jelentéshez külön kezeli a Finding/CAPA részleteket, az evidence registert és a report version history-t. A jelentés tartalma továbbra is auditor által ellenőrzött adat.</p>
-<div class="row">
- <div><strong>Report history / Jelentésverziók</strong><div id="v53History" class="v53-history"><span class="v53-muted">Válassz auditot.</span></div></div>
- <div><strong>Release checklist / Kiadási ellenőrzőlista</strong>
-  <ul class="v53-checklist"><li>All relevant questions assessed</li><li>Findings classified and assigned</li><li>CAPA status and target dates verified</li><li>Verification result reviewed</li><li>Report lifecycle status confirmed</li></ul>
- </div>
-</div>
-</section>
-<style>
-.v53-professional{margin:24px 0}.v53-panel{border:1px solid #d9dee4;border-radius:10px;padding:14px;margin:14px 0;background:#fff}.v53-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.v53-grid>div{background:#f6f8fa;border-radius:8px;padding:10px}.v53-grid span{display:block;font-size:11px;color:#66707a}.v53-grid strong{display:block;margin-top:4px}.v53-source,.v53-muted{color:#66707a;font-size:12px}.v53-finding{border:1px solid #dfe3e8;border-radius:8px;padding:12px;margin:10px 0}.v53-finding-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.v53-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}.v53-table th,.v53-table td{border:1px solid #dfe3e8;padding:7px;text-align:left;vertical-align:top}.v53-table th{background:#f4f6f8}.v53-history{margin-top:8px;border:1px solid #dfe3e8;border-radius:8px;overflow:hidden}.v53-history-row{display:grid;grid-template-columns:60px 1fr 100px 70px;gap:8px;padding:8px;border-bottom:1px solid #eef1f4;font-size:12px}.v53-history-row:last-child{border-bottom:0}.v53-error{color:#b42318;font-size:12px}.v53-checklist{margin:8px 0 0 18px;padding:0;font-size:12px;line-height:1.8}@media(max-width:800px){.v53-grid{grid-template-columns:repeat(2,1fr)}.v53-history-row{grid-template-columns:1fr 1fr}.v53-table{font-size:11px}}
-</style>
-<script>
-(function(){
- function hook(){
-  const sel=document.getElementById('v5AuditSelect');
-  if(!sel)return;
-  if(!sel.dataset.v53hook){sel.addEventListener('change',()=>v53LoadReportHistory(sel.value));sel.dataset.v53hook='1';}
-  if(sel.value)v53LoadReportHistory(sel.value);
- }
- setTimeout(hook,700);setTimeout(hook,1600);
-})();
-</script>
-
 <section class="card hidden" id="v5PreviewCard">
 <div class="row">
   <div><h2 id="v5PreviewHeading">Audit Report</h2></div>
@@ -1953,67 +1927,11 @@ async function v5BuildReport(){
  return {audit,questions:questionRows,findings:ff,capas:auditCapas,html,title,lang,overall};
 }
 
-function v53EnhanceReport(built){
- const lang=built.lang||'en';
- const L=lang==='hu'?{
-  findings:'Finding részletek',capa:'CAPA részletek',decision:'Auditori döntési összefoglaló',
-  evidence:'Evidence register / Bizonyíték-nyilvántartás',verification:'Verification állapot',
-  closed:'Lezárt',open:'Nyitott',partial:'Részben megfelelő',
-  source:'Forrás: audit answer és rögzített bizonyíték', noEvidence:'Nincs külön bizonyíték rögzítve.',
-  noCapa:'Ehhez a Findinghoz nincs CAPA rekord.', version:'Report version', status:'Report státusz'
- }:{
-  findings:'Finding Details',capa:'CAPA Details',decision:'Auditor Decision Summary',
-  evidence:'Evidence Register',verification:'Verification Status',
-  closed:'Closed',open:'Open',partial:'Partially compliant',
-  source:'Source: audit answer and recorded evidence', noEvidence:'No separate evidence recorded.',
-  noCapa:'No CAPA record exists for this Finding.', version:'Report version', status:'Report status'
- };
- let extra=`<div class="v53-professional">`;
- extra+=`<div class="v53-panel"><h3>${L.decision}</h3><div class="v53-grid">
- <div><span>${L.version}</span><strong>Draft / controlled report</strong></div>
- <div><span>${L.status}</span><strong>${v5Esc(built.overall||'—')}</strong></div>
- <div><span>Findings</span><strong>${built.findings?.length||0}</strong></div>
- <div><span>CAPA actions</span><strong>${built.capas?.length||0}</strong></div>
- </div><p class="v53-source">${L.source}</p></div>`;
- if((built.findings||[]).length){
-  extra+=`<div class="v53-panel"><h3>${L.findings}</h3>`;
-  built.findings.forEach(f=>{
-   const related=(built.capas||[]).filter(c=>c.finding_id===f.id);
-   extra+=`<div class="v53-finding"><div class="v53-finding-head"><strong>Finding #${v5Esc(f.finding_no)}</strong><span>${v5Esc(f.classification||'')} · ${v5Esc(f.risk||'')} · ${v5Esc(v5StatusLabel(f.status,lang))}</span></div>
-   <p><b>Objective:</b> ${v5Text(f.objective_statement)}</p><p><b>Root cause:</b> ${v5Text(f.root_cause)}</p>
-   <p><b>Due:</b> ${v5FmtDate(f.due_date)}</p>`;
-   if(related.length){
-    extra+=`<table class="v53-table"><tr><th>CAPA</th><th>Status</th><th>Responsible</th><th>Target</th><th>Verification</th></tr>`;
-    related.forEach(c=>extra+=`<tr><td>${v5Text(c.corrective_action)}</td><td>${v5Text(c.status)}</td><td>${v5Text(c.responsible_person)}</td><td>${v5FmtDate(c.target_date)}</td><td>${v5Text(c.verification_result)}</td></tr>`);
-    extra+=`</table>`;
-   } else extra+=`<p class="v53-muted">${L.noCapa}</p>`;
-   extra+=`</div>`;
-  });
-  extra+=`</div>`;
- }
- extra+=`<div class="v53-panel"><h3>${L.evidence}</h3><table class="v53-table"><tr><th>#</th><th>Requirement</th><th>Assessment</th><th>Evidence</th><th>Auditor notes</th></tr>`;
- (built.questions||[]).forEach((x,i)=>{const a=x.a||{},r=x.r||{}; extra+=`<tr><td>${i+1}</td><td><b>${v5Text(r.requirement_code)}</b></td><td>${v5Esc(v5Assessment(a.assessment||'unanswered',lang))}</td><td>${v5Text(a.evidence,L.noEvidence)}</td><td>${v5Text(a.auditor_notes)}</td></tr>`});
- extra+=`</table></div></div>`;
- // Put the controlled appendix before the final conclusion so it remains part of the report.
- return built.html.replace(/<div class="v5-section"><h3>(Conclusion|Következtetés)<\/h3>/,extra+'<div class="v5-section"><h3>$1</h3>');
-}
-
-async function v53LoadReportHistory(auditId){
- const box=document.getElementById('v53History'); if(!box)return;
- if(!auditId){box.innerHTML='<span class="v53-muted">Válassz auditot.</span>';return;}
- try{
-  const rows=await api('/rest/v1/audit_reports?select=id,version,language,status,generated_at,approved_at,finalized_at&audit_id=eq.'+encodeURIComponent(auditId)+'&order=version.desc');
-  if(!rows?.length){box.innerHTML='<span class="v53-muted">Ehhez az audithoz még nincs mentett report.</span>';return;}
-  box.innerHTML=rows.map(r=>`<div class="v53-history-row"><b>V${v5Esc(r.version)}</b><span>${v5Esc(v52ReportStatusLabel(r.status,r.language||'en'))}</span><span>${v5FmtDate(r.generated_at)}</span><span>${v5Esc(r.language||'')}</span></div>`).join('');
- }catch(e){box.innerHTML='<span class="v53-error">History error: '+v5Esc(e.message)+'</span>';}
-}
-
 async function v5GenerateReport(){
  const status=document.getElementById('v5Status');
  status.textContent='Adatok betöltése és jelentés összeállítása...';
  try{
   const built=await v5BuildReport();
-  built.html=v53EnhanceReport(built);
   v5ReportData=built;
   document.getElementById('v5PreviewHeading').textContent=built.title;
   document.getElementById('v5PreviewStatus').textContent=built.overall;
@@ -2061,7 +1979,6 @@ async function v52GenerateAndSave(){
    if(!row)throw new Error('A report mentése nem adott vissza rekordot.');
   }
   v52CurrentReport=row;
-  built.html=v53EnhanceReport(built);
   v5ReportData=built;
   document.getElementById('v5PreviewHeading').textContent=built.title;
   document.getElementById('v5PreviewStatus').textContent='DRAFT';
