@@ -345,6 +345,18 @@ A Finding/CAPA adatok elérhetők. Válassz egy meglévő Findingot a CAPA létr
 <div id="capaFormHost"></div>
 </div>
 </section>
+
+<section class="card" id="verificationCard">
+<h2>V4.4 – CAPA Verification & Closure</h2>
+<p class="small">A CAPA csak auditor által végzett hatékonyság-ellenőrzés után zárható. A CAPA lezárása és a Finding lezárása külön döntés.</p>
+<div class="review"><b>Safety rule:</b> a Regulatory Change önmagában nem zár Findingot. A Finding csak sikeres CAPA verification után zárható.</div>
+<div class="row" style="margin-top:14px">
+ <div><label>CAPA / kapcsolódó Finding</label><select id="verificationCapaSelect"><option value="">CAPA-k betöltése…</option></select></div>
+ <div style="display:flex;align-items:end"><button class="secondary" onclick="loadVerificationCapas()">↻ CAPA-k frissítése</button></div>
+</div>
+<div id="verificationCapaInfo" class="sourceBox" style="margin-top:12px">Válassz egy CAPA-t.</div>
+<div id="verificationFormHost"></div>
+</section>
 <section class="card" id="questionImpactCard">
 <h2>V4.0 – Audit Question Auto-Impact</h2>
 <p class="small">
@@ -1246,6 +1258,64 @@ async function createCapaV43(findingId){
   msg.textContent='✓ CAPA létrehozva.';msg.className='small success';
  }catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
 }
+
+async function loadVerificationCapas(){
+ const sel=document.getElementById('verificationCapaSelect'), info=document.getElementById('verificationCapaInfo');
+ if(!sel)return; sel.innerHTML='<option value="">Betöltés…</option>';
+ try{
+  const rows=await api('/rest/v1/capa_actions?select=*&order=created_at.desc');
+  if(!rows.length){sel.innerHTML='<option value="">Nincs CAPA</option>'; if(info)info.textContent='Nincs még CAPA.'; document.getElementById('verificationFormHost').innerHTML=''; return;}
+  window.acafCapas=rows;
+  sel.innerHTML=rows.map(c=>`<option value="${esc(c.id)}">CAPA — ${esc(c.status||'')} — Finding ${esc(c.finding_id||'')}</option>`).join('');
+  renderVerificationForm();
+ }catch(e){
+  sel.innerHTML='<option value="">Betöltési hiba</option>';
+  if(info)info.innerHTML='<span class="error">✕ '+esc(e.message||'Ismeretlen hiba')+'</span>';
+ }
+}
+function renderVerificationForm(){
+ const sel=document.getElementById('verificationCapaSelect'), host=document.getElementById('verificationFormHost'), info=document.getElementById('verificationCapaInfo');
+ if(!sel||!host)return;
+ const capa=(window.acafCapas||[]).find(x=>x.id===sel.value);
+ if(!capa){host.innerHTML=''; if(info)info.textContent='Válassz CAPA-t.'; return;}
+ const finding=(window.acafFindings||[]).find(x=>x.id===capa.finding_id);
+ if(info)info.innerHTML=`<b>CAPA státusz:</b> ${esc(capa.status||'')} · <b>Finding:</b> ${esc(finding?.finding_no??capa.finding_id)} · <b>Target date:</b> ${esc(capa.target_date||'—')}<br><span class="small">${esc(capa.corrective_action||'')}</span>`;
+ host.innerHTML=`<div class="sourceBox" style="margin-top:12px">
+  <div class="row"><div><label>Verification decision / Hatékonyság</label><select id="verificationDecision"><option value="">Válassz…</option><option value="effective">Effective / Hatékony</option><option value="not_effective">Not effective / Nem hatékony</option></select></div><div><label>Verification date</label><input id="verificationDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div></div>
+  <label>Verification result / Ellenőrzési megállapítás</label><textarea id="verificationResult" placeholder="Document the evidence reviewed, effectiveness decision and auditor conclusion."></textarea>
+  <div style="margin-top:10px"><button class="primary" onclick="saveCapaVerification()">Save Verification / Ellenőrzés mentése</button></div>
+  <p class="small">Effective esetén a CAPA <b>closed</b> és a kapcsolódó Finding <b>closed</b> lesz. Not effective esetén a CAPA <b>in_progress</b> marad, a Finding nyitva marad.</p>
+  <p id="verificationMsg" class="small"></p>
+ </div>`;
+}
+async function saveCapaVerification(){
+ const msg=document.getElementById('verificationMsg');
+ try{
+  const capaId=document.getElementById('verificationCapaSelect')?.value;
+  const decision=document.getElementById('verificationDecision')?.value;
+  const result=document.getElementById('verificationResult')?.value.trim();
+  const date=document.getElementById('verificationDate')?.value;
+  if(!capaId)throw new Error('Válassz CAPA-t.');
+  if(!decision)throw new Error('Válaszd ki a verification eredményét.');
+  if(!result)throw new Error('A verification result kötelező.');
+  const capa=(window.acafCapas||[]).find(x=>x.id===capaId);
+  if(!capa)throw new Error('A kiválasztott CAPA nem található.');
+  const verificationText=(date?`Verification date: ${date}\n`:'')+`Decision: ${decision=== 'effective'?'Effective':'Not effective'}\n${result}`;
+  const capaStatus=decision==='effective'?'closed':'in_progress';
+  const saved=await api('/rest/v1/capa_actions?id=eq.'+encodeURIComponent(capaId),{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify({verification_result:verificationText,status:capaStatus,updated_at:new Date().toISOString()})});
+  const row=Array.isArray(saved)?saved[0]:saved;
+  if(!row?.id)throw new Error('CAPA verification mentése nem sikerült.');
+  if(decision==='effective'){
+    const updated=await api('/rest/v1/findings?id=eq.'+encodeURIComponent(capa.finding_id),{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify({status:'closed',updated_at:new Date().toISOString()})});
+    const fr=Array.isArray(updated)?updated[0]:updated;
+    if(!fr?.id)throw new Error('CAPA lezárult, de a Finding lezárása nem sikerült.');
+  }
+  msg.textContent=decision==='effective'?'✓ Verification sikeres. CAPA és Finding lezárva.':'✓ Verification rögzítve. A CAPA in_progress marad, a Finding nyitva marad.';
+  msg.className='small success';
+  await loadVerificationCapas();
+ }catch(e){msg.textContent='✕ '+(e.message||'Ismeretlen hiba');msg.className='small error';}
+}
+
 async function checkOneTableSchema(table){
   try{
     const rows=await api('/rest/v1/'+table+'?select=*&limit=1');
@@ -1500,6 +1570,7 @@ function initialiseRegulatoryWatch(){
    if(fa)fa.addEventListener('change',loadFindingCreateQuestions);
    if(fq)fq.addEventListener('change',loadFindingAnswerInfo);
    const cfs=document.getElementById('capaFindingSelect'); if(cfs)cfs.addEventListener('change',renderExistingCapaForm);
+   const vcs=document.getElementById('verificationCapaSelect'); if(vcs)vcs.addEventListener('change',renderVerificationForm);
 
    loadQuestionImpact();
  }).catch(()=>{});
@@ -1527,7 +1598,7 @@ async function checkConnection(){
  checkConnection();
 })();
 
-setTimeout(()=>{ if(session) { initialiseRegulatoryWatch(); setTimeout(()=>loadCapaFindings(), 1200); } }, 900);
+setTimeout(()=>{ if(session) { initialiseRegulatoryWatch(); setTimeout(()=>{loadCapaFindings(); loadVerificationCapas();}, 1200); } }, 900);
 </script>
 
 <section class="card" id="schemaCard">
