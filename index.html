@@ -74,6 +74,163 @@ body{background:#fff!important}body>.container>section,body>.container>div{displ
 }
 @page { size:A4 landscape; margin:12mm; }
 </style>
+
+<style id="acaf-v5117-print-layout">
+/* V5.11.7 — controlled A4 landscape report pagination */
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+
+  html, body {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body > .container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #v5PreviewCard {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #v5ReportPreview,
+  #v5ReportPreview * {
+    visibility: visible !important;
+  }
+
+  .v5-report {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  /* Cover = exactly one controlled page */
+  .v5-cover {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 190mm !important;
+    min-height: 190mm !important;
+    max-height: 190mm !important;
+    margin: 0 !important;
+    padding: 18mm !important;
+    overflow: hidden !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  /* Every major report section starts on a fresh page. */
+  .v5-section {
+    break-before: page !important;
+    page-break-before: always !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .v5-cover + .v5-section {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  /* Enhancement sections also get their own clean page. */
+  .v56-matrix,
+  .v57-detail,
+  .v58-evidence,
+  .v55-signatures,
+  .v53-appendix,
+  .v54-section,
+  .v511-appendix {
+    break-before: page !important;
+    page-break-before: always !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Tables: never clip the right edge. */
+  table,
+  .v5-table,
+  .v56-matrix table,
+  .v57-table,
+  .v58-table,
+  .v55-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  table th,
+  table td,
+  .v5-table th,
+  .v5-table td,
+  .v56-matrix th,
+  .v56-matrix td,
+  .v57-table th,
+  .v57-table td,
+  .v58-table th,
+  .v58-table td,
+  .v55-table th,
+  .v55-table td {
+    box-sizing: border-box !important;
+    border-top: 1px solid #bfc7cf !important;
+    border-bottom: 1px solid #bfc7cf !important;
+    border-left: 1px solid #bfc7cf !important;
+    border-right: 1px solid #bfc7cf !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+    vertical-align: top !important;
+  }
+
+  /* Explicit outer frame, including the right edge. */
+  table {
+    border: 1px solid #bfc7cf !important;
+  }
+  table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+  thead { display: table-header-group !important; }
+  tfoot { display: table-footer-group !important; }
+
+  /* Keep section headings with the content immediately below them. */
+  h1, h2, h3, h4 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Never strand a small content block between pages. */
+  .v5-finding,
+  .v5-capa,
+  .v57-card,
+  .v55-sign {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  p { orphans: 3; widows: 3; }
+}
+</style>
+
 </head>
 <body>
 <div class="container">
