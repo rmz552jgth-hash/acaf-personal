@@ -49,7 +49,7 @@ button.active{outline:3px solid #17202a}
 .v5-report h2{font-size:20px;color:#17365d;border-bottom:2px solid #d9e2ec;padding-bottom:6px;margin-top:30px}
 .v5-report h3{font-size:16px;color:#2f4f6f;margin-top:20px}.v5-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0 22px}.v5-kpi{border:1px solid #d8dee5;border-radius:8px;padding:14px;text-align:center}.v5-kpi .n{font-size:25px;font-weight:700}.v5-kpi .l{font-size:12px;color:#66727d}
 .v5-table{width:100%;border-collapse:collapse;margin:12px 0 22px;font-size:12px}.v5-table th,.v5-table td{border:1px solid #d7dce1;padding:8px;vertical-align:top}.v5-table th{background:#eef3f7;color:#243746;text-align:left}.v5-finding{border:1px solid #d7dce1;border-left:5px solid #8b3a3a;border-radius:6px;padding:14px;margin:12px 0}.v5-capa{border:1px solid #d7dce1;border-left:5px solid #557a55;border-radius:6px;padding:14px;margin:12px 0}.v5-sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:55px}.v5-signbox{border-top:1px solid #555;padding-top:8px;min-height:55px}.v5-footer{margin-top:40px;padding-top:12px;border-top:1px solid #cfd5da;font-size:10px;color:#6b747c;display:flex;justify-content:space-between}
-@media print{body>*:not(#v5PrintableReport){display:none!important}.v5-report{margin:0;max-width:none;padding:18mm 16mm;box-shadow:none}.v5-pagebreak{page-break-before:always}.v5-table{page-break-inside:auto}.v5-table tr{page-break-inside:avoid}.v5-finding,.v5-capa{page-break-inside:avoid}}
+@media print{body{background:#fff!important}body>.container>section,body>.container>div{display:none!important}body>.container{display:block!important;margin:0!important;padding:0!important;max-width:none!important}#v5PreviewCard{display:block!important;visibility:visible!important;box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;max-width:none!important}#v5PreviewCard *{visibility:visible!important}.v5-report{margin:0;max-width:none;padding:18mm 16mm;box-shadow:none}.v5-pagebreak{page-break-before:always}.v5-table{page-break-inside:auto}.v5-table tr{page-break-inside:avoid}.v5-finding,.v5-capa{page-break-inside:avoid}}
 @media(max-width:700px){.v5-meta,.v5-sign{grid-template-columns:1fr}.v5-kpis{grid-template-columns:1fr 1fr}.v5-report{padding:24px 18px}}
 </style>
 </head>
@@ -1766,8 +1766,9 @@ A FINAL jelentés nem módosítható.
 .v52-actions button:disabled{opacity:.45;cursor:not-allowed}
 @media print{
   body{background:#fff!important}
-  body>*{display:none!important}
-  #v5PreviewCard{display:block!important;box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;max-width:none!important}
+  body>.container{display:block!important}
+  body>.container>section,body>.container>div{display:none!important}
+  #v5PreviewCard{display:block!important;visibility:visible!important;box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;max-width:none!important}
   #v5PreviewCard *{visibility:visible!important}
 }
 .v5-report{font-family:Arial,Helvetica,sans-serif;color:#1f2937;line-height:1.45}
