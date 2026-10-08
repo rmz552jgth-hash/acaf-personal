@@ -2694,6 +2694,19 @@ function v5WordReport(){
 }
 </style>
 </body>
+
+<!-- V5.11.6: final print layout correction for user-selected Landscape. -->
+<style id="v5116-print-layout">
+@media print {
+.v54-doc .v54-cover{min-height:0!important;height:170mm!important;max-height:170mm!important;padding:12mm 14mm 10mm!important;margin:0!important;box-sizing:border-box!important;break-after:page!important;page-break-after:always!important;overflow:hidden!important;}
+.v54-doc .v55-pagebreak,.v54-doc .v56-matrix,.v54-doc .v57-detail,.v54-doc .v58-evidence,.v54-doc .v511-requirements,.v54-doc .v5-section:has(.v511-requirements){display:block!important;clear:both!important;break-before:page!important;page-break-before:always!important;margin-top:0!important;}
+.v54-doc .v55-pagebreak h2,.v54-doc .v56-matrix h2,.v54-doc .v57-detail h2,.v54-doc .v58-evidence h2{break-after:avoid-page!important;page-break-after:avoid!important;}
+.v54-doc table:not(.v54-meta),.v54-doc .v5-table:not(.v54-meta),.v54-doc .v55-table,.v54-doc .v56-matrix table,.v54-doc .v57-table,.v54-doc .v58-table{width:calc(100% - 1px)!important;max-width:calc(100% - 1px)!important;margin-right:1px!important;border-collapse:collapse!important;box-sizing:border-box!important;border:1px solid #bfc7cf!important;}
+.v54-doc table:not(.v54-meta) th:last-child,.v54-doc table:not(.v54-meta) td:last-child,.v54-doc .v5-table th:last-child,.v54-doc .v5-table td:last-child,.v54-doc .v55-table th:last-child,.v54-doc .v55-table td:last-child,.v54-doc .v56-matrix th:last-child,.v54-doc .v56-matrix td:last-child,.v54-doc .v57-table th:last-child,.v54-doc .v57-table td:last-child,.v54-doc .v58-table th:last-child,.v54-doc .v58-table td:last-child{border-right:1px solid #bfc7cf!important;}
+.v54-doc table thead{display:table-header-group!important;}.v54-doc table tr{break-inside:avoid!important;page-break-inside:avoid!important;}
+.v54-doc .v5-landscape-page{break-before:page!important;page-break-before:always!important;width:100%!important;max-width:100%!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important;}
+}
+</style>
 </html>
 <!-- V5.11.1: Unified compact report tables + landscape layout for wide tables. -->
 <style>
