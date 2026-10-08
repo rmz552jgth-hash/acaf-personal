@@ -2062,7 +2062,59 @@ async function v52Finalize(){try{await v52Transition('final')}catch(e){document.
 function v5PrintReport(){if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}window.print();}
 function v5WordReport(){
  if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}
- const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>'],{type:'application/msword'});
+ const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body>
+<!-- V5.11.3: preserve report pagination when user selects Landscape for the whole document. -->
+<style id="v5113-global-landscape-pagination">
+@media print {
+  /* Keep the report's logical page structure even when the printer dialog
+     is manually set to Landscape for the complete document. */
+  .v54-doc .v54-cover,
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak,
+  .v54-doc .v55-signatures,
+  .v54-doc .v54-section-break {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* The cover is the first logical page; don't force a blank page before it. */
+  .v54-doc .v54-cover:first-child,
+  .v54-doc > .v54-cover:first-child {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  /* Preserve each section as a unit at its beginning, but allow long tables
+     to continue naturally onto subsequent pages. */
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Tables stay within the printable width in either portrait or landscape. */
+  .v54-doc table:not(.v54-meta) {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Never split an individual data row; the header is repeated by the
+     existing THEAD/table-header-group rules. */
+  .v54-doc table:not(.v54-meta) tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+</style>
+
+</html>'],{type:'application/msword'});
  const a=document.createElement('a');
  a.href=URL.createObjectURL(blob);
  a.download=(v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report.doc';
@@ -2341,7 +2393,59 @@ function v5WordReport(){
       window.__v54PrintHook=true;
     }
     if(typeof window.v5WordReport==='function'&&!window.__v54WordHook){
-      window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();const blob=new Blob(['\\ufeff<html><head><meta charset="utf-8"><title>'+esc(window.v5ReportData.title)+'</title></head><body>'+window.v5ReportData.html+'</body></html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(window.v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report_V'+(window.v52CurrentReport?.version||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);};
+      window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();const blob=new Blob(['\\ufeff<html><head><meta charset="utf-8"><title>'+esc(window.v5ReportData.title)+'</title></head><body>'+window.v5ReportData.html+'</body>
+<!-- V5.11.3: preserve report pagination when user selects Landscape for the whole document. -->
+<style id="v5113-global-landscape-pagination">
+@media print {
+  /* Keep the report's logical page structure even when the printer dialog
+     is manually set to Landscape for the complete document. */
+  .v54-doc .v54-cover,
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak,
+  .v54-doc .v55-signatures,
+  .v54-doc .v54-section-break {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* The cover is the first logical page; don't force a blank page before it. */
+  .v54-doc .v54-cover:first-child,
+  .v54-doc > .v54-cover:first-child {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  /* Preserve each section as a unit at its beginning, but allow long tables
+     to continue naturally onto subsequent pages. */
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Tables stay within the printable width in either portrait or landscape. */
+  .v54-doc table:not(.v54-meta) {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Never split an individual data row; the header is repeated by the
+     existing THEAD/table-header-group rules. */
+  .v54-doc table:not(.v54-meta) tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+</style>
+
+</html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(window.v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report_V'+(window.v52CurrentReport?.version||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);};
       window.__v54WordHook=true;
     }
   }
@@ -2425,7 +2529,59 @@ function v5WordReport(){
     if(typeof window.v5GenerateReport==='function'&&!window.__v55GenHook){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o();apply();return r;};window.__v55GenHook=true;}
     if(typeof window.v52GenerateAndSave==='function'&&!window.__v55SaveHook){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o();apply();return r;};window.__v55SaveHook=true;}
     if(typeof window.v5PrintReport==='function'&&!window.__v55PrintHook){window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();window.print();};window.__v55PrintHook=true;}
-    if(typeof window.v5WordReport==='function'&&!window.__v55WordHook){window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();const d=window.v5ReportData;const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body></html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.audit&&d.audit.audit_no||'ACAF_Audit')+'_Professional_Report_V'+((window.v52CurrentReport&&window.v52CurrentReport.version)||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);};window.__v55WordHook=true;}
+    if(typeof window.v5WordReport==='function'&&!window.__v55WordHook){window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();const d=window.v5ReportData;const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body>
+<!-- V5.11.3: preserve report pagination when user selects Landscape for the whole document. -->
+<style id="v5113-global-landscape-pagination">
+@media print {
+  /* Keep the report's logical page structure even when the printer dialog
+     is manually set to Landscape for the complete document. */
+  .v54-doc .v54-cover,
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak,
+  .v54-doc .v55-signatures,
+  .v54-doc .v54-section-break {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* The cover is the first logical page; don't force a blank page before it. */
+  .v54-doc .v54-cover:first-child,
+  .v54-doc > .v54-cover:first-child {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  /* Preserve each section as a unit at its beginning, but allow long tables
+     to continue naturally onto subsequent pages. */
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Tables stay within the printable width in either portrait or landscape. */
+  .v54-doc table:not(.v54-meta) {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Never split an individual data row; the header is repeated by the
+     existing THEAD/table-header-group rules. */
+  .v54-doc table:not(.v54-meta) tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+</style>
+
+</html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.audit&&d.audit.audit_no||'ACAF_Audit')+'_Professional_Report_V'+((window.v52CurrentReport&&window.v52CurrentReport.version)||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);};window.__v55WordHook=true;}
   }
   let i=0;const t=setInterval(()=>{hook();if(++i>40)clearInterval(t);},500);hook();
 })();
@@ -2769,6 +2925,58 @@ function v5WordReport(){
   hook();
 })();
 </script>
+
+
+<!-- V5.11.3: preserve report pagination when user selects Landscape for the whole document. -->
+<style id="v5113-global-landscape-pagination">
+@media print {
+  /* Keep the report's logical page structure even when the printer dialog
+     is manually set to Landscape for the complete document. */
+  .v54-doc .v54-cover,
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak,
+  .v54-doc .v55-signatures,
+  .v54-doc .v54-section-break {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* The cover is the first logical page; don't force a blank page before it. */
+  .v54-doc .v54-cover:first-child,
+  .v54-doc > .v54-cover:first-child {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  /* Preserve each section as a unit at its beginning, but allow long tables
+     to continue naturally onto subsequent pages. */
+  .v54-doc .v5-requirements-section,
+  .v54-doc .v56-matrix,
+  .v54-doc .v57-detail,
+  .v54-doc .v58-evidence,
+  .v54-doc .v55-pagebreak {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Tables stay within the printable width in either portrait or landscape. */
+  .v54-doc table:not(.v54-meta) {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Never split an individual data row; the header is repeated by the
+     existing THEAD/table-header-group rules. */
+  .v54-doc table:not(.v54-meta) tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+</style>
 
 </html>
 <!-- V5.11.1: Unified compact report tables + landscape layout for wide tables. -->
