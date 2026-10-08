@@ -1781,8 +1781,8 @@ A FINAL jelentés nem módosítható.
 </style>
 
 <script>
-let v5ReportData=null;
-let v52CurrentReport=null;
+var v5ReportData=null;
+var v52CurrentReport=null;
 
 function v5Esc(v){ return esc(v==null?'':String(v)); }
 function v5FmtDate(v){ if(!v)return '—'; try{return new Date(v).toLocaleDateString('en-GB')}catch(e){return v} }
