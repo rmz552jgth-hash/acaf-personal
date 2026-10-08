@@ -2398,8 +2398,30 @@ function v5WordReport(){
     if(window.v5ReportData&&!window.v5ReportData.__acaf6){window.v5ReportData=render(window.v5ReportData);const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}
   }
   function installPrint(){
-    if(typeof window.v5PrintReport==='function'&&!window.__acaf6Print){window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;window.print();};window.__acaf6Print=true}
-    if(typeof window.v5WordReport==='function'&&!window.__acaf6Word){window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}const d=window.v5ReportData;const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body></html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.audit?.audit_no||'ACAF_Audit')+'_Report_V'+(window.v52CurrentReport?.version||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)};window.__acaf6Word=true}
+    if(typeof window.v5PrintReport==='function'&&!window.__acaf6Print){
+      window.v5PrintReport=function(){
+        if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}
+        const p=document.getElementById('v5ReportPreview');
+        if(p)p.innerHTML=window.v5ReportData.html;
+        window.print();
+      };
+      window.__acaf6Print=true;
+    }
+    if(typeof window.v5WordReport==='function'&&!window.__acaf6Word){
+      window.v5WordReport=function(){
+        if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}
+        const d=window.v5ReportData;
+        const html='\\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body></html>';
+        const blob=new Blob([html],{type:'application/msword'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=(d.audit?.audit_no||'ACAF_Audit')+'_Report_V'+(window.v52CurrentReport?.version||'1')+'.doc';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+      };
+      window.__acaf6Word=true;
+    }
   }
   let n=0;const t=setInterval(()=>{install();installPrint();if(++n>50)clearInterval(t)},400);install();installPrint();
 })();
