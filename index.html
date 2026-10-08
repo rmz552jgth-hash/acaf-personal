@@ -2208,5 +2208,112 @@ function v5WordReport(){
   window.addEventListener('load',start);
 })();
 </script>
+
+<!-- V5.4 PROFESSIONAL DOCUMENT LAYER: presentation/export only; lifecycle and DB logic unchanged. -->
+<style>
+.v54-shell{font-family:Arial,Helvetica,sans-serif;color:#17202a;background:#fff;line-height:1.45}
+.v54-cover{min-height:245mm;box-sizing:border-box;padding:18mm 16mm 14mm;border:1px solid #d9dee4;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}
+.v54-brand{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#52606d}
+.v54-cover h1{font-size:32px;line-height:1.15;margin:18mm 0 6mm;color:#17202a}
+.v54-cover .sub{font-size:18px;color:#52606d}
+.v54-meta{border-collapse:collapse;width:100%;margin-top:16mm;font-size:12px}
+.v54-meta td{border:1px solid #d9dee4;padding:8px}.v54-meta td:first-child{font-weight:700;width:32%;background:#f5f7f9}
+.v54-class{font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.v54-doc{padding:0 1mm}
+.v54-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #17202a;padding-bottom:7px;margin-bottom:14px;font-size:10px;color:#52606d}
+.v54-header strong{font-size:11px;color:#17202a}
+.v54-footer{border-top:1px solid #d9dee4;margin-top:18px;padding-top:6px;font-size:9px;color:#66707a;display:flex;justify-content:space-between}
+.v54-section-break{page-break-before:always}
+.v54-approval{page-break-before:always;border-top:2px solid #17202a;margin-top:20px;padding-top:18px}
+.v54-sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:35mm}
+.v54-sign{border-top:1px solid #17202a;padding-top:7px;min-height:22mm;font-size:11px}
+.v54-note{padding:10px 12px;border:1px solid #d9dee4;background:#f8fafb;border-radius:6px;font-size:11px}
+.v54-kpi{break-inside:avoid}
+@media print{
+  body{background:#fff!important}
+  body>*{display:none!important}
+  #v5PreviewCard{display:block!important;visibility:visible!important;box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;max-width:none!important;background:#fff!important}
+  #v5PreviewCard *{visibility:visible!important}
+  .v54-cover{border:0}
+  .v54-footer{position:fixed;bottom:4mm;left:0;right:0}
+  @page{size:A4;margin:15mm 14mm 18mm}
+}
+</style>
+<script>
+(function(){
+  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
+  function fmt(v){try{return v?new Date(v).toLocaleDateString('en-GB'):new Date().toLocaleDateString('en-GB');}catch(e){return '';}}
+  function statusLabel(status,lang){
+    const hu={draft:'Tervezet',auditor_review:'Auditori felülvizsgálat',approved:'Jóváhagyva',final:'Végleges'};
+    const en={draft:'Draft',auditor_review:'Auditor Review',approved:'Approved',final:'Final'};
+    return (lang==='hu'?hu:en)[status]||status||'';
+  }
+  function wrap(built){
+    if(!built||!built.html)return built;
+    const lang=built.lang||'en';
+    const a=built.audit||{};
+    const org=(a.organisation_id||'');
+    const title=esc(built.title|| (lang==='hu'?'ACAF Audit Jelentés':'ACAF Audit Report'));
+    const auditNo=esc(a.audit_no||'—');
+    const auditor=esc(document.getElementById('v5Auditor')?.value.trim()||'—');
+    const scope=esc(document.getElementById('v5Scope')?.value.trim()||'—');
+    const methodology=esc(document.getElementById('v5Methodology')?.value.trim()||'—');
+    const reportId=esc(window.v52CurrentReport?.id||'—');
+    const version=esc(window.v52CurrentReport?.version||'—');
+    const lifecycle=esc(statusLabel(window.v52CurrentReport?.status||'draft',lang));
+    const confidential=lang==='hu'?'BIZALMAS – KONTROLLÁLT DOKUMENTUM':'CONFIDENTIAL – CONTROLLED DOCUMENT';
+    const prepared=lang==='hu'?'Készítette':'Prepared by';
+    const reviewed=lang==='hu'?'Felülvizsgálta':'Reviewed by';
+    const approved=lang==='hu'?'Jóváhagyta':'Approved by';
+    const finalized=lang==='hu'?'Véglegesítve':'Finalized';
+    const approvalTitle=lang==='hu'?'Jóváhagyási és kiadási oldal':'Approval & Release';
+    const docInfo=lang==='hu'?'Dokumentumvezérlés':'Document Control';
+    const metaRows=`<tr><td>${lang==='hu'?'Audit szám':'Audit No.'}</td><td>${auditNo}</td></tr>`+
+      `<tr><td>Report ID</td><td>${reportId}</td></tr>`+
+      `<tr><td>${lang==='hu'?'Verzió':'Version'}</td><td>${version}</td></tr>`+
+      `<tr><td>${lang==='hu'?'Státusz':'Status'}</td><td>${lifecycle}</td></tr>`+
+      `<tr><td>${lang==='hu'?'Jelentés nyelve':'Report Language'}</td><td>${lang==='hu'?'Magyar':'English'}</td></tr>`+
+      `<tr><td>${lang==='hu'?'Szervezet azonosító':'Organisation ID'}</td><td>${esc(org)}</td></tr>`+
+      `<tr><td>${lang==='hu'?'Készítés dátuma':'Generated'}</td><td>${fmt(window.v52CurrentReport?.generated_at)}</td></tr>`;
+    const cover=`<div class="v54-cover"><div><div class="v54-brand">ACAF PERSONAL</div><h1>${title}</h1><div class="sub">${lang==='hu'?'Repülésbiztonsági megfelelőségi audit jelentés':'Aviation Compliance Audit Report'}</div><table class="v54-meta">${metaRows}</table></div><div><div class="v54-note"><span class="v54-class">${confidential}</span><br>${lang==='hu'?'A jelentés a jóváhagyási és életciklus-szabályok szerint kezelt dokumentum.':'This report is a controlled document subject to the defined approval lifecycle.'}</div></div></div>`;
+    const header=`<div class="v54-header"><div><strong>ACAF PERSONAL</strong><br>${auditNo}</div><div style="text-align:right">${title}<br>V${version} · ${lifecycle}</div></div>`;
+    const footer=`<div class="v54-footer"><span>ACAF Personal · ${confidential}</span><span>Audit ${auditNo} · V${version} · Page <span class="v54-page"></span></span></div>`;
+    const approval=`<div class="v54-approval"><h2>${approvalTitle}</h2><p>${lang==='hu'?'A jelentés kiadása az alábbi szerepkörök ellenőrzéséhez kötött.':'Release of this report is subject to the following controlled approvals.'}</p><table class="v54-meta"><tr><td>${prepared}</td><td>${auditor}</td></tr><tr><td>${reviewed}</td><td>____________________________</td></tr><tr><td>${approved}</td><td>____________________________</td></tr><tr><td>${finalized}</td><td>${fmt(window.v52CurrentReport?.finalized_at)||'____________________________'}</td></tr></table><div class="v54-sign-grid"><div class="v54-sign">${reviewed}<br><br>Name / Date / Signature</div><div class="v54-sign">${approved}<br><br>Name / Date / Signature</div></div></div>`;
+    const control=`<div class="v5-section"><h3>${docInfo}</h3><table class="v5-table"><tr><th>${lang==='hu'?'Mező':'Field'}</th><th>${lang==='hu'?'Érték':'Value'}</th></tr>${metaRows}</table><div class="v54-note" style="margin-top:10px"><strong>${lang==='hu'?'Hatókör':'Scope'}:</strong> ${scope}<br><strong>${lang==='hu'?'Módszertan':'Methodology'}:</strong> ${methodology}</div></div>`;
+    const body=built.html.replace(/^\s*<div class="v5-report">/,'').replace(/<\/div>\s*$/,'');
+    const html=`<div class="v54-shell"><div class="v54-doc">${cover}${header}${control}${body}${approval}${footer}</div></div>`;
+    return Object.assign({},built,{html:html});
+  }
+  function apply(){
+    if(window.v5ReportData) {
+      window.v5ReportData=wrap(window.v5ReportData);
+      const preview=document.getElementById('v5ReportPreview');
+      if(preview) preview.innerHTML=window.v5ReportData.html;
+    }
+  }
+  function hook(){
+    if(typeof window.v5GenerateReport==='function'&&!window.__v54GenerateHook){
+      const original=window.v5GenerateReport;
+      window.v5GenerateReport=async function(){const r=await original();apply();return r;};
+      window.__v54GenerateHook=true;
+    }
+    if(typeof window.v52GenerateAndSave==='function'&&!window.__v54SaveHook){
+      const original=window.v52GenerateAndSave;
+      window.v52GenerateAndSave=async function(){const r=await original();apply();return r;};
+      window.__v54SaveHook=true;
+    }
+    if(typeof window.v5PrintReport==='function'&&!window.__v54PrintHook){
+      window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();window.print();};
+      window.__v54PrintHook=true;
+    }
+    if(typeof window.v5WordReport==='function'&&!window.__v54WordHook){
+      window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();const blob=new Blob(['\\ufeff<html><head><meta charset="utf-8"><title>'+esc(window.v5ReportData.title)+'</title></head><body>'+window.v5ReportData.html+'</body></html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(window.v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report_V'+(window.v52CurrentReport?.version||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);};
+      window.__v54WordHook=true;
+    }
+  }
+  let n=0;const t=setInterval(()=>{hook();if(++n>30)clearInterval(t);},500);hook();
+})();
+</script>
+
 </body>
 </html>
