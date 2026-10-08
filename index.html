@@ -102,73 +102,33 @@ body{background:#fff!important}body>.container>section,body>.container>div{displ
 }
 </style>
 
-<style id="acaf-v6-final-print-boundary">
+<style id="acaf-v6-print-isolation-final">
 @media print {
-  /* Print ONLY the generated ACAF report, never the application/dashboard. */
+  /* V6.0.3: print ONLY the generated audit report. All dashboard/app cards are excluded. */
   html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
-  body > .container { display:block !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important; }
-  body > .container > * { display:none !important; }
-  body > .container > #v5ReportCard { display:block !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important; border:0 !important; box-shadow:none !important; background:#fff !important; }
-  #v5ReportCard > * { display:none !important; }
-  #v5ReportCard > #v5ReportPreview { display:block !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important; border:0 !important; box-shadow:none !important; background:#fff !important; }
-  #v5ReportPreview, #v5ReportPreview * { visibility:visible !important; }
-
-  /* Clean report page flow: cover is page 1; every main section starts on a fresh page. */
-  #v5ReportPreview .acaf6-report { display:block !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important; }
-  #v5ReportPreview .acaf6-cover {
-    display:flex !important;
-    min-height:0 !important;
-    height:auto !important;
-    max-height:none !important;
-    margin:0 !important;
-    padding:18mm 16mm !important;
-    break-before:auto !important;
-    page-break-before:auto !important;
-    break-after:page !important;
-    page-break-after:always !important;
-  }
-  #v5ReportPreview .acaf6-section {
-    break-before:page !important;
-    page-break-before:always !important;
-    break-after:auto !important;
-    page-break-after:auto !important;
-    margin:0 !important;
-    padding:0 0 8mm !important;
-  }
-  /* Prevent a double break immediately after the cover. */
-  #v5ReportPreview .acaf6-cover + .acaf6-section {
-    break-before:auto !important;
-    page-break-before:auto !important;
-  }
-
-  /* Stable tables: full borders, repeating headers, no row splitting. */
-  #v5ReportPreview table.acaf6-table,
-  #v5ReportPreview table.acaf6-meta {
+  body > *:not(#v5PreviewCard) { display:none !important; visibility:hidden !important; }
+  #v5PreviewCard {
+    display:block !important;
+    visibility:visible !important;
+    position:static !important;
     width:100% !important;
-    max-width:100% !important;
-    border-collapse:collapse !important;
-    table-layout:fixed !important;
-    box-sizing:border-box !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    box-shadow:none !important;
   }
-  #v5ReportPreview table.acaf6-table th,
-  #v5ReportPreview table.acaf6-table td,
-  #v5ReportPreview table.acaf6-meta th,
-  #v5ReportPreview table.acaf6-meta td {
-    border:1px solid #777 !important;
-    box-sizing:border-box !important;
-    overflow-wrap:anywhere !important;
-    word-break:normal !important;
+  #v5PreviewCard > * { visibility:visible !important; }
+  #v5ReportPreview {
+    display:block !important;
+    visibility:visible !important;
+    width:100% !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
   }
-  #v5ReportPreview table.acaf6-table thead { display:table-header-group !important; }
-  #v5ReportPreview table.acaf6-table tr { break-inside:avoid !important; page-break-inside:avoid !important; }
-
-  /* Do not split finding/CAPA blocks between pages. */
-  #v5ReportPreview .acaf6-finding,
-  #v5ReportPreview .acaf6-capa,
-  #v5ReportPreview .acaf6-kpi,
-  #v5ReportPreview .acaf6-note { break-inside:avoid !important; page-break-inside:avoid !important; }
-
-  @page { size:auto; margin:12mm; }
+  #v5ReportPreview > * { visibility:visible !important; }
+  .acaf6-report { visibility:visible !important; }
 }
 </style>
 </head>
