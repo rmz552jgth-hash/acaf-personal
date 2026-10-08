@@ -1858,6 +1858,29 @@ async function v52LoadLatestReport(auditId, render=true){
    if(document.getElementById('v5Scope')) document.getElementById('v5Scope').value=v52CurrentReport.scope||'';
    if(document.getElementById('v5Methodology')) document.getElementById('v5Methodology').value=v52CurrentReport.methodology||'Document review, evidence review, auditor assessment and Finding/CAPA verification.';
    if(v52CurrentReport.language) document.getElementById('v5Language').value=v52CurrentReport.language;
+
+   // V5.4.1: hydrate the report preview from the persisted report after reload.
+   // Lifecycle state alone is not enough for Print/Word, which also require
+   // v5ReportData to exist in the current browser session.
+   try{
+    if(typeof v5BuildReport==='function'){
+     const built=await v5BuildReport();
+     v5ReportData=built;
+     const ph=document.getElementById('v5PreviewHeading');
+     const ps=document.getElementById('v5PreviewStatus');
+     const pv=document.getElementById('v5ReportPreview');
+     const pc=document.getElementById('v5PreviewCard');
+     if(ph) ph.textContent=built.title;
+     if(ps) ps.textContent=v52ReportStatusLabel(v52CurrentReport.status, built.lang);
+     if(pv) pv.innerHTML=built.html;
+     if(pc) pc.classList.remove('hidden');
+     // Allow the V5.4 wrapper, when already installed, to enhance the loaded preview.
+     if(typeof window.__v54Apply==='function') window.__v54Apply();
+    }
+   }catch(previewErr){
+    const msg=document.getElementById('v52LifecycleMsg');
+    if(msg) msg.textContent='Report preview betöltési hiba: '+previewErr.message;
+   }
   }
   v52RenderLifecycle();
  }catch(e){
@@ -2291,6 +2314,7 @@ function v5WordReport(){
       if(preview) preview.innerHTML=window.v5ReportData.html;
     }
   }
+  window.__v54Apply=apply;
   function hook(){
     if(typeof window.v5GenerateReport==='function'&&!window.__v54GenerateHook){
       const original=window.v5GenerateReport;
