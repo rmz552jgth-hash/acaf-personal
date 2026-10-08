@@ -60,6 +60,20 @@ button.active{outline:3px solid #17202a}
 body{background:#fff!important}body>.container>section,body>.container>div{display:none!important}body>.container{display:block!important;margin:0!important;padding:0!important;max-width:none!important}#v5PreviewCard{display:block!important;visibility:visible!important;box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;max-width:none!important}#v5PreviewCard *{visibility:visible!important}.v5-report{margin:0;max-width:none;padding:18mm 16mm;box-shadow:none}.v5-pagebreak{page-break-before:always}.v5-table{page-break-inside:auto}.v5-table tr{page-break-inside:avoid}.v5-finding,.v5-capa{page-break-inside:avoid}}
 @media(max-width:700px){.v5-meta,.v5-sign{grid-template-columns:1fr}.v5-kpis{grid-template-columns:1fr 1fr}.v5-report{padding:24px 18px}}
 </style>
+
+<style id="v5115-print-fix">
+@media print {
+  .report-section, .report-page, .v5-report-section, section.report-section { page-break-before: always !important; break-before: page !important; }
+  .report-cover, .cover-page { page-break-before: auto !important; break-before: auto !important; }
+  .report-table, table { width:100% !important; max-width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; }
+  .report-table th, .report-table td, table th, table td { border-right:1px solid #777 !important; border-left:1px solid #777 !important; overflow-wrap:anywhere !important; word-break:normal !important; }
+  thead { display:table-header-group !important; }
+  tr { break-inside:avoid !important; page-break-inside:avoid !important; }
+  .finding-summary, .findings-section { page-break-before:always !important; break-before:page !important; }
+  .compliance-matrix, .evidence-register { page-break-before:always !important; break-before:page !important; }
+}
+@page { size:A4 landscape; margin:12mm; }
+</style>
 </head>
 <body>
 <div class="container">
