@@ -2403,7 +2403,7 @@ function v5WordReport(){
     let eh='<div class="v55-pagebreak"><h2>'+labels.evidence+'</h2><table class="v55-table"><tr><th>#</th><th>Requirement</th><th>Assessment</th><th>Evidence</th><th>Auditor Notes</th></tr>';
     q.forEach((x,i)=>{const a=x.a||{},r=x.r||{};eh+='<tr><td>'+esc(i+1)+'</td><td>'+esc(r.requirement_code||'—')+'</td><td>'+esc(a.assessment||'unanswered')+'</td><td>'+esc(a.evidence||'—')+'</td><td>'+esc(a.auditor_notes||'—')+'</td></tr>';});
     eh+='</table></div>';
-    const sig='<div class="v55-signatures"><h2>'+ (hu?'Jóváhagyás és aláírás':'Approval & Sign-off') +'</h2><p>'+ (hu?'A jelentés kiadását az ellenőrzött életciklus és a kijelölt jóváhagyási szerepkörök szerint kell elvégezni.':'The report shall be released in accordance with the controlled lifecycle and designated approval roles.') +'</p><div class="v55-sign-grid"><div class="v55-sign">'+labels.prepared+'<br><br>Name / Date / Signature</div><div class="v55-sign">'+(hu?'Felülvizsgálta':'Reviewed by')+'<br><br>Name / Date / Signature</div><div class="v55-sign">'+(hu?'Jóváhagyta':'Approved by')+'<br><br>Name / Date / Signature</div><div class="v55-sign">'+(hu?'Véglegesítve':'Finalized')+'<br><br>'+fmt(window.v52CurrentReport&&window.v52CurrentReport.finalized_at)+'</div></div></div>';
+    const sig='<div class="v55-signatures"><h2>'+ (hu?'Jóváhagyás és kiadás':'Approval & Sign-off') +'</h2><p>'+ (hu?'A jelentés hivatalos kiállítója egy kijelölt személy.':'The report has one designated issuing person.') +'</p><div class="v55-sign-grid"><div class="v55-sign"><strong>'+(hu?'Kiállította':'Issued by')+'</strong><br><br>'+esc(window.v52CurrentReport&&window.v52CurrentReport.auditor_name||'—')+'<br><br>Name / Date / Signature</div><div class="v55-sign"><strong>'+(hu?'Véglegesítve':'Finalized')+'</strong><br><br>'+fmt(window.v52CurrentReport&&window.v52CurrentReport.finalized_at)+'</div></div></div>';
     const footer='<div class="v55-print-footer">ACAF Personal · '+(hu?'BIZALMAS – KONTROLLÁLT DOKUMENTUM':'CONFIDENTIAL – CONTROLLED DOCUMENT')+' · '+esc((data.audit&&data.audit.audit_no)||'')+' · V'+esc((window.v52CurrentReport&&window.v52CurrentReport.version)||'1')+' · Page <span class="page-number"></span></div>';
     const marker='<div class="v5-section"><h3>'+(hu?'Dokumentumvezérlés':'Document Control')+'</h3>';
     const idx=data.html.indexOf(marker);
@@ -2526,6 +2526,48 @@ function v5WordReport(){
     if(typeof window.v52LoadLatestReport==='function'&&!window.__v57Load){const o=window.v52LoadLatestReport;window.v52LoadLatestReport=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v57Load=true;}
     if(typeof window.v5PrintReport==='function'&&!window.__v57Print){const o=window.v5PrintReport;window.v5PrintReport=function(){apply();return o();};window.__v57Print=true;}
     if(typeof window.v5WordReport==='function'&&!window.__v57Word){const o=window.v5WordReport;window.v5WordReport=function(){apply();return o();};window.__v57Word=true;}
+  }
+  let n=0;const t=setInterval(function(){hook();if(++n>50)clearInterval(t);},500);hook();
+})();
+</script>
+
+
+<!-- V5.8: Evidence Management / Evidence Register. Built on stable V5.7. -->
+<style>
+.v58-evidence{page-break-before:always}
+.v58-note{font-size:9px;color:#66707a;margin:4px 0 10px}
+.v58-table{width:100%;border-collapse:collapse;font-size:8.5px;margin-top:8px}
+.v58-table th,.v58-table td{border:1px solid #d9dee4;padding:5px;vertical-align:top}
+.v58-table th{background:#f3f5f7;font-weight:700}
+.v58-id{font-weight:700;white-space:nowrap}
+@media print{.v58-evidence{break-before:page}.v58-table{page-break-inside:auto}.v58-table tr{break-inside:avoid}}
+</style>
+<script>
+(function(){
+  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
+  function assess(v,hu){const m=hu?{compliant:'Megfelelő',partial:'Részleges',noncompliant:'Nem megfelelő',na:'N/A',unanswered:'Nincs értékelés'}:{compliant:'Compliant',partial:'Partial',noncompliant:'Non-compliant',na:'N/A',unanswered:'Unanswered'};return m[v]||v||'—';}
+  function build(d){
+    if(!d||!d.html||d.__v58Enhanced)return d;
+    const hu=d.lang==='hu', q=d.questions||[];
+    let h='<div class="v58-evidence"><h2>'+(hu?'Bizonyíték-nyilvántartás':'Evidence Register')+'</h2>';
+    h+='<p class="v58-note">'+(hu?'A nyilvántartás az audit során rögzített bizonyítékokat és az azokhoz kapcsolódó követelményeket mutatja. Az ACAF nem állít automatikus bizonyíték-hitelesítést; az auditor értékelése az irányadó.':'This register lists evidence recorded during the audit and its linked requirements. ACAF does not automatically certify evidence; the auditor assessment remains authoritative.')+'</p>';
+    h+='<table class="v58-table"><tr><th>ID</th><th>'+(hu?'Követelmény':'Requirement')+'</th><th>'+(hu?'Értékelés':'Assessment')+'</th><th>'+(hu?'Bizonyíték / forrás':'Evidence / Source')+'</th><th>'+(hu?'Auditori megjegyzés':'Auditor Note')+'</th></tr>';
+    let n=0;
+    q.forEach(function(x){const a=x.a||{},r=x.r||{}; if(!a.evidence||String(a.evidence).trim()==='')return; n++; h+='<tr><td class="v58-id">E-'+String(n).padStart(3,'0')+'</td><td>'+esc(r.requirement_code||'—')+'</td><td>'+esc(assess(a.assessment,hu))+'</td><td>'+esc(a.evidence)+'</td><td>'+esc(a.auditor_notes||'—')+'</td></tr>';});
+    if(!n)h+='<tr><td colspan="5">'+(hu?'Nincs külön rögzített bizonyíték.':'No separately recorded evidence.')+'</td></tr>';
+    h+='</table></div>';
+    const marker='<div class="v57-detail">';
+    const idx=d.html.indexOf(marker);
+    d.html=idx>=0?d.html.slice(0,idx)+h+d.html.slice(idx):d.html+h;
+    d.__v58Enhanced=true;return d;
+  }
+  function apply(){if(window.v5ReportData){window.v5ReportData=build(window.v5ReportData);const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}}
+  function hook(){
+    if(typeof window.v5GenerateReport==='function'&&!window.__v58Gen){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o();apply();return r;};window.__v58Gen=true;}
+    if(typeof window.v52GenerateAndSave==='function'&&!window.__v58Save){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o();apply();return r;};window.__v58Save=true;}
+    if(typeof window.v52LoadLatestReport==='function'&&!window.__v58Load){const o=window.v52LoadLatestReport;window.v52LoadLatestReport=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v58Load=true;}
+    if(typeof window.v5PrintReport==='function'&&!window.__v58Print){const o=window.v5PrintReport;window.v5PrintReport=function(){apply();return o();};window.__v58Print=true;}
+    if(typeof window.v5WordReport==='function'&&!window.__v58Word){const o=window.v5WordReport;window.v5WordReport=function(){apply();return o();};window.__v58Word=true;}
   }
   let n=0;const t=setInterval(function(){hook();if(++n>50)clearInterval(t);},500);hook();
 })();
