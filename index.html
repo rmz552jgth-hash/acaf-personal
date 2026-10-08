@@ -2629,10 +2629,17 @@ function v5WordReport(){
 
 <!-- V5.11: Audit Requirements table typography aligned with Compliance Matrix. -->
 <style>
+/* V5.12: keep table headers such as Framework / Assessment on one line. */
 .v54-doc .v511-requirements{font-size:10pt !important;table-layout:fixed !important;width:100% !important;}
 .v54-doc .v511-requirements th,.v54-doc .v511-requirements td{font-size:10pt !important;font-weight:400 !important;padding:5px !important;line-height:1.25 !important;vertical-align:top !important;box-sizing:border-box !important;border:1px solid #bfc7cf !important;overflow-wrap:anywhere !important;word-break:break-word !important;}
-.v54-doc .v511-requirements th{font-weight:700 !important;}
+.v54-doc .v511-requirements th{font-weight:700 !important;white-space:nowrap !important;word-break:normal !important;overflow-wrap:normal !important;}
 .v54-doc .v511-requirements td strong{font-weight:400 !important;font-size:10pt !important;}
+.v54-doc .v511-requirements th:nth-child(2){width:29% !important;}
+.v54-doc .v511-requirements th:nth-child(3){width:15% !important;white-space:nowrap !important;}
+.v54-doc .v511-requirements th:nth-child(4){width:17% !important;white-space:nowrap !important;}
+.v54-doc .v511-requirements th:nth-child(5){width:19% !important;}
+.v54-doc .v511-requirements th:nth-child(6){width:15% !important;}
+.v54-doc .v511-requirements th:first-child{width:5% !important;}
 </style>
 
 </body>
