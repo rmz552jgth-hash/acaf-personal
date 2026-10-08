@@ -74,163 +74,6 @@ body{background:#fff!important}body>.container>section,body>.container>div{displ
 }
 @page { size:A4 landscape; margin:12mm; }
 </style>
-
-<style id="acaf-v5117-print-layout">
-/* V5.11.7 — controlled A4 landscape report pagination */
-@media print {
-  @page { size: A4 landscape; margin: 10mm; }
-
-  html, body {
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-  }
-
-  body > .container {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  #v5PreviewCard {
-    display: block !important;
-    visibility: visible !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    box-shadow: none !important;
-  }
-
-  #v5ReportPreview,
-  #v5ReportPreview * {
-    visibility: visible !important;
-  }
-
-  .v5-report {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-sizing: border-box !important;
-    overflow: visible !important;
-  }
-
-  /* Cover = exactly one controlled page */
-  .v5-cover {
-    box-sizing: border-box !important;
-    width: 100% !important;
-    height: 190mm !important;
-    min-height: 190mm !important;
-    max-height: 190mm !important;
-    margin: 0 !important;
-    padding: 18mm !important;
-    overflow: hidden !important;
-    break-before: auto !important;
-    page-break-before: auto !important;
-    break-after: page !important;
-    page-break-after: always !important;
-  }
-
-  /* Every major report section starts on a fresh page. */
-  .v5-section {
-    break-before: page !important;
-    page-break-before: always !important;
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  .v5-cover + .v5-section {
-    break-before: auto !important;
-    page-break-before: auto !important;
-  }
-
-  /* Enhancement sections also get their own clean page. */
-  .v56-matrix,
-  .v57-detail,
-  .v58-evidence,
-  .v55-signatures,
-  .v53-appendix,
-  .v54-section,
-  .v511-appendix {
-    break-before: page !important;
-    page-break-before: always !important;
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-  }
-
-  /* Tables: never clip the right edge. */
-  table,
-  .v5-table,
-  .v56-matrix table,
-  .v57-table,
-  .v58-table,
-  .v55-table {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    table-layout: fixed !important;
-    border-collapse: collapse !important;
-    border-spacing: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  table th,
-  table td,
-  .v5-table th,
-  .v5-table td,
-  .v56-matrix th,
-  .v56-matrix td,
-  .v57-table th,
-  .v57-table td,
-  .v58-table th,
-  .v58-table td,
-  .v55-table th,
-  .v55-table td {
-    box-sizing: border-box !important;
-    border-top: 1px solid #bfc7cf !important;
-    border-bottom: 1px solid #bfc7cf !important;
-    border-left: 1px solid #bfc7cf !important;
-    border-right: 1px solid #bfc7cf !important;
-    overflow-wrap: anywhere !important;
-    word-break: normal !important;
-    vertical-align: top !important;
-  }
-
-  /* Explicit outer frame, including the right edge. */
-  table {
-    border: 1px solid #bfc7cf !important;
-  }
-  table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
-  thead { display: table-header-group !important; }
-  tfoot { display: table-footer-group !important; }
-
-  /* Keep section headings with the content immediately below them. */
-  h1, h2, h3, h4 {
-    break-after: avoid !important;
-    page-break-after: avoid !important;
-  }
-
-  /* Never strand a small content block between pages. */
-  .v5-finding,
-  .v5-capa,
-  .v57-card,
-  .v55-sign {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  p { orphans: 3; widows: 3; }
-}
-</style>
-
 </head>
 <body>
 <div class="container">
@@ -2412,559 +2255,127 @@ function v5WordReport(){
 })();
 </script>
 
-<!-- V5.4 PROFESSIONAL DOCUMENT LAYER: presentation/export only; lifecycle and DB logic unchanged. -->
-<style>
-.v54-shell{font-family:Arial,Helvetica,sans-serif;color:#17202a;background:#fff;line-height:1.45}
-.v54-cover{min-height:245mm;box-sizing:border-box;padding:18mm 16mm 14mm;border:1px solid #d9dee4;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always}
-.v54-brand{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#52606d}
-.v54-cover h1{font-size:32px;line-height:1.15;margin:18mm 0 6mm;color:#17202a}
-.v54-cover .sub{font-size:18px;color:#52606d}
-.v54-meta{border-collapse:collapse;width:100%;margin-top:16mm;font-size:12px}
-.v54-meta td{border:1px solid #d9dee4;padding:8px}.v54-meta td:first-child{font-weight:700;width:32%;background:#f5f7f9}
-.v54-class{font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-.v54-doc{padding:0 1mm}
-.v54-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #17202a;padding-bottom:7px;margin-bottom:14px;font-size:10px;color:#52606d}
-.v54-header strong{font-size:11px;color:#17202a}
-.v54-footer{border-top:1px solid #d9dee4;margin-top:18px;padding-top:6px;font-size:9px;color:#66707a;display:flex;justify-content:space-between}
-.v54-section-break{page-break-before:always}
-.v54-approval{page-break-before:always;border-top:2px solid #17202a;margin-top:20px;padding-top:18px}
-.v54-sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:35mm}
-.v54-sign{border-top:1px solid #17202a;padding-top:7px;min-height:22mm;font-size:11px}
-.v54-note{padding:10px 12px;border:1px solid #d9dee4;background:#f8fafb;border-radius:6px;font-size:11px}
-.v54-kpi{break-inside:avoid}
+
+<style id="acaf-v6-report-css">
+/* ACAF V6.0 — clean, orientation-neutral report engine */
+.acaf6-report{font-family:Arial,Helvetica,sans-serif;color:#17202a;background:#fff;line-height:1.42;width:100%;max-width:100%;box-sizing:border-box}
+.acaf6-report *{box-sizing:border-box}
+.acaf6-cover{min-height:235mm;padding:18mm 16mm;display:flex;flex-direction:column;justify-content:space-between;border:1px solid #d8dee5;break-after:page;page-break-after:always}
+.acaf6-brand{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#52606d}
+.acaf6-cover h1{font-size:30px;line-height:1.16;margin:18mm 0 5mm;color:#17365d}
+.acaf6-cover .subtitle{font-size:16px;color:#52606d}
+.acaf6-cover-rule{height:4px;background:#17365d;margin:8mm 0 12mm}
+.acaf6-meta{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px;margin-top:12mm}
+.acaf6-meta th,.acaf6-meta td{border:1px solid #cfd6dd;padding:6px 7px;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.acaf6-meta th{width:28%;background:#f3f5f7;font-weight:700}
+.acaf6-section{break-before:page;page-break-before:always;padding:0 0 8mm}
+.acaf6-section:first-of-type{break-before:auto;page-break-before:auto}
+.acaf6-section h2{font-size:19px;line-height:1.2;color:#17365d;margin:0 0 9px;padding-bottom:6px;border-bottom:2px solid #d9e2ec}
+.acaf6-section h3{font-size:14px;color:#2f4f6f;margin:14px 0 7px}
+.acaf6-section p{font-size:10px;margin:6px 0 9px}
+.acaf6-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 14px}
+.acaf6-kpi{border:1px solid #cfd6dd;padding:9px;text-align:center;break-inside:avoid}
+.acaf6-kpi strong{display:block;font-size:18px}.acaf6-kpi span{font-size:9px;color:#66707a}
+.acaf6-table{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;font-size:9.5px;margin:8px 0 14px;page-break-inside:auto}
+.acaf6-table thead{display:table-header-group}
+.acaf6-table th,.acaf6-table td{border:1px solid #8b959f;padding:5px 6px;vertical-align:top;text-align:left;overflow-wrap:anywhere;word-break:normal;white-space:normal}
+.acaf6-table th{background:#eef3f7;color:#243746;font-weight:700;white-space:nowrap}
+.acaf6-table tr{break-inside:avoid;page-break-inside:avoid}
+.acaf6-table td:first-child,.acaf6-table th:first-child{border-left:1px solid #8b959f}
+.acaf6-table td:last-child,.acaf6-table th:last-child{border-right:1px solid #8b959f}
+.acaf6-code{font-weight:700;white-space:nowrap}
+.acaf6-finding{border:1px solid #cfd6dd;border-left:4px solid #8b3a3a;padding:10px 11px;margin:9px 0;break-inside:avoid;page-break-inside:avoid;font-size:10px}
+.acaf6-capa{border:1px solid #cfd6dd;border-left:4px solid #557a55;padding:10px 11px;margin:9px 0;break-inside:avoid;page-break-inside:avoid;font-size:10px}
+.acaf6-note{padding:9px 10px;border:1px solid #cfd6dd;background:#f8fafb;font-size:10px}
+.acaf6-sign{min-height:30mm;border-top:1px solid #52606d;padding-top:6px;margin-top:22mm;font-size:10px}
+.acaf6-footer{margin-top:12mm;padding-top:6px;border-top:1px solid #cfd6dd;font-size:8px;color:#66707a;display:flex;justify-content:space-between;gap:10px}
+.acaf6-keep{break-inside:avoid;page-break-inside:avoid}
+.acaf6-wide-note{font-size:9px;color:#66707a;margin:4px 0 8px}
 @media print{
   body{background:#fff!important}
-  body>*{display:none!important}
-  #v5PreviewCard{display:block!important;visibility:visible!important;box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;max-width:none!important;background:#fff!important}
+  body>.container{display:block!important;max-width:none!important;margin:0!important;padding:0!important}
+  body>.container>*{display:none!important}
+  #v5PreviewCard{display:block!important;visibility:visible!important;border:0!important;box-shadow:none!important;margin:0!important;padding:0!important;max-width:none!important;width:100%!important}
   #v5PreviewCard *{visibility:visible!important}
-  .v54-cover{border:0}
-  .v54-footer{position:fixed;bottom:4mm;left:0;right:0}
-  @page{size:A4;margin:15mm 14mm 18mm}
+  .acaf6-report{width:100%!important;max-width:none!important;overflow:visible!important}
+  .acaf6-cover{min-height:0;height:calc(100vh - 1mm);max-height:calc(100vh - 1mm);break-after:page!important;page-break-after:always!important}
+  .acaf6-section{break-before:page!important;page-break-before:always!important}
+  .acaf6-table{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
+  .acaf6-table th,.acaf6-table td{border:1px solid #777!important}
+  .acaf6-table thead{display:table-header-group!important}
+  .acaf6-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
+  .acaf6-finding,.acaf6-capa,.acaf6-kpi,.acaf6-note{break-inside:avoid!important;page-break-inside:avoid!important}
+  @page{size:auto;margin:12mm}
 }
+@media(max-width:800px){.acaf6-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
-<script>
+
+<script id="acaf-v6-report-js">
 (function(){
-  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
-  function fmt(v){try{return v?new Date(v).toLocaleDateString('en-GB'):new Date().toLocaleDateString('en-GB');}catch(e){return '';}}
-  function statusLabel(status,lang){
-    const hu={draft:'Tervezet',auditor_review:'Auditori felülvizsgálat',approved:'Jóváhagyva',final:'Végleges'};
-    const en={draft:'Draft',auditor_review:'Auditor Review',approved:'Approved',final:'Final'};
-    return (lang==='hu'?hu:en)[status]||status||'';
+  const esc=v=>{try{return typeof v5Esc==='function'?v5Esc(v):String(v??'')}catch(e){return String(v??'')}};
+  const fmt=v=>{try{return v?new Date(v).toLocaleDateString('en-GB'):'—'}catch(e){return '—'}};
+  const ass=(v,hu)=>({compliant:hu?'Megfelelő':'Compliant',partial:hu?'Részleges':'Partial',noncompliant:hu?'Nem megfelelő':'Non-compliant',na:'N/A',unanswered:hu?'Nincs értékelés':'Unanswered'}[v]||v||'—');
+  const stat=(v,hu)=>({open:hu?'Nyitott':'Open',in_progress:hu?'Folyamatban':'In progress',submitted:hu?'Benyújtva':'Submitted',verification:hu?'Ellenőrzés':'Verification',closed:hu?'Lezárt':'Closed'}[v]||v||'—');
+  const reportStatus=(v,hu)=>({draft:hu?'TERVEZET':'DRAFT',auditor_review:hu?'AUDITORI FELÜLVIZSGÁLAT':'AUDITOR REVIEW',approved:hu?'JÓVÁHAGYVA':'APPROVED',final:hu?'VÉGLEGES':'FINAL',superseded:hu?'HATÁLYON KÍVÜL':'SUPERSEDED'}[v]||v||'—');
+  function matrix(data,hu){
+    const q=data.questions||[];
+    let h='<table class="acaf6-table"><thead><tr><th style="width:5%">#</th><th style="width:23%">Requirement</th><th style="width:13%">Framework</th><th style="width:15%">Assessment</th><th style="width:28%">Evidence</th><th style="width:16%">Notes</th></tr></thead><tbody>';
+    q.forEach((x,i)=>{const r=x.r||{},a=x.a||{};h+=`<tr><td>${i+1}</td><td><span class="acaf6-code">${esc(r.requirement_code||'—')}</span><br>${esc((hu?(r.hungarian_text||r.english_text):(r.english_text||r.hungarian_text))||'—')}</td><td>${esc(r.framework||'—')}</td><td>${esc(ass(a.assessment,hu))}</td><td>${esc(a.evidence||'—')}</td><td>${esc(a.auditor_notes||'—')}</td></tr>`});
+    return h+'</tbody></table>';
   }
-  function wrap(built){
-    if(!built||!built.html)return built;
-    const lang=built.lang||'en';
-    const a=built.audit||{};
-    const org=(a.organisation_id||'');
-    const title=esc(built.title|| (lang==='hu'?'ACAF Audit Jelentés':'ACAF Audit Report'));
-    const auditNo=esc(a.audit_no||'—');
+  function compliance(data,hu){
+    const q=data.questions||[];let h='<table class="acaf6-table"><thead><tr><th style="width:6%">#</th><th style="width:28%">Requirement</th><th style="width:16%">Framework</th><th style="width:18%">Assessment</th><th style="width:32%">Evidence status</th></tr></thead><tbody>';
+    q.forEach((x,i)=>{const r=x.r||{},a=x.a||{};h+=`<tr><td>${i+1}</td><td class="acaf6-code">${esc(r.requirement_code||'—')}</td><td>${esc(r.framework||'—')}</td><td>${esc(ass(a.assessment,hu))}</td><td>${a.evidence?esc(hu?'Bizonyíték rögzítve':'Evidence recorded'):esc(hu?'Nincs bizonyíték rögzítve':'No evidence recorded')}</td></tr>`});
+    return h+'</tbody></table>';
+  }
+  function evidence(data,hu){
+    const q=data.questions||[];let h='<table class="acaf6-table"><thead><tr><th style="width:7%">ID</th><th style="width:22%">Requirement</th><th style="width:14%">Assessment</th><th style="width:34%">Evidence</th><th style="width:23%">Auditor Notes</th></tr></thead><tbody>';
+    let n=0;q.forEach((x)=>{const a=x.a||{},r=x.r||{};if(a.evidence||a.auditor_notes){n++;h+=`<tr><td>E-${String(n).padStart(3,'0')}</td><td class="acaf6-code">${esc(r.requirement_code||'—')}</td><td>${esc(ass(a.assessment,hu))}</td><td>${esc(a.evidence||'—')}</td><td>${esc(a.auditor_notes||'—')}</td></tr>`}});
+    if(!n)h+='<tr><td colspan="5">'+(hu?'Nincs külön bizonyíték rögzítve.':'No separate evidence has been recorded.')+'</td></tr>';
+    return h+'</tbody></table>';
+  }
+  function render(data){
+    const lang=data.lang||'en',hu=lang==='hu',a=data.audit||{},q=data.questions||[],f=data.findings||[],c=data.capas||[];
+    const title=esc(data.title||'ACAF Audit Report');
     const auditor=esc(document.getElementById('v5Auditor')?.value.trim()||'—');
     const scope=esc(document.getElementById('v5Scope')?.value.trim()||'—');
-    const methodology=esc(document.getElementById('v5Methodology')?.value.trim()||'—');
-    const reportId=esc(window.v52CurrentReport?.id||'—');
-    const version=esc(window.v52CurrentReport?.version||'—');
-    const lifecycle=esc(statusLabel(window.v52CurrentReport?.status||'draft',lang));
-    const confidential=lang==='hu'?'BIZALMAS – KONTROLLÁLT DOKUMENTUM':'CONFIDENTIAL – CONTROLLED DOCUMENT';
-    const prepared=lang==='hu'?'Készítette':'Prepared by';
-    const reviewed=lang==='hu'?'Felülvizsgálta':'Reviewed by';
-    const approved=lang==='hu'?'Jóváhagyta':'Approved by';
-    const finalized=lang==='hu'?'Véglegesítve':'Finalized';
-    const approvalTitle=lang==='hu'?'Jóváhagyási és kiadási oldal':'Approval & Release';
-    const docInfo=lang==='hu'?'Dokumentumvezérlés':'Document Control';
-    const metaRows=`<tr><td>${lang==='hu'?'Audit szám':'Audit No.'}</td><td>${auditNo}</td></tr>`+
-      `<tr><td>Report ID</td><td>${reportId}</td></tr>`+
-      `<tr><td>${lang==='hu'?'Verzió':'Version'}</td><td>${version}</td></tr>`+
-      `<tr><td>${lang==='hu'?'Státusz':'Status'}</td><td>${lifecycle}</td></tr>`+
-      `<tr><td>${lang==='hu'?'Jelentés nyelve':'Report Language'}</td><td>${lang==='hu'?'Magyar':'English'}</td></tr>`+
-      `<tr><td>${lang==='hu'?'Szervezet azonosító':'Organisation ID'}</td><td>${esc(org)}</td></tr>`+
-      `<tr><td>${lang==='hu'?'Készítés dátuma':'Generated'}</td><td>${fmt(window.v52CurrentReport?.generated_at)}</td></tr>`;
-    const cover=`<div class="v54-cover"><div><div class="v54-brand">ACAF PERSONAL</div><h1>${title}</h1><div class="sub">${lang==='hu'?'Repülésbiztonsági megfelelőségi audit jelentés':'Aviation Compliance Audit Report'}</div><table class="v54-meta">${metaRows}</table></div><div><div class="v54-note"><span class="v54-class">${confidential}</span><br>${lang==='hu'?'A jelentés a jóváhagyási és életciklus-szabályok szerint kezelt dokumentum.':'This report is a controlled document subject to the defined approval lifecycle.'}</div></div></div>`;
-    const header=`<div class="v54-header"><div><strong>ACAF PERSONAL</strong><br>${auditNo}</div><div style="text-align:right">${title}<br>V${version} · ${lifecycle}</div></div>`;
-    const footer=`<div class="v54-footer"><span>ACAF Personal · ${confidential}</span><span>Audit ${auditNo} · V${version} · Page <span class="v54-page"></span></span></div>`;
-    const issuerLabel=lang==='hu'?'Kiállító':'Issued by';
-    const approval=`<div class="v54-approval"><h2>${approvalTitle}</h2><p>${lang==='hu'?'A jelentést a kiállító adja ki és véglegesíti.':'This report is issued and finalized by the issuer.'}</p><table class="v54-meta"><tr><td>${issuerLabel}</td><td>${auditor}</td></tr><tr><td>${finalized}</td><td>${fmt(window.v52CurrentReport?.finalized_at)||'____________________________'}</td></tr></table><div class="v54-sign-grid"><div class="v54-sign">${issuerLabel}<br><br>Name / Date / Signature</div></div></div>`;
-    const control=`<div class="v5-section"><h3>${docInfo}</h3><table class="v5-table"><tr><th>${lang==='hu'?'Mező':'Field'}</th><th>${lang==='hu'?'Érték':'Value'}</th></tr>${metaRows}</table><div class="v54-note" style="margin-top:10px"><strong>${lang==='hu'?'Hatókör':'Scope'}:</strong> ${scope}<br><strong>${lang==='hu'?'Módszertan':'Methodology'}:</strong> ${methodology}</div></div>`;
-    const body=built.html.replace(/^\s*<div class="v5-report">/,'').replace(/<\/div>\s*$/,'');
-    const html=`<div class="v54-shell"><div class="v54-doc">${cover}${header}${control}${body}${approval}${footer}</div></div>`;
-    return Object.assign({},built,{html:html});
+    const meth=esc(document.getElementById('v5Methodology')?.value.trim()||'—');
+    const rep=window.v52CurrentReport||{};
+    const counts={compliant:0,partial:0,noncompliant:0,na:0,unanswered:0};q.forEach(x=>{const k=(x.a||{}).assessment||'unanswered';if(counts[k]!=null)counts[k]++;});
+    let h='<div class="acaf6-report" id="acaf6Printable">';
+    h+=`<div class="acaf6-cover"><div><div class="acaf6-brand">ACAF PERSONAL</div><div class="acaf6-cover-rule"></div><h1>${title}</h1><div class="subtitle">${hu?'Repülésbiztonsági megfelelőségi audit jelentés':'Aviation Compliance Audit Report'}</div><table class="acaf6-meta"><tbody><tr><th>${hu?'Audit szám':'Audit No.'}</th><td>${esc(a.audit_no||'—')}</td></tr><tr><th>Report ID</th><td>${esc(rep.id||'—')}</td></tr><tr><th>${hu?'Verzió':'Version'}</th><td>${esc(rep.version||'—')}</td></tr><tr><th>${hu?'Státusz':'Status'}</th><td>${esc(reportStatus(rep.status,hu))}</td></tr><tr><th>${hu?'Szervezet azonosító':'Organisation ID'}</th><td>${esc(a.organisation_id||'—')}</td></tr><tr><th>${hu?'Auditor / Kiállító':'Auditor / Issued by'}</th><td>${auditor}</td></tr></tbody></table></div><div class="acaf6-note"><strong>${hu?'BIZALMAS – KONTROLLÁLT DOKUMENTUM':'CONFIDENTIAL – CONTROLLED DOCUMENT'}</strong><br>${hu?'A jelentés az ACAF ellenőrzött jelentés-életciklusa szerint kezelt dokumentum.':'This report is a controlled document managed under the ACAF report lifecycle.'}</div></div>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Audit adatok':'Audit Information'}</h2><table class="acaf6-meta"><tbody><tr><th>${hu?'Audit szám':'Audit No.'}</th><td>${esc(a.audit_no||'—')}</td><th>${hu?'Audit címe':'Audit Title'}</th><td>${esc(a.title||'—')}</td></tr><tr><th>${hu?'Auditor':'Auditor'}</th><td>${auditor}</td><th>${hu?'Dátum':'Date'}</th><td>${fmt(a.created_at)}</td></tr><tr><th>${hu?'Státusz':'Status'}</th><td>${esc(reportStatus(rep.status,hu))}</td><th>${hu?'Nyelv':'Language'}</th><td>${hu?'Magyar':'English'}</td></tr></tbody></table></section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Vezetői összefoglaló':'Executive Summary'}</h2><div class="acaf6-kpis"><div class="acaf6-kpi"><strong>${q.length}</strong><span>${hu?'Követelmény':'Requirements'}</span></div><div class="acaf6-kpi"><strong>${counts.compliant}</strong><span>${hu?'Megfelelő':'Compliant'}</span></div><div class="acaf6-kpi"><strong>${counts.partial}</strong><span>${hu?'Részleges':'Partial'}</span></div><div class="acaf6-kpi"><strong>${f.length}</strong><span>${hu?'Megállapítás':'Findings'}</span></div></div><div class="acaf6-note">${esc(data.overall||'—')}</div></section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Hatókör és módszertan':'Scope and Methodology'}</h2><p><strong>${hu?'Hatókör':'Scope'}</strong></p><p>${scope}</p><p><strong>${hu?'Módszertan':'Methodology'}</strong></p><p>${meth}</p></section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Megfelelőségi áttekintés':'Compliance Overview'}</h2><table class="acaf6-table"><thead><tr><th>${hu?'Megfelelő':'Compliant'}</th><th>${hu?'Részleges':'Partial'}</th><th>${hu?'Nem megfelelő':'Non-compliant'}</th><th>N/A</th><th>${hu?'Nincs értékelés':'Unanswered'}</th></tr></thead><tbody><tr><td>${counts.compliant}</td><td>${counts.partial}</td><td>${counts.noncompliant}</td><td>${counts.na}</td><td>${counts.unanswered}</td></tr></tbody></table></section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Audit követelmények és értékelések':'Audit Requirements and Assessments'}</h2><div class="acaf6-wide-note">${hu?'Minden vizsgált követelmény, értékelés, bizonyíték és auditori megjegyzés egyetlen egységes táblázatban.':'All assessed requirements, assessments, evidence and auditor notes in one controlled table.'}</div>${matrix(data,hu)}</section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Megfelelőségi mátrix':'Compliance Matrix'}</h2>${compliance(data,hu)}</section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Megállapítások':'Findings'}</h2>`;
+    if(!f.length) h+='<p class="acaf6-note">'+(hu?'Nincs rögzített megállapítás.':'No findings recorded.')+'</p>';
+    f.forEach(x=>{h+=`<div class="acaf6-finding"><strong>Finding #${esc(x.finding_no||'—')}</strong><br><b>${hu?'Osztályozás':'Classification'}:</b> ${esc(x.classification||'—')} &nbsp; <b>${hu?'Kockázat':'Risk'}:</b> ${esc(x.risk||'—')} &nbsp; <b>${hu?'Státusz':'Status'}:</b> ${esc(stat(x.status,hu))}<br><b>Objective Statement:</b> ${esc(x.objective_statement||'—')}<br><b>${hu?'Gyökérok':'Root Cause'}:</b> ${esc(x.root_cause||'—')}<br><b>${hu?'Határidő':'Due Date'}:</b> ${fmt(x.due_date)}</div>`});h+='</section>';
+    h+=`<section class="acaf6-section"><h2>${hu?'CAPA és hatékonyság-ellenőrzés':'CAPA and Effectiveness Verification'}</h2>`;
+    if(!c.length) h+='<p class="acaf6-note">'+(hu?'Nincs rögzített CAPA intézkedés.':'No CAPA actions recorded.')+'</p>';
+    c.forEach((x,i)=>{h+=`<div class="acaf6-capa"><b>CAPA #${i+1}</b><br><b>${hu?'Státusz':'Status'}:</b> ${esc(x.status||'—')}<br><b>${hu?'Helyesbítő intézkedés':'Corrective Action'}:</b> ${esc(x.corrective_action||'—')}<br><b>${hu?'Megelőző intézkedés':'Preventive Action'}:</b> ${esc(x.preventive_action||'—')}<br><b>${hu?'Felelős':'Responsible'}:</b> ${esc(x.responsible_person||'—')}<br><b>${hu?'Céldátum':'Target Date'}:</b> ${fmt(x.target_date)}<br><b>${hu?'Hatékonyság / ellenőrzés':'Effectiveness / Verification'}:</b> ${esc(x.verification_result||'—')}</div>`});h+='</section>';
+    h+=`<section class="acaf6-section"><h2>${hu?'Bizonyíték-nyilvántartás':'Evidence Register'}</h2>${evidence(data,hu)}</section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Következtetés':'Conclusion'}</h2><div class="acaf6-note">${esc(data.overall||'—')}<br><br>${hu?'A végleges következtetés az auditban rögzített értékelések, bizonyítékok, megállapítások és CAPA-verifikáció alapján értelmezendő.':'The final conclusion shall be read together with the recorded assessments, evidence, findings and CAPA verification.'}</div></section>`;
+    h+=`<section class="acaf6-section"><h2>${hu?'Jóváhagyás és kiadás':'Approval & Sign-off'}</h2><p>${hu?'A jelentés hivatalos kiállítója egy kijelölt személy.':'The report has one designated issuing person.'}</p><table class="acaf6-meta"><tbody><tr><th>${hu?'Kiállította':'Issued by'}</th><td>${auditor}</td></tr><tr><th>${hu?'Véglegesítve':'Finalized'}</th><td>${fmt(rep.finalized_at)}</td></tr></tbody></table><div class="acaf6-sign">${hu?'Kiállító neve / dátum / aláírás':'Issuer name / date / signature'}</div></section>`;
+    h+=`<div class="acaf6-footer"><span>ACAF Personal · ${hu?'BIZALMAS – KONTROLLÁLT DOKUMENTUM':'CONFIDENTIAL – CONTROLLED DOCUMENT'}</span><span>${esc(a.audit_no||'')} · V${esc(rep.version||'—')}</span></div></div>`;
+    return Object.assign({},data,{html:h,__acaf6:true});
   }
-  function apply(){
-    if(window.v5ReportData) {
-      window.v5ReportData=wrap(window.v5ReportData);
-      const preview=document.getElementById('v5ReportPreview');
-      if(preview) preview.innerHTML=window.v5ReportData.html;
-    }
+  function install(){
+    if(typeof window.v5BuildReport!=='function'||window.__acaf6Installed)return;
+    const original=window.v5BuildReport;
+    window.v5BuildReport=async function(){const data=await original.apply(this,arguments);return render(data)};
+    window.__acaf6Installed=true;
+    // If a report was already hydrated, re-render it immediately.
+    if(window.v5ReportData&&!window.v5ReportData.__acaf6){window.v5ReportData=render(window.v5ReportData);const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}
   }
-  window.__v54Apply=apply;
-  function hook(){
-    if(typeof window.v5GenerateReport==='function'&&!window.__v54GenerateHook){
-      const original=window.v5GenerateReport;
-      window.v5GenerateReport=async function(){const r=await original();apply();return r;};
-      window.__v54GenerateHook=true;
-    }
-    if(typeof window.v52GenerateAndSave==='function'&&!window.__v54SaveHook){
-      const original=window.v52GenerateAndSave;
-      window.v52GenerateAndSave=async function(){const r=await original();apply();return r;};
-      window.__v54SaveHook=true;
-    }
-    if(typeof window.v5PrintReport==='function'&&!window.__v54PrintHook){
-      window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();window.print();};
-      window.__v54PrintHook=true;
-    }
-    if(typeof window.v5WordReport==='function'&&!window.__v54WordHook){
-      window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();const blob=new Blob(['\\ufeff<html><head><meta charset="utf-8"><title>'+esc(window.v5ReportData.title)+'</title></head><body>'+window.v5ReportData.html+'</body></html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(window.v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report_V'+(window.v52CurrentReport?.version||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);};
-      window.__v54WordHook=true;
-    }
+  function installPrint(){
+    if(typeof window.v5PrintReport==='function'&&!window.__acaf6Print){window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;window.print();};window.__acaf6Print=true}
+    if(typeof window.v5WordReport==='function'&&!window.__acaf6Word){window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}const d=window.v5ReportData;const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body></html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.audit?.audit_no||'ACAF_Audit')+'_Report_V'+(window.v52CurrentReport?.version||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)};window.__acaf6Word=true}
   }
-  let n=0;const t=setInterval(()=>{hook();if(++n>30)clearInterval(t);},500);hook();
+  let n=0;const t=setInterval(()=>{install();installPrint();if(++n>50)clearInterval(t)},400);install();installPrint();
 })();
 </script>
-
-
-<!-- V5.5 PROFESSIONAL REPORT ENGINE: report presentation/content enhancement only. -->
-<style>
-.v55-cover-rule{height:6px;background:#17202a;margin:10mm 0 14mm}
-.v55-exec{page-break-inside:avoid;margin:12mm 0 8mm}
-.v55-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 14px}
-.v55-kpi{border:1px solid #d9dee4;border-radius:6px;padding:10px;text-align:center;background:#f8fafb}
-.v55-kpi b{display:block;font-size:20px;margin-bottom:3px}
-.v55-kpi span{font-size:9px;color:#66707a;text-transform:uppercase;letter-spacing:.04em}
-.v55-table{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0 14px}
-.v55-table th,.v55-table td{border:1px solid #d9dee4;padding:6px;vertical-align:top}
-.v55-table th{font-weight:700;background:#f3f5f7}
-.v55-decision{border-left:4px solid #17202a;padding:9px 12px;background:#f8fafb;margin:8px 0 14px}
-.v55-pagebreak{page-break-before:always}
-.v55-signatures{page-break-before:always;min-height:210mm;padding-top:12mm}
-.v55-sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:25mm;margin-top:35mm}
-.v55-sign{border-top:1px solid #17202a;padding-top:7px;font-size:10px;min-height:20mm}
-.v55-print-footer{display:none}
-@media print{
-  .v55-kpis{grid-template-columns:repeat(4,1fr)}
-  .v55-print-footer{display:block;position:fixed;bottom:4mm;left:0;right:0;font-size:8px;color:#66707a;border-top:1px solid #d9dee4;padding-top:3px}
-  .v55-print-footer .page-number:after{content:counter(page)}
-  .v55-table tr{break-inside:avoid}
-  .v55-exec,.v55-decision{break-inside:avoid}
-}
-@media screen and (max-width:900px){.v55-kpis{grid-template-columns:repeat(2,1fr)}}
-</style>
-<script>
-(function(){
-  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
-  function fmt(v){try{return v?new Date(v).toLocaleDateString('en-GB'):'—';}catch(e){return '—';}}
-  function assessCounts(qs){
-    const c={compliant:0,partial:0,noncompliant:0,na:0,unanswered:0};
-    (qs||[]).forEach(x=>{const k=(x&&x.a&&x.a.assessment)||'unanswered';if(Object.prototype.hasOwnProperty.call(c,k))c[k]++;else c.unanswered++;});
-    return c;
-  }
-  function statusText(s,lang){
-    const hu={open:'Nyitott',in_progress:'Folyamatban',submitted:'Benyújtva',verification:'Ellenőrzés',closed:'Lezárva'};
-    const en={open:'Open',in_progress:'In progress',submitted:'Submitted',verification:'Verification',closed:'Closed'};
-    return (lang==='hu'?hu:en)[s]||s||'—';
-  }
-  function enhance(data){
-    if(!data||!data.html||data.__v55Enhanced)return data;
-    const lang=data.lang||'en', hu=lang==='hu';
-    const q=data.questions||[], f=data.findings||[], c=data.capas||[], n=assessCounts(q);
-    const labels=hu?{exec:'Vezetői összefoglaló',overview:'Megfelelőségi áttekintés',findings:'Megállapítások összefoglalása',capa:'CAPA összefoglalás',decision:'Auditori döntés',evidence:'Bizonyíték és ellenőrzési összegzés',prepared:'Készítette',status:'Státusz',classification:'Besorolás',risk:'Kockázat',due:'Határidő'}:{exec:'Executive Summary',overview:'Compliance Overview',findings:'Findings Summary',capa:'CAPA Summary',decision:'Auditor Decision',evidence:'Evidence & Verification Summary',prepared:'Prepared by',status:'Status',classification:'Classification',risk:'Risk',due:'Due Date'};
-    const overall=esc(data.overall||'—');
-    const kpis='<div class="v55-kpis">'+
-      '<div class="v55-kpi"><b>'+n.compliant+'</b><span>'+ (hu?'Megfelelő':'Compliant')+'</span></div>'+
-      '<div class="v55-kpi"><b>'+n.partial+'</b><span>'+ (hu?'Részleges':'Partial')+'</span></div>'+
-      '<div class="v55-kpi"><b>'+n.noncompliant+'</b><span>'+ (hu?'Nem megfelelő':'Non-compliant')+'</span></div>'+
-      '<div class="v55-kpi"><b>'+f.length+'</b><span>'+ (hu?'Megállapítás':'Findings')+'</span></div></div>';
-    const exec='<div class="v55-exec"><h2>'+labels.exec+'</h2><div class="v55-decision"><strong>'+labels.decision+':</strong> '+overall+'</div>'+kpis+'<p>'+esc(hu?'Az összefoglaló az audit során rögzített értékelések, bizonyítékok, megállapítások és CAPA státuszok alapján készült.':'This summary is based on the recorded audit assessments, evidence, findings and CAPA status.')+'</p></div>';
-    let fhtml='<div class="v55-pagebreak"><h2>'+labels.findings+'</h2>';
-    if(f.length){fhtml+='<table class="v55-table"><tr><th>#</th><th>'+labels.classification+'</th><th>'+labels.risk+'</th><th>'+labels.status+'</th><th>'+labels.due+'</th><th>Objective Statement</th></tr>'+f.map(x=>'<tr><td>'+esc(x.finding_no??'—')+'</td><td>'+esc(x.classification||'—')+'</td><td>'+esc(x.risk||'—')+'</td><td>'+esc(statusText(x.status,lang))+'</td><td>'+fmt(x.due_date)+'</td><td>'+esc(x.objective_statement||'—')+'</td></tr>').join('')+'</table>';}else fhtml+='<p>—</p>';
-    fhtml+='</div>';
-    let ch='<div class="v55-pagebreak"><h2>'+labels.capa+'</h2>';
-    if(c.length){ch+='<table class="v55-table"><tr><th>#</th><th>Corrective Action</th><th>Preventive Action</th><th>Responsible</th><th>Target Date</th><th>'+labels.status+'</th></tr>'+c.map((x,i)=>'<tr><td>'+esc(i+1)+'</td><td>'+esc(x.corrective_action||'—')+'</td><td>'+esc(x.preventive_action||'—')+'</td><td>'+esc(x.responsible_person||'—')+'</td><td>'+fmt(x.target_date)+'</td><td>'+esc(x.status||'—')+'</td></tr>').join('')+'</table>';}else ch+='<p>—</p>';
-    ch+='</div>';
-    let eh='<div class="v55-pagebreak"><h2>'+labels.evidence+'</h2><table class="v55-table"><tr><th>#</th><th>Requirement</th><th>Assessment</th><th>Evidence</th><th>Auditor Notes</th></tr>';
-    q.forEach((x,i)=>{const a=x.a||{},r=x.r||{};eh+='<tr><td>'+esc(i+1)+'</td><td>'+esc(r.requirement_code||'—')+'</td><td>'+esc(a.assessment||'unanswered')+'</td><td>'+esc(a.evidence||'—')+'</td><td>'+esc(a.auditor_notes||'—')+'</td></tr>';});
-    eh+='</table></div>';
-    const sig='<div class="v55-signatures"><h2>'+ (hu?'Jóváhagyás és kiadás':'Approval & Sign-off') +'</h2><p>'+ (hu?'A jelentés hivatalos kiállítója egy kijelölt személy.':'The report has one designated issuing person.') +'</p><div class="v55-sign-grid"><div class="v55-sign"><strong>'+(hu?'Kiállította':'Issued by')+'</strong><br><br>'+esc(window.v52CurrentReport&&window.v52CurrentReport.auditor_name||'—')+'<br><br>Name / Date / Signature</div><div class="v55-sign"><strong>'+(hu?'Véglegesítve':'Finalized')+'</strong><br><br>'+fmt(window.v52CurrentReport&&window.v52CurrentReport.finalized_at)+'</div></div></div>';
-    const footer='<div class="v55-print-footer">ACAF Personal · '+(hu?'BIZALMAS – KONTROLLÁLT DOKUMENTUM':'CONFIDENTIAL – CONTROLLED DOCUMENT')+' · '+esc((data.audit&&data.audit.audit_no)||'')+' · V'+esc((window.v52CurrentReport&&window.v52CurrentReport.version)||'1')+' · Page <span class="page-number"></span></div>';
-    const marker='<div class="v5-section"><h3>'+(hu?'Dokumentumvezérlés':'Document Control')+'</h3>';
-    const idx=data.html.indexOf(marker);
-    const pos=idx>=0?data.html.indexOf('</div>',idx): -1;
-    let html=data.html;
-    if(idx>=0 && pos>=0) html=html.slice(0,pos+6)+exec+fhtml+ch+eh+sig+footer+html.slice(pos+6); else html=html+exec+fhtml+ch+eh+sig+footer;
-    return Object.assign({},data,{html:html,__v55Enhanced:true});
-  }
-  function apply(){if(window.v5ReportData){window.v5ReportData=enhance(window.v5ReportData);const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}}
-  function hook(){
-    if(typeof window.v5GenerateReport==='function'&&!window.__v55GenHook){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o();apply();return r;};window.__v55GenHook=true;}
-    if(typeof window.v52GenerateAndSave==='function'&&!window.__v55SaveHook){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o();apply();return r;};window.__v55SaveHook=true;}
-    if(typeof window.v5PrintReport==='function'&&!window.__v55PrintHook){window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();window.print();};window.__v55PrintHook=true;}
-    if(typeof window.v5WordReport==='function'&&!window.__v55WordHook){window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();const d=window.v5ReportData;const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body></html>'],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(d.audit&&d.audit.audit_no||'ACAF_Audit')+'_Professional_Report_V'+((window.v52CurrentReport&&window.v52CurrentReport.version)||'1')+'.doc';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);};window.__v55WordHook=true;}
-  }
-  let i=0;const t=setInterval(()=>{hook();if(++i>40)clearInterval(t);},500);hook();
-})();
-</script>
-
-
-
-<!-- V5.6: Compliance Matrix enhancement. Built on stable V5.5.2. -->
-<style>
-.v56-matrix{page-break-before:always}
-.v56-matrix table{width:100%;border-collapse:collapse;font-size:9.5px;margin:8px 0 14px}
-.v56-matrix th,.v56-matrix td{border:1px solid #d9dee4;padding:6px;vertical-align:top}
-.v56-matrix th{background:#f3f5f7;font-weight:700}
-.v56-code{font-weight:700;white-space:nowrap}
-.v56-status{font-weight:700}
-</style>
-<script>
-(function(){
-  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
-  function assessment(v,hu){
-    const m=hu?{compliant:'Megfelelő',partial:'Részleges',noncompliant:'Nem megfelelő',na:'N/A',unanswered:'Nincs értékelés'}:{compliant:'Compliant',partial:'Partial',noncompliant:'Non-compliant',na:'N/A',unanswered:'Unanswered'};
-    return m[v]||v||'—';
-  }
-  function addMatrix(){
-    const d=window.v5ReportData;
-    if(!d||!d.html||d.__v56Matrix)return;
-    const hu=d.lang==='hu', q=d.questions||[];
-    let html='<div class="v56-matrix"><h2>'+(hu?'Megfelelőségi mátrix':'Compliance Matrix')+'</h2>';
-    html+='<p>'+(hu?'Az alábbi mátrix az audit során vizsgált követelményeket és a rögzített értékelést mutatja.':'The following matrix lists the requirements assessed during the audit and the recorded assessment.')+'</p>';
-    html+='<table><tr><th>#</th><th>'+(hu?'Követelmény':'Requirement')+'</th><th>'+(hu?'Forrás':'Source')+'</th><th>'+(hu?'Értékelés':'Assessment')+'</th><th>'+(hu?'Bizonyíték':'Evidence')+'</th></tr>';
-    if(q.length){q.forEach(function(x,i){const r=x.r||{},a=x.a||{};html+='<tr><td>'+esc(i+1)+'</td><td><span class="v56-code">'+esc(r.requirement_code||'—')+'</span><br>'+esc(r.english_text||r.hungarian_text||'')+'</td><td>'+esc(r.source_reference||r.legal_reference||'—')+'</td><td class="v56-status">'+esc(assessment(a.assessment,hu))+'</td><td>'+esc(a.evidence||'—')+'</td></tr>';});}
-    else html+='<tr><td colspan="5">—</td></tr>';
-    html+='</table></div>';
-    const marker=hu?'Megállapítások összefoglalása':'Findings Summary';
-    const idx=d.html.indexOf('<h2>'+marker+'</h2>');
-    if(idx>=0){
-      const start=d.html.lastIndexOf('<div class="v55-pagebreak">',idx);
-      d.html=d.html.slice(0,start)+html+d.html.slice(start);
-    }else d.html+=html;
-    d.__v56Matrix=true;
-    const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=d.html;
-  }
-  function hook(){
-    if(typeof window.v5GenerateReport==='function'&&!window.__v56Gen){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o();addMatrix();return r;};window.__v56Gen=true;}
-    if(typeof window.v52GenerateAndSave==='function'&&!window.__v56Save){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o();addMatrix();return r;};window.__v56Save=true;}
-    if(typeof window.v5PrintReport==='function'&&!window.__v56Print){const o=window.v5PrintReport;window.v5PrintReport=function(){addMatrix();return o();};window.__v56Print=true;}
-    if(typeof window.v5WordReport==='function'&&!window.__v56Word){const o=window.v5WordReport;window.v5WordReport=function(){addMatrix();return o();};window.__v56Word=true;}
-  }
-  let n=0;const t=setInterval(function(){hook();if(++n>40)clearInterval(t);},500);hook();
-})();
-</script>
-
-
-
-<!-- V5.7: Finding Detail & CAPA Traceability. Built on stable V5.6. -->
-<style>
-.v57-detail{page-break-before:always}
-.v57-card{border:1px solid #d9dee4;border-radius:6px;margin:0 0 12px;padding:10px;page-break-inside:avoid}
-.v57-head{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid #17202a;padding-bottom:6px;margin-bottom:8px}
-.v57-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
-.v57-label{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:#66707a;font-weight:700}
-.v57-value{font-size:10px;margin-top:2px;white-space:pre-wrap}
-.v57-box{background:#f8fafb;border-left:3px solid #17202a;padding:8px;margin:8px 0}
-.v57-table{width:100%;border-collapse:collapse;font-size:9px;margin-top:8px}
-.v57-table th,.v57-table td{border:1px solid #d9dee4;padding:5px;vertical-align:top}
-.v57-table th{background:#f3f5f7;font-weight:700}
-@media print{.v57-card{break-inside:avoid}.v57-detail{break-before:page}}
-</style>
-<script>
-(function(){
-  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
-  function fmt(v){try{return v?new Date(v).toLocaleDateString('en-GB'):'—';}catch(e){return '—';}}
-  function assess(v,hu){const m=hu?{compliant:'Megfelelő',partial:'Részleges',noncompliant:'Nem megfelelő',na:'N/A',unanswered:'Nincs értékelés'}:{compliant:'Compliant',partial:'Partial',noncompliant:'Non-compliant',na:'N/A',unanswered:'Unanswered'};return m[v]||v||'—';}
-  function enhance(d){
-    if(!d||!d.html||d.__v57Enhanced)return d;
-    const hu=d.lang==='hu', f=d.findings||[], c=d.capas||[], q=d.questions||[];
-    const byFinding=new Map(); c.forEach(x=>{if(!byFinding.has(x.finding_id))byFinding.set(x.finding_id,[]);byFinding.get(x.finding_id).push(x);});
-    let h='<div class="v57-detail"><h2>'+(hu?'Megállapítások részletes nyilvántartása':'Detailed Findings & CAPA Traceability')+'</h2>';
-    h+='<p>'+(hu?'Az alábbi rész minden megállapítást a kapcsolódó követelményhez, bizonyítékhoz és CAPA intézkedéshez kapcsol.':'Each finding is traced to the related requirement, evidence and CAPA action.')+'</p>';
-    if(!f.length){h+='<div class="v57-card">'+(hu?'Nincs rögzített megállapítás.':'No findings recorded.')+'</div>';}
-    f.forEach(function(x){
-      const linked=byFinding.get(x.id)||[];
-      let qrow=null; if(x.question_id) qrow=q.find(z=>z.q&&z.q.id===x.question_id);
-      const r=qrow&&qrow.r||{}, a=qrow&&qrow.a||{};
-      h+='<div class="v57-card"><div class="v57-head"><strong>'+(hu?'Megállapítás #':'Finding #')+esc(x.finding_no??'—')+'</strong><span>'+esc(x.classification||'—')+' · '+esc(x.risk||'—')+' · '+esc(x.status||'—')+'</span></div>';
-      h+='<div class="v57-grid">';
-      h+='<div><div class="v57-label">'+(hu?'Követelmény':'Requirement')+'</div><div class="v57-value">'+esc(r.requirement_code||'—')+'</div></div>';
-      h+='<div><div class="v57-label">'+(hu?'Értékelés':'Assessment')+'</div><div class="v57-value">'+esc(assess(a.assessment,hu))+'</div></div>';
-      h+='<div><div class="v57-label">'+(hu?'Határidő':'Due Date')+'</div><div class="v57-value">'+fmt(x.due_date)+'</div></div>';
-      h+='<div><div class="v57-label">'+(hu?'CAPA-k száma':'CAPA Actions')+'</div><div class="v57-value">'+linked.length+'</div></div></div>';
-      h+='<div class="v57-box"><div class="v57-label">'+(hu?'Objektív megállapítás':'Objective Statement')+'</div><div class="v57-value">'+esc(x.objective_statement||'—')+'</div></div>';
-      h+='<div class="v57-box"><div class="v57-label">'+(hu?'Gyökérok':'Root Cause')+'</div><div class="v57-value">'+esc(x.root_cause||'—')+'</div></div>';
-      h+='<div class="v57-box"><div class="v57-label">'+(hu?'Kapcsolódó bizonyíték':'Related Evidence')+'</div><div class="v57-value">'+esc(a.evidence||'—')+'</div></div>';
-      if(linked.length){h+='<table class="v57-table"><tr><th>#</th><th>'+(hu?'Javító intézkedés':'Corrective Action')+'</th><th>'+(hu?'Megelőző intézkedés':'Preventive Action')+'</th><th>'+(hu?'Felelős':'Responsible')+'</th><th>'+(hu?'Célidő':'Target')+'</th><th>'+(hu?'Státusz':'Status')+'</th><th>'+(hu?'Hatékonyság':'Effectiveness')+'</th></tr>';linked.forEach(function(ca,i){h+='<tr><td>'+esc(i+1)+'</td><td>'+esc(ca.corrective_action||'—')+'</td><td>'+esc(ca.preventive_action||'—')+'</td><td>'+esc(ca.responsible_person||'—')+'</td><td>'+fmt(ca.target_date)+'</td><td>'+esc(ca.status||'—')+'</td><td>'+esc(ca.verification_result||'—')+'</td></tr>';});h+='</table>';}
-      h+='</div>';
-    });
-    h+='</div>';
-    const marker='<div class="v55-signatures">'; const idx=d.html.indexOf(marker);
-    d.html=idx>=0?d.html.slice(0,idx)+h+d.html.slice(idx):d.html+h;
-    d.__v57Enhanced=true; return d;
-  }
-  function apply(){if(window.v5ReportData){window.v5ReportData=enhance(window.v5ReportData);const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}}
-  function hook(){
-    if(typeof window.v5GenerateReport==='function'&&!window.__v57Gen){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o();apply();return r;};window.__v57Gen=true;}
-    if(typeof window.v52GenerateAndSave==='function'&&!window.__v57Save){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o();apply();return r;};window.__v57Save=true;}
-    if(typeof window.v52LoadLatestReport==='function'&&!window.__v57Load){const o=window.v52LoadLatestReport;window.v52LoadLatestReport=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v57Load=true;}
-    if(typeof window.v5PrintReport==='function'&&!window.__v57Print){const o=window.v5PrintReport;window.v5PrintReport=function(){apply();return o();};window.__v57Print=true;}
-    if(typeof window.v5WordReport==='function'&&!window.__v57Word){const o=window.v5WordReport;window.v5WordReport=function(){apply();return o();};window.__v57Word=true;}
-  }
-  let n=0;const t=setInterval(function(){hook();if(++n>50)clearInterval(t);},500);hook();
-})();
-</script>
-
-
-<!-- V5.8: Evidence Management / Evidence Register. Built on stable V5.7. -->
-<style>
-.v58-evidence{page-break-before:always}
-.v58-note{font-size:9px;color:#66707a;margin:4px 0 10px}
-.v58-table{width:100%;border-collapse:collapse;font-size:8.5px;margin-top:8px}
-.v58-table th,.v58-table td{border:1px solid #d9dee4;padding:5px;vertical-align:top}
-.v58-table th{background:#f3f5f7;font-weight:700}
-.v58-id{font-weight:700;white-space:nowrap}
-@media print{.v58-evidence{break-before:page}.v58-table{page-break-inside:auto}.v58-table tr{break-inside:avoid}}
-</style>
-<script>
-(function(){
-  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
-  function assess(v,hu){const m=hu?{compliant:'Megfelelő',partial:'Részleges',noncompliant:'Nem megfelelő',na:'N/A',unanswered:'Nincs értékelés'}:{compliant:'Compliant',partial:'Partial',noncompliant:'Non-compliant',na:'N/A',unanswered:'Unanswered'};return m[v]||v||'—';}
-  function build(d){
-    if(!d||!d.html||d.__v58Enhanced)return d;
-    const hu=d.lang==='hu', q=d.questions||[];
-    let h='<div class="v58-evidence"><h2>'+(hu?'Bizonyíték-nyilvántartás':'Evidence Register')+'</h2>';
-    h+='<p class="v58-note">'+(hu?'A nyilvántartás az audit során rögzített bizonyítékokat és az azokhoz kapcsolódó követelményeket mutatja. Az ACAF nem állít automatikus bizonyíték-hitelesítést; az auditor értékelése az irányadó.':'This register lists evidence recorded during the audit and its linked requirements. ACAF does not automatically certify evidence; the auditor assessment remains authoritative.')+'</p>';
-    h+='<table class="v58-table"><tr><th>ID</th><th>'+(hu?'Követelmény':'Requirement')+'</th><th>'+(hu?'Értékelés':'Assessment')+'</th><th>'+(hu?'Bizonyíték / forrás':'Evidence / Source')+'</th><th>'+(hu?'Auditori megjegyzés':'Auditor Note')+'</th></tr>';
-    let n=0;
-    q.forEach(function(x){const a=x.a||{},r=x.r||{}; if(!a.evidence||String(a.evidence).trim()==='')return; n++; h+='<tr><td class="v58-id">E-'+String(n).padStart(3,'0')+'</td><td>'+esc(r.requirement_code||'—')+'</td><td>'+esc(assess(a.assessment,hu))+'</td><td>'+esc(a.evidence)+'</td><td>'+esc(a.auditor_notes||'—')+'</td></tr>';});
-    if(!n)h+='<tr><td colspan="5">'+(hu?'Nincs külön rögzített bizonyíték.':'No separately recorded evidence.')+'</td></tr>';
-    h+='</table></div>';
-    const marker='<div class="v57-detail">';
-    const idx=d.html.indexOf(marker);
-    d.html=idx>=0?d.html.slice(0,idx)+h+d.html.slice(idx):d.html+h;
-    d.__v58Enhanced=true;return d;
-  }
-  function apply(){if(window.v5ReportData){window.v5ReportData=build(window.v5ReportData);const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}}
-  function hook(){
-    if(typeof window.v5GenerateReport==='function'&&!window.__v58Gen){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o();apply();return r;};window.__v58Gen=true;}
-    if(typeof window.v52GenerateAndSave==='function'&&!window.__v58Save){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o();apply();return r;};window.__v58Save=true;}
-    if(typeof window.v52LoadLatestReport==='function'&&!window.__v58Load){const o=window.v52LoadLatestReport;window.v52LoadLatestReport=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v58Load=true;}
-    if(typeof window.v5PrintReport==='function'&&!window.__v58Print){const o=window.v5PrintReport;window.v5PrintReport=function(){apply();return o();};window.__v58Print=true;}
-    if(typeof window.v5WordReport==='function'&&!window.__v58Word){const o=window.v5WordReport;window.v5WordReport=function(){apply();return o();};window.__v58Word=true;}
-  }
-  let n=0;const t=setInterval(function(){hook();if(++n>50)clearInterval(t);},500);hook();
-})();
-</script>
-
-
-<!-- V5.10: PDF typography + table geometry + robust Compliance Matrix restoration. -->
-<style>
-.v54-doc, .v54-doc .v5-report { font-size:10pt; }
-.v54-doc p, .v54-doc li, .v54-doc td, .v54-doc th, .v54-doc .v57-value, .v54-doc .v58-note { font-size:10pt; }
-.v54-doc .v55-kpi span { font-size:9pt; }
-.v54-doc .v55-kpi b { font-size:20px; }
-.v54-doc table, .v54-doc .v5-table, .v54-doc .v55-table, .v54-doc .v56-matrix table, .v54-doc .v57-table, .v54-doc .v58-table {
- width:100% !important; max-width:100% !important; box-sizing:border-box !important; table-layout:fixed !important; border-collapse:collapse !important; border-spacing:0 !important; overflow-wrap:anywhere !important; word-break:break-word !important;
-}
-.v54-doc table th, .v54-doc table td { box-sizing:border-box !important; border:1px solid #bfc7cf !important; overflow-wrap:anywhere !important; word-break:break-word !important; }
-.v54-doc .v58-table th, .v54-doc .v58-table td, .v54-doc .v56-matrix th, .v54-doc .v56-matrix td { padding:5px !important; }
-@media print {
- @page { size:A4; margin:12mm 12mm 14mm 12mm; }
- .v54-shell, .v54-doc, .v5-report { width:100% !important; max-width:100% !important; margin:0 !important; box-sizing:border-box !important; }
- .v54-doc { overflow:visible !important; }
- .v54-doc table { break-inside:auto; }
- .v54-doc tr { break-inside:avoid; }
-}
-</style>
-<script>
-(function(){
- function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v==null?'':v);}catch(e){return String(v==null?'':v);}}
- function assess(v,hu){const m=hu?{compliant:'Megfelelő',partial:'Részleges',noncompliant:'Nem megfelelő',na:'N/A',unanswered:'Nincs értékelés'}:{compliant:'Compliant',partial:'Partial',noncompliant:'Non-compliant',na:'N/A',unanswered:'Unanswered'};return m[v]||v||'—';}
- function addMatrix(){
-  const d=window.v5ReportData; if(!d||!d.html||d.html.indexOf('class="v56-matrix"')>=0)return;
-  const hu=d.lang==='hu',q=d.questions||[];
-  let h='<div class="v56-matrix" style="page-break-before:always"><h2>'+(hu?'Megfelelőségi mátrix':'Compliance Matrix')+'</h2><p>'+(hu?'Az audit során vizsgált követelmények és a rögzített értékelések összefoglaló mátrixa.':'Summary matrix of the requirements assessed during the audit and the recorded assessments.')+'</p>';
-  h+='<table><colgroup><col style="width:6%"><col style="width:28%"><col style="width:18%"><col style="width:18%"><col style="width:30%"></colgroup><tr><th>#</th><th>'+(hu?'Követelmény':'Requirement')+'</th><th>'+(hu?'Forrás':'Source')+'</th><th>'+(hu?'Értékelés':'Assessment')+'</th><th>'+(hu?'Bizonyíték':'Evidence')+'</th></tr>';
-  if(q.length){q.forEach(function(x,i){const r=x.r||{},a=x.a||{};h+='<tr><td>'+(i+1)+'</td><td><strong>'+esc(r.requirement_code||'—')+'</strong><br>'+esc(hu?(r.hungarian_text||r.english_text||''):(r.english_text||r.hungarian_text||''))+'</td><td>'+esc(r.source_reference||r.legal_reference||'—')+'</td><td><strong>'+esc(assess(a.assessment,hu))+'</strong></td><td>'+esc(a.evidence||'—')+'</td></tr>';});} else h+='<tr><td colspan="5">—</td></tr>';
-  h+='</table></div>';
-  let pos=d.html.indexOf('<div class="v57-detail">'); if(pos<0)pos=d.html.indexOf('<div class="v58-evidence">'); if(pos<0)pos=d.html.indexOf('<div class="v55-signatures">');
-  d.html=pos>=0?d.html.slice(0,pos)+h+d.html.slice(pos):d.html+h; d.__v56Matrix=true;
- }
- function apply(){if(window.v5ReportData){addMatrix();const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}}
- function hook(){
-  if(typeof window.v5GenerateReport==='function'&&!window.__v510Gen){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v510Gen=true;}
-  if(typeof window.v52GenerateAndSave==='function'&&!window.__v510Save){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v510Save=true;}
-  if(typeof window.v52LoadLatestReport==='function'&&!window.__v510Load){const o=window.v52LoadLatestReport;window.v52LoadLatestReport=async function(){const r=await o.apply(this,arguments);setTimeout(apply,50);return r;};window.__v510Load=true;}
-  if(typeof window.v5PrintReport==='function'&&!window.__v510Print){const o=window.v5PrintReport;window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();return o.apply(this,arguments);};window.__v510Print=true;}
-  if(typeof window.v5WordReport==='function'&&!window.__v510Word){const o=window.v5WordReport;window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();return o.apply(this,arguments);};window.__v510Word=true;}
- }
- let n=0;const t=setInterval(function(){hook();if(++n>50)clearInterval(t);},500);hook();
-})();
-</script>
-
-<!-- V5.11: Audit Requirements table typography aligned with Compliance Matrix. -->
-<style>
-.v54-doc .v511-requirements{font-size:10pt !important;table-layout:fixed !important;width:100% !important;}
-.v54-doc .v511-requirements th,.v54-doc .v511-requirements td{font-size:10pt !important;font-weight:400 !important;padding:5px !important;line-height:1.25 !important;vertical-align:top !important;box-sizing:border-box !important;border:1px solid #bfc7cf !important;overflow-wrap:anywhere !important;word-break:break-word !important;}
-.v54-doc .v511-requirements th{font-weight:700 !important;}
-.v54-doc .v511-requirements td strong{font-weight:400 !important;font-size:10pt !important;}
-</style>
-
-
-<!-- V5.11.4: stable landscape printing and section pagination. -->
-<style>
-@media print {
-  /* Preserve logical report-page separation even when the user selects Landscape for the whole document. */
-  .v54-doc .v55-pagebreak,
-  .v54-doc .v56-matrix,
-  .v54-doc .v58-evidence,
-  .v54-doc .v57-detail,
-  .v54-doc .v5-section:has(.v511-requirements) {
-    break-before: page !important;
-    page-break-before: always !important;
-  }
-
-  /* Long tables may continue naturally, but never split an individual data row. */
-  .v54-doc table {
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-  }
-  .v54-doc table thead {
-    display: table-header-group !important;
-  }
-  .v54-doc table tfoot {
-    display: table-footer-group !important;
-  }
-  .v54-doc table tr {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  /* Keep section titles attached to their first content/table. */
-  .v54-doc h2, .v54-doc h3 {
-    break-after: avoid-page !important;
-    page-break-after: avoid !important;
-  }
-
-  /* Do not let the wide-table page wrapper itself force clipping in user-selected Landscape. */
-  .v54-doc .v5-landscape-page {
-    width: auto !important;
-    max-width: none !important;
-    box-sizing: border-box !important;
-  }
-}
-</style>
 </body>
-
-<!-- V5.11.6: final print layout correction for user-selected Landscape. -->
-<style id="v5116-print-layout">
-@media print {
-.v54-doc .v54-cover{min-height:0!important;height:170mm!important;max-height:170mm!important;padding:12mm 14mm 10mm!important;margin:0!important;box-sizing:border-box!important;break-after:page!important;page-break-after:always!important;overflow:hidden!important;}
-.v54-doc .v55-pagebreak,.v54-doc .v56-matrix,.v54-doc .v57-detail,.v54-doc .v58-evidence,.v54-doc .v511-requirements,.v54-doc .v5-section:has(.v511-requirements){display:block!important;clear:both!important;break-before:page!important;page-break-before:always!important;margin-top:0!important;}
-.v54-doc .v55-pagebreak h2,.v54-doc .v56-matrix h2,.v54-doc .v57-detail h2,.v54-doc .v58-evidence h2{break-after:avoid-page!important;page-break-after:avoid!important;}
-.v54-doc table:not(.v54-meta),.v54-doc .v5-table:not(.v54-meta),.v54-doc .v55-table,.v54-doc .v56-matrix table,.v54-doc .v57-table,.v54-doc .v58-table{width:calc(100% - 1px)!important;max-width:calc(100% - 1px)!important;margin-right:1px!important;border-collapse:collapse!important;box-sizing:border-box!important;border:1px solid #bfc7cf!important;}
-.v54-doc table:not(.v54-meta) th:last-child,.v54-doc table:not(.v54-meta) td:last-child,.v54-doc .v5-table th:last-child,.v54-doc .v5-table td:last-child,.v54-doc .v55-table th:last-child,.v54-doc .v55-table td:last-child,.v54-doc .v56-matrix th:last-child,.v54-doc .v56-matrix td:last-child,.v54-doc .v57-table th:last-child,.v54-doc .v57-table td:last-child,.v54-doc .v58-table th:last-child,.v54-doc .v58-table td:last-child{border-right:1px solid #bfc7cf!important;}
-.v54-doc table thead{display:table-header-group!important;}.v54-doc table tr{break-inside:avoid!important;page-break-inside:avoid!important;}
-.v54-doc .v5-landscape-page{break-before:page!important;page-break-before:always!important;width:100%!important;max-width:100%!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important;}
-}
-</style>
 </html>
-<!-- V5.11.1: Unified compact report tables + landscape layout for wide tables. -->
-<style>
-@page { size: A4 portrait; margin: 12mm 12mm 14mm 12mm; }
-@page landscape { size: A4 landscape; margin: 10mm 10mm 12mm 10mm; }
-
-/* All report tables use the compact Evidence Register scale. Cover/metadata tables are excluded. */
-.v54-doc table:not(.v54-meta),
-.v54-doc .v5-table:not(.v54-meta),
-.v54-doc .v55-table,
-.v54-doc .v56-matrix table,
-.v54-doc .v57-table,
-.v54-doc .v58-table {
-  font-size: 8.5pt !important;
-  line-height: 1.28 !important;
-  table-layout: fixed !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  border-collapse: collapse !important;
-  border-spacing: 0 !important;
-}
-.v54-doc table:not(.v54-meta) th,
-.v54-doc table:not(.v54-meta) td,
-.v54-doc .v5-table th, .v54-doc .v5-table td,
-.v54-doc .v55-table th, .v54-doc .v55-table td,
-.v54-doc .v56-matrix th, .v54-doc .v56-matrix td,
-.v54-doc .v57-table th, .v54-doc .v57-table td,
-.v54-doc .v58-table th, .v54-doc .v58-table td {
-  font-size: 8.5pt !important;
-  padding: 5px !important;
-  vertical-align: top !important;
-  box-sizing: border-box !important;
-  overflow-wrap: break-word !important;
-  word-break: normal !important;
-  border: 1px solid #bfc7cf !important;
-}
-.v54-doc table:not(.v54-meta) th,
-.v54-doc .v5-table th, .v54-doc .v55-table th,
-.v54-doc .v56-matrix th, .v54-doc .v57-table th, .v54-doc .v58-table th {
-  white-space: nowrap !important;
-}
-
-/* Wide tables get a landscape report page. */
-.v5-landscape-page {
-  page: landscape !important;
-  break-before: page !important;
-  page-break-before: always !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-.v5-landscape-page table {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-@media print {
-  .v54-doc table:not(.v54-meta),
-  .v54-doc .v5-table, .v54-doc .v55-table, .v54-doc .v56-matrix table,
-  .v54-doc .v57-table, .v54-doc .v58-table {
-    font-size: 8.5pt !important;
-    table-layout: fixed !important;
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-  .v5-landscape-page { page: landscape !important; }
-}
-</style>
-<script>
-(function(){
-  function apply(){
-    const root=document.querySelector('.v54-doc') || document.querySelector('.v5-report');
-    if(!root) return;
-    const tables=root.querySelectorAll('table:not(.v54-meta)');
-    tables.forEach(function(tbl){
-      if(tbl.dataset.acafTableStyled==='1') return;
-      tbl.dataset.acafTableStyled='1';
-      const headers=tbl.querySelectorAll('tr:first-child th').length;
-      if(headers>=6){
-        const host=tbl.closest('.v5-section,.v55-pagebreak,.v57-detail,.v58-evidence,.v56-matrix');
-        if(host) host.classList.add('v5-landscape-page');
-        else tbl.classList.add('v5-landscape-page');
-      }
-    });
-  }
-  function hook(){
-    ['v5GenerateReport','v52GenerateAndSave','v52LoadLatestReport'].forEach(function(name){
-      const fn=window[name];
-      const flag='__v5111_'+name;
-      if(typeof fn==='function'&&!window[flag]){
-        window[name]=async function(){ const r=await fn.apply(this,arguments); setTimeout(apply,50); return r; };
-        window[flag]=true;
-      }
-    });
-    if(typeof window.v5PrintReport==='function'&&!window.__v5111Print){
-      const fn=window.v5PrintReport;
-      window.v5PrintReport=function(){apply();return fn.apply(this,arguments);};
-      window.__v5111Print=true;
-    }
-    apply();
-  }
-  let n=0; const t=setInterval(function(){hook(); if(++n>60) clearInterval(t);},500); hook();
-})();
-</script>
