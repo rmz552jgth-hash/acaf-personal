@@ -2470,5 +2470,66 @@ function v5WordReport(){
 })();
 </script>
 
+
+
+<!-- V5.7: Finding Detail & CAPA Traceability. Built on stable V5.6. -->
+<style>
+.v57-detail{page-break-before:always}
+.v57-card{border:1px solid #d9dee4;border-radius:6px;margin:0 0 12px;padding:10px;page-break-inside:avoid}
+.v57-head{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid #17202a;padding-bottom:6px;margin-bottom:8px}
+.v57-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.v57-label{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:#66707a;font-weight:700}
+.v57-value{font-size:10px;margin-top:2px;white-space:pre-wrap}
+.v57-box{background:#f8fafb;border-left:3px solid #17202a;padding:8px;margin:8px 0}
+.v57-table{width:100%;border-collapse:collapse;font-size:9px;margin-top:8px}
+.v57-table th,.v57-table td{border:1px solid #d9dee4;padding:5px;vertical-align:top}
+.v57-table th{background:#f3f5f7;font-weight:700}
+@media print{.v57-card{break-inside:avoid}.v57-detail{break-before:page}}
+</style>
+<script>
+(function(){
+  function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v??'');}catch(e){return String(v??'');}}
+  function fmt(v){try{return v?new Date(v).toLocaleDateString('en-GB'):'—';}catch(e){return '—';}}
+  function assess(v,hu){const m=hu?{compliant:'Megfelelő',partial:'Részleges',noncompliant:'Nem megfelelő',na:'N/A',unanswered:'Nincs értékelés'}:{compliant:'Compliant',partial:'Partial',noncompliant:'Non-compliant',na:'N/A',unanswered:'Unanswered'};return m[v]||v||'—';}
+  function enhance(d){
+    if(!d||!d.html||d.__v57Enhanced)return d;
+    const hu=d.lang==='hu', f=d.findings||[], c=d.capas||[], q=d.questions||[];
+    const byFinding=new Map(); c.forEach(x=>{if(!byFinding.has(x.finding_id))byFinding.set(x.finding_id,[]);byFinding.get(x.finding_id).push(x);});
+    let h='<div class="v57-detail"><h2>'+(hu?'Megállapítások részletes nyilvántartása':'Detailed Findings & CAPA Traceability')+'</h2>';
+    h+='<p>'+(hu?'Az alábbi rész minden megállapítást a kapcsolódó követelményhez, bizonyítékhoz és CAPA intézkedéshez kapcsol.':'Each finding is traced to the related requirement, evidence and CAPA action.')+'</p>';
+    if(!f.length){h+='<div class="v57-card">'+(hu?'Nincs rögzített megállapítás.':'No findings recorded.')+'</div>';}
+    f.forEach(function(x){
+      const linked=byFinding.get(x.id)||[];
+      let qrow=null; if(x.question_id) qrow=q.find(z=>z.q&&z.q.id===x.question_id);
+      const r=qrow&&qrow.r||{}, a=qrow&&qrow.a||{};
+      h+='<div class="v57-card"><div class="v57-head"><strong>'+(hu?'Megállapítás #':'Finding #')+esc(x.finding_no??'—')+'</strong><span>'+esc(x.classification||'—')+' · '+esc(x.risk||'—')+' · '+esc(x.status||'—')+'</span></div>';
+      h+='<div class="v57-grid">';
+      h+='<div><div class="v57-label">'+(hu?'Követelmény':'Requirement')+'</div><div class="v57-value">'+esc(r.requirement_code||'—')+'</div></div>';
+      h+='<div><div class="v57-label">'+(hu?'Értékelés':'Assessment')+'</div><div class="v57-value">'+esc(assess(a.assessment,hu))+'</div></div>';
+      h+='<div><div class="v57-label">'+(hu?'Határidő':'Due Date')+'</div><div class="v57-value">'+fmt(x.due_date)+'</div></div>';
+      h+='<div><div class="v57-label">'+(hu?'CAPA-k száma':'CAPA Actions')+'</div><div class="v57-value">'+linked.length+'</div></div></div>';
+      h+='<div class="v57-box"><div class="v57-label">'+(hu?'Objektív megállapítás':'Objective Statement')+'</div><div class="v57-value">'+esc(x.objective_statement||'—')+'</div></div>';
+      h+='<div class="v57-box"><div class="v57-label">'+(hu?'Gyökérok':'Root Cause')+'</div><div class="v57-value">'+esc(x.root_cause||'—')+'</div></div>';
+      h+='<div class="v57-box"><div class="v57-label">'+(hu?'Kapcsolódó bizonyíték':'Related Evidence')+'</div><div class="v57-value">'+esc(a.evidence||'—')+'</div></div>';
+      if(linked.length){h+='<table class="v57-table"><tr><th>#</th><th>'+(hu?'Javító intézkedés':'Corrective Action')+'</th><th>'+(hu?'Megelőző intézkedés':'Preventive Action')+'</th><th>'+(hu?'Felelős':'Responsible')+'</th><th>'+(hu?'Célidő':'Target')+'</th><th>'+(hu?'Státusz':'Status')+'</th><th>'+(hu?'Hatékonyság':'Effectiveness')+'</th></tr>';linked.forEach(function(ca,i){h+='<tr><td>'+esc(i+1)+'</td><td>'+esc(ca.corrective_action||'—')+'</td><td>'+esc(ca.preventive_action||'—')+'</td><td>'+esc(ca.responsible_person||'—')+'</td><td>'+fmt(ca.target_date)+'</td><td>'+esc(ca.status||'—')+'</td><td>'+esc(ca.verification_result||'—')+'</td></tr>';});h+='</table>';}
+      h+='</div>';
+    });
+    h+='</div>';
+    const marker='<div class="v55-signatures">'; const idx=d.html.indexOf(marker);
+    d.html=idx>=0?d.html.slice(0,idx)+h+d.html.slice(idx):d.html+h;
+    d.__v57Enhanced=true; return d;
+  }
+  function apply(){if(window.v5ReportData){window.v5ReportData=enhance(window.v5ReportData);const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}}
+  function hook(){
+    if(typeof window.v5GenerateReport==='function'&&!window.__v57Gen){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o();apply();return r;};window.__v57Gen=true;}
+    if(typeof window.v52GenerateAndSave==='function'&&!window.__v57Save){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o();apply();return r;};window.__v57Save=true;}
+    if(typeof window.v52LoadLatestReport==='function'&&!window.__v57Load){const o=window.v52LoadLatestReport;window.v52LoadLatestReport=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v57Load=true;}
+    if(typeof window.v5PrintReport==='function'&&!window.__v57Print){const o=window.v5PrintReport;window.v5PrintReport=function(){apply();return o();};window.__v57Print=true;}
+    if(typeof window.v5WordReport==='function'&&!window.__v57Word){const o=window.v5WordReport;window.v5WordReport=function(){apply();return o();};window.__v57Word=true;}
+  }
+  let n=0;const t=setInterval(function(){hook();if(++n>50)clearInterval(t);},500);hook();
+})();
+</script>
+
 </body>
 </html>
