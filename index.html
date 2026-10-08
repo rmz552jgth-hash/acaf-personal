@@ -2581,5 +2581,51 @@ function v5WordReport(){
 })();
 </script>
 
+
+<!-- V5.10: PDF typography + table geometry + robust Compliance Matrix restoration. -->
+<style>
+.v54-doc, .v54-doc .v5-report { font-size:10pt; }
+.v54-doc p, .v54-doc li, .v54-doc td, .v54-doc th, .v54-doc .v57-value, .v54-doc .v58-note { font-size:10pt; }
+.v54-doc .v55-kpi span { font-size:9pt; }
+.v54-doc .v55-kpi b { font-size:20px; }
+.v54-doc table, .v54-doc .v5-table, .v54-doc .v55-table, .v54-doc .v56-matrix table, .v54-doc .v57-table, .v54-doc .v58-table {
+ width:100% !important; max-width:100% !important; box-sizing:border-box !important; table-layout:fixed !important; border-collapse:collapse !important; border-spacing:0 !important; overflow-wrap:anywhere !important; word-break:break-word !important;
+}
+.v54-doc table th, .v54-doc table td { box-sizing:border-box !important; border:1px solid #bfc7cf !important; overflow-wrap:anywhere !important; word-break:break-word !important; }
+.v54-doc .v58-table th, .v54-doc .v58-table td, .v54-doc .v56-matrix th, .v54-doc .v56-matrix td { padding:5px !important; }
+@media print {
+ @page { size:A4; margin:12mm 12mm 14mm 12mm; }
+ .v54-shell, .v54-doc, .v5-report { width:100% !important; max-width:100% !important; margin:0 !important; box-sizing:border-box !important; }
+ .v54-doc { overflow:visible !important; }
+ .v54-doc table { break-inside:auto; }
+ .v54-doc tr { break-inside:avoid; }
+}
+</style>
+<script>
+(function(){
+ function esc(v){try{return typeof v5Esc==='function'?v5Esc(v):String(v==null?'':v);}catch(e){return String(v==null?'':v);}}
+ function assess(v,hu){const m=hu?{compliant:'Megfelelő',partial:'Részleges',noncompliant:'Nem megfelelő',na:'N/A',unanswered:'Nincs értékelés'}:{compliant:'Compliant',partial:'Partial',noncompliant:'Non-compliant',na:'N/A',unanswered:'Unanswered'};return m[v]||v||'—';}
+ function addMatrix(){
+  const d=window.v5ReportData; if(!d||!d.html||d.html.indexOf('class="v56-matrix"')>=0)return;
+  const hu=d.lang==='hu',q=d.questions||[];
+  let h='<div class="v56-matrix" style="page-break-before:always"><h2>'+(hu?'Megfelelőségi mátrix':'Compliance Matrix')+'</h2><p>'+(hu?'Az audit során vizsgált követelmények és a rögzített értékelések összefoglaló mátrixa.':'Summary matrix of the requirements assessed during the audit and the recorded assessments.')+'</p>';
+  h+='<table><colgroup><col style="width:6%"><col style="width:28%"><col style="width:18%"><col style="width:18%"><col style="width:30%"></colgroup><tr><th>#</th><th>'+(hu?'Követelmény':'Requirement')+'</th><th>'+(hu?'Forrás':'Source')+'</th><th>'+(hu?'Értékelés':'Assessment')+'</th><th>'+(hu?'Bizonyíték':'Evidence')+'</th></tr>';
+  if(q.length){q.forEach(function(x,i){const r=x.r||{},a=x.a||{};h+='<tr><td>'+(i+1)+'</td><td><strong>'+esc(r.requirement_code||'—')+'</strong><br>'+esc(hu?(r.hungarian_text||r.english_text||''):(r.english_text||r.hungarian_text||''))+'</td><td>'+esc(r.source_reference||r.legal_reference||'—')+'</td><td><strong>'+esc(assess(a.assessment,hu))+'</strong></td><td>'+esc(a.evidence||'—')+'</td></tr>';});} else h+='<tr><td colspan="5">—</td></tr>';
+  h+='</table></div>';
+  let pos=d.html.indexOf('<div class="v57-detail">'); if(pos<0)pos=d.html.indexOf('<div class="v58-evidence">'); if(pos<0)pos=d.html.indexOf('<div class="v55-signatures">');
+  d.html=pos>=0?d.html.slice(0,pos)+h+d.html.slice(pos):d.html+h; d.__v56Matrix=true;
+ }
+ function apply(){if(window.v5ReportData){addMatrix();const p=document.getElementById('v5ReportPreview');if(p)p.innerHTML=window.v5ReportData.html;}}
+ function hook(){
+  if(typeof window.v5GenerateReport==='function'&&!window.__v510Gen){const o=window.v5GenerateReport;window.v5GenerateReport=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v510Gen=true;}
+  if(typeof window.v52GenerateAndSave==='function'&&!window.__v510Save){const o=window.v52GenerateAndSave;window.v52GenerateAndSave=async function(){const r=await o.apply(this,arguments);apply();return r;};window.__v510Save=true;}
+  if(typeof window.v52LoadLatestReport==='function'&&!window.__v510Load){const o=window.v52LoadLatestReport;window.v52LoadLatestReport=async function(){const r=await o.apply(this,arguments);setTimeout(apply,50);return r;};window.__v510Load=true;}
+  if(typeof window.v5PrintReport==='function'&&!window.__v510Print){const o=window.v5PrintReport;window.v5PrintReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();return o.apply(this,arguments);};window.__v510Print=true;}
+  if(typeof window.v5WordReport==='function'&&!window.__v510Word){const o=window.v5WordReport;window.v5WordReport=function(){if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}apply();return o.apply(this,arguments);};window.__v510Word=true;}
+ }
+ let n=0;const t=setInterval(function(){hook();if(++n>50)clearInterval(t);},500);hook();
+})();
+</script>
+
 </body>
 </html>
