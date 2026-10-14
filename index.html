@@ -2519,6 +2519,39 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  let n=0;const timer=setInterval(()=>{const sel=el('v5AuditSelect');if(sel&&!sel.__v64Bound){sel.addEventListener('change',v64LoadDashboard);sel.__v64Bound=true;if(sel.value)v64LoadDashboard();clearInterval(timer);}if(++n>60)clearInterval(timer);},500);
 })();
 </script>
+<section class="card v65-card" id="v65ActionTrackerCard"><h2>V6.5 – Audit Action Tracker / Határidőkövető</h2><p class="small">A kiválasztott audit nyitott Finding- és CAPA-határidőit rendezi. Csak olvasási nézet; nem módosítja az adatbázist, és nem küld automatikus értesítést.</p><div class="v65-toolbar"><strong id="v65AuditTitle">Válassz auditot / Select an audit</strong><button type="button" onclick="v65LoadActionTracker()">Frissítés / Refresh</button></div><div id="v65Summary" class="v65-summary"><div><b>—</b><span>Lejárt</span></div><div><b>—</b><span>7 napon belül</span></div><div><b>—</b><span>Későbbi határidő</span></div><div><b>—</b><span>Nincs határidő</span></div></div><h3>Prioritásos teendők / Prioritised actions</h3><div id="v65Table" class="v65-table-wrap">Válassz auditot.</div><p class="small" id="v65Note">A dátumok a meglévő due_date és target_date mezőkből származnak.</p></section>
+<style id="acaf-v65-css">.v65-card{margin-top:12px}.v65-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.v65-summary{display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:9px;margin:12px 0}.v65-summary>div{border:1px solid #cbd1da;border-radius:8px;padding:10px;background:#fafbfc}.v65-summary b{display:block;font-size:20px}.v65-summary span{font-size:12px;color:#535d69}.v65-table-wrap{overflow-x:auto}.v65-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}.v65-table th,.v65-table td{border:1px solid #b8c0cc;padding:6px;vertical-align:top;overflow-wrap:anywhere}.v65-table th{background:#f1f3f6;text-align:left}.v65-overdue{font-weight:700}.v65-note{font-size:12px;color:#59616c}@media(max-width:700px){.v65-summary{grid-template-columns:repeat(2,minmax(110px,1fr))}}</style>
+<script id="acaf-v6-5-action-tracker-js">
+(function(){
+ const el=id=>document.getElementById(id);
+ const safe=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const terminalFinding=s=>String(s||'').toLowerCase()==='closed';
+ const terminalCapa=s=>['closed','effective','completed'].includes(String(s||'').toLowerCase());
+ function dateOnly(v){if(!v)return null;const d=new Date(String(v).slice(0,10)+'T00:00:00');return Number.isNaN(d.getTime())?null:d;}
+ function dateLabel(v){if(!v)return 'Nincs megadva';const d=dateOnly(v);return d?d.toLocaleDateString('hu-HU'):'—';}
+ async function v65LoadActionTracker(){
+  const sel=el('v5AuditSelect'),auditId=sel&&sel.value;if(!auditId){el('v65AuditTitle').textContent='Válassz auditot / Select an audit';el('v65Table').textContent='Válassz auditot.';return;}
+  el('v65Table').textContent='Betöltés… / Loading…';
+  try{
+   const auditRows=await api('/rest/v1/audits?select=id,audit_no,title&id=eq.'+encodeURIComponent(auditId)+'&limit=1');const audit=auditRows&&auditRows[0];
+   const findings=await api('/rest/v1/findings?select=*&audit_id=eq.'+encodeURIComponent(auditId)+'&order=due_date.asc');const openFindings=(findings||[]).filter(f=>!terminalFinding(f.status));
+   const fids=openFindings.map(f=>f.id).filter(Boolean);let capas=[];if(fids.length)capas=await api('/rest/v1/capa_actions?select=*&finding_id=in.('+fids.map(encodeURIComponent).join(',')+')');const openCapas=(capas||[]).filter(c=>!terminalCapa(c.status));
+   const today=new Date();today.setHours(0,0,0,0);const soon=new Date(today);soon.setDate(soon.getDate()+7);const items=[];
+   openFindings.forEach(f=>items.push({type:'Finding',ref:'#'+(f.finding_no??'—'),description:f.objective_statement||f.classification||'Finding',owner:'—',status:f.status||'open',date:f.due_date||'',risk:f.risk||''}));
+   openCapas.forEach(c=>items.push({type:'CAPA',ref:'CAPA',description:c.corrective_action||c.preventive_action||'CAPA action',owner:c.responsible_person||'—',status:c.status||'open',date:c.target_date||'',risk:''}));
+   items.forEach(x=>{const d=dateOnly(x.date);x.bucket=!d?'none':d<today?'overdue':d<=soon?'soon':'later';x.sort=d?d.getTime():Number.MAX_SAFE_INTEGER;});
+   const counts={overdue:items.filter(x=>x.bucket==='overdue').length,soon:items.filter(x=>x.bucket==='soon').length,later:items.filter(x=>x.bucket==='later').length,none:items.filter(x=>x.bucket==='none').length};
+   el('v65AuditTitle').textContent=(audit?(audit.audit_no||'')+' – '+(audit.title||''):'Kiválasztott audit');el('v65Summary').innerHTML=[[counts.overdue,'Lejárt / Overdue'],[counts.soon,'7 napon belül / Due in 7 days'],[counts.later,'Későbbi határidő / Later'],[counts.none,'Nincs határidő / No due date']].map(x=>'<div><b>'+x[0]+'</b><span>'+safe(x[1])+'</span></div>').join('');
+   const priority={overdue:0,soon:1,later:2,none:3};items.sort((a,b)=>priority[a.bucket]-priority[b.bucket]||a.sort-b.sort);
+   if(!items.length){el('v65Table').innerHTML='<p>Nincs nyitott, határidőkövetést igénylő Finding vagy CAPA.</p>';return;}
+   const bucketLabel={overdue:'LEJÁRT / OVERDUE',soon:'7 NAPON BELÜL / DUE SOON',later:'KÉSŐBB / UPCOMING',none:'NINCS HATÁRIDŐ / NO DATE'};
+   el('v65Table').innerHTML='<table class="v65-table"><thead><tr><th style="width:10%">Típus</th><th style="width:10%">Azonosító</th><th style="width:34%">Teendő</th><th style="width:16%">Felelős</th><th style="width:12%">Státusz</th><th style="width:10%">Határidő</th><th style="width:18%">Prioritás</th></tr></thead><tbody>'+items.map(x=>'<tr><td>'+safe(x.type)+'</td><td>'+safe(x.ref)+'</td><td>'+safe(x.description)+'</td><td>'+safe(x.owner)+'</td><td>'+safe(x.status)+'</td><td>'+safe(dateLabel(x.date))+'</td><td class="'+(x.bucket==='overdue'?'v65-overdue':'')+'">'+bucketLabel[x.bucket]+'</td></tr>').join('')+'</tbody></table>';
+   el('v65Note').textContent='Összes nyitott teendő: '+items.length+'. A dátumok a meglévő Finding due_date és CAPA target_date mezőkből származnak. Ez a nézet nem módosít adatot.';
+  }catch(e){el('v65Table').textContent='Határidőkövetési hiba: '+(e.message||String(e));}
+ }
+ window.v65LoadActionTracker=v65LoadActionTracker;let n=0;const timer=setInterval(()=>{const sel=el('v5AuditSelect');if(sel&&!sel.__v65Bound){sel.addEventListener('change',v65LoadActionTracker);sel.__v65Bound=true;if(sel.value)v65LoadActionTracker();clearInterval(timer);}if(++n>60)clearInterval(timer);},500);
+})();
+</script>
 </body>
 </html>
 
