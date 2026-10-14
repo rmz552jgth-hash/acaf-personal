@@ -2552,6 +2552,93 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  window.v65LoadActionTracker=v65LoadActionTracker;let n=0;const timer=setInterval(()=>{const sel=el('v5AuditSelect');if(sel&&!sel.__v65Bound){sel.addEventListener('change',v65LoadActionTracker);sel.__v65Bound=true;if(sel.value)v65LoadActionTracker();clearInterval(timer);}if(++n>60)clearInterval(timer);},500);
 })();
 </script>
+
+<style>
+.v66-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.v66-kpi{background:#f6f8fb;border:1px solid #dce3ec;border-radius:10px;padding:12px}
+.v66-kpi b{display:block;font-size:22px;margin-top:4px}
+.v66-list{display:grid;gap:10px;margin-top:12px}
+.v66-item{border:1px solid #dce3ec;border-radius:10px;padding:12px;background:#fff;overflow-wrap:anywhere}
+.v66-meta{font-size:12px;color:#596579;margin-top:5px;line-height:1.5}
+.v66-pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#edf1f6;font-size:11px;margin:3px 4px 0 0}
+.v66-controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.v66-controls select,.v66-controls input{min-width:180px;max-width:100%;padding:8px}
+@media(max-width:700px){.v66-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<section class="card" id="v66RegulatoryImpactTracker">
+<h2>V6.6 – Regulatory Change Impact Tracker / Jogszabályváltozás-hatáskövető</h2>
+<p class="small">Egy helyen követheted a rögzített szabályozási változásokat, az auditor által elvégzett hatásvizsgálatokat és a nyitott felülvizsgálati teendőket. A modul a meglévő adatokat olvassa; nem módosítja automatikusan a megfelelőségi értékelést, és nem hoz létre findingot.</p>
+<div class="v66-grid">
+ <div class="v66-kpi"><span class="small">Regulatory changes</span><b id="v66Changes">—</b></div>
+ <div class="v66-kpi"><span class="small">Impact assessments</span><b id="v66Impacts">—</b></div>
+ <div class="v66-kpi"><span class="small">Open review tasks</span><b id="v66OpenTasks">—</b></div>
+ <div class="v66-kpi"><span class="small">Overdue tasks</span><b id="v66Overdue">—</b></div>
+</div>
+<div class="v66-controls">
+ <input id="v66Search" type="search" placeholder="Keresés: jogszabály, hivatkozás, teendő…">
+ <select id="v66TaskFilter"><option value="open">Nyitott teendők</option><option value="all">Minden teendő</option><option value="overdue">Lejárt teendők</option></select>
+ <button onclick="v66Refresh()" class="primary">↻ Frissítés</button>
+</div>
+<div class="row">
+ <div><h3>Auditor hatásvizsgálatok</h3><div id="v66ImpactList" class="v66-list"><div class="small">Adatok betöltése…</div></div></div>
+ <div><h3>Review taskok / Felülvizsgálati teendők</h3><div id="v66TaskList" class="v66-list"><div class="small">Adatok betöltése…</div></div></div>
+</div>
+<p id="v66Msg" class="small"></p>
+<div class="notice"><b>Fontos:</b> a jogszabályváltozás önmagában nem bizonyít non-compliance-t. A változás hatását az auditor értékeli; finding csak külön, dokumentált auditor-döntés alapján kezelhető.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const esc66=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const date66=v=>{if(!v)return 'Nincs határidő';const d=new Date(v+'T00:00:00');return isNaN(d)?String(v):d.toLocaleDateString('hu-HU')};
+ const today66=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+ const isClosed66=t=>['closed','completed','effective','cancelled','done'].includes(String(t?.status||'').toLowerCase());
+ const changeName66=id=>{const c=(window.regulatoryChanges||[]).find(x=>x.id===id);return c?.title||'Azonosítatlan regulatory change';};
+ function render66(){
+  const changes=window.regulatoryChanges||[], impacts=window.regulatoryImpacts||[], tasks=window.reviewTasks||[];
+  const today=today66();
+  const open=tasks.filter(t=>!isClosed66(t));
+  const overdue=open.filter(t=>t.due_date && new Date(t.due_date+'T00:00:00')<today);
+  $('v66Changes').textContent=changes.length;
+  $('v66Impacts').textContent=impacts.length;
+  $('v66OpenTasks').textContent=open.length;
+  $('v66Overdue').textContent=overdue.length;
+  const term=($('v66Search').value||'').trim().toLowerCase();
+  const hay=o=>JSON.stringify(o).toLowerCase().includes(term);
+  const il=impacts.filter(i=>!term||hay(i)||hay({title:changeName66(i.regulatory_change_id)}));
+  $('v66ImpactList').innerHTML=il.length?il.map(i=>{
+    const c=changeName66(i.regulatory_change_id);
+    const r=(window.requirements||[]).find(x=>x.id===i.requirement_id);
+    return `<div class="v66-item"><b>${esc66(c)}</b><div class="v66-meta">${esc66(r?.requirement_code||i.requirement_id||'Requirement nincs megadva')} · ${esc66(i.decision||'Döntés nincs megadva')}</div>
+    <div>${i.risk?'<span class="v66-pill">Risk: '+esc66(i.risk)+'</span>':''}${i.due_date?'<span class="v66-pill">Határidő: '+esc66(date66(i.due_date))+'</span>':''}</div>
+    ${i.action_required?'<p class="small"><b>Teendő:</b> '+esc66(i.action_required)+'</p>':''}
+    ${i.auditor_comment?'<p class="small"><b>Indoklás:</b> '+esc66(i.auditor_comment)+'</p>':''}
+    </div>`;
+  }).join(''):'<div class="small">Nincs a keresésnek megfelelő hatásvizsgálat.</div>';
+  const filter=$('v66TaskFilter').value;
+  let tf=tasks.filter(t=>filter==='all'||(filter==='overdue'?overdue.includes(t):!isClosed66(t)));
+  if(term)tf=tf.filter(t=>hay(t)||hay({title:changeName66(t.regulatory_change_id)}));
+  tf.sort((a,b)=>{const da=a.due_date||'9999-12-31',db=b.due_date||'9999-12-31';return da.localeCompare(db)});
+  $('v66TaskList').innerHTML=tf.length?tf.map(t=>{
+   const due=t.due_date?new Date(t.due_date+'T00:00:00'):null;
+   const late=due&&!isClosed66(t)&&due<today;
+   return `<div class="v66-item"><b>${esc66(t.title||'Regulatory review task')}</b><div class="v66-meta">${esc66(changeName66(t.regulatory_change_id))}</div>
+   <div><span class="v66-pill">Státusz: ${esc66(t.status||'nincs megadva')}</span><span class="v66-pill">Típus: ${esc66(t.task_type||'—')}</span>${t.due_date?'<span class="v66-pill">Határidő: '+esc66(date66(t.due_date))+'</span>':'<span class="v66-pill">Nincs határidő</span>'}${late?'<span class="v66-pill" style="background:#fee2e2;color:#991b1b">LEJÁRT</span>':''}</div>
+   ${t.notes?'<p class="small">'+esc66(t.notes)+'</p>':''}</div>`;
+  }).join(''):'<div class="small">Nincs megjeleníthető teendő.</div>';
+ }
+ window.v66Refresh=async function(){
+  const msg=$('v66Msg');msg.textContent='Adatok frissítése…';msg.className='small';
+  try{await loadRegulatoryWatch();render66();msg.textContent='✓ Regulatory Change Impact Tracker frissítve.';msg.className='small success';}
+  catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
+ };
+ $('v66Search').addEventListener('input',render66);
+ $('v66TaskFilter').addEventListener('change',render66);
+ document.addEventListener('DOMContentLoaded',render66);
+ setTimeout(()=>{if(typeof loadRegulatoryWatch==='function')window.v66Refresh();},1800);
+})();
+</script>
+
 </body>
 </html>
 
