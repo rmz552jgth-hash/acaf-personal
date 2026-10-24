@@ -3848,6 +3848,104 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v6221-style">
+#v6221Integrity,#v6221Integrity *{box-sizing:border-box;min-width:0}
+#v6221Integrity{width:100%;max-width:100%;overflow:hidden}
+.v6221-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v6221-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v6221-panel select{width:100%;max-width:100%;padding:9px;margin:5px 0 10px}
+.v6221-stat{border:1px solid #dbe2ea;border-radius:8px;padding:12px;background:#f7f9fc}
+.v6221-stat b{display:block;font-size:22px;margin-top:4px}
+.v6221-item{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v6221-meta{font-size:12px;color:#596579;line-height:1.55}
+@media(max-width:760px){.v6221-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+<section class="card" id="v6221Integrity">
+<h2>V6.22.1 – Audit Log Integrity Check / Naplóintegritás-ellenőrzés</h2>
+<p class="small">A külön auditori eseménynapló hash-láncának ellenőrzése. A modul újraszámolja az események SHA-256 hash-ét a tárolt adatokból, és összeveti a tárolt hash-ekkel. Ez manipulációra utaló eltérést jelezhet, de nem jelent teljes, adminisztrátorral szembeni megváltoztathatatlansági garanciát.</p>
+<div class="v6221-grid">
+ <div class="v6221-panel">
+  <label for="v6221Audit">Audit</label><select id="v6221Audit"><option value="all">Minden hozzáférhető audit</option></select>
+  <button type="button" class="primary" onclick="v6221Verify()">Hash-lánc ellenőrzése</button>
+  <p id="v6221Msg" class="small"></p>
+  <div class="v6221-grid">
+   <div class="v6221-stat">Ellenőrzött események<b id="v6221Total">—</b></div>
+   <div class="v6221-stat">Eltérések / hiányzó hash-ek<b id="v6221Bad">—</b></div>
+  </div>
+  <div id="v6221Summary" class="v6221-item">Még nincs ellenőrzés.</div>
+ </div>
+ <div class="v6221-panel">
+  <h3>Ellenőrzési eredmények</h3>
+  <div class="v6221-meta">Az ellenőrzés időrendbe rendezi az eseményeket auditonként, majd ellenőrzi az előző esemény hash-ére mutató kapcsolatot és a payload hash-t.</div>
+  <div id="v6221Results"><p class="small">Futtasd az ellenőrzést.</p></div>
+ </div>
+</div>
+<div class="notice"><b>Fontos:</b> ha régebbi vagy hibás rekordot találsz, ne módosítsd kézzel a hash-eket a hiba elfedésére. Vizsgáld ki az esemény történetét, és dokumentáld az eltérést.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let audits=[],rows=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const norm=v=>v===undefined?null:v;
+ function canon(v){if(Array.isArray(v))return '['+v.map(canon).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}';return JSON.stringify(v)}
+ async function sha256(str){
+  if(!window.crypto?.subtle)throw new Error('A böngésző nem biztosít Web Crypto SHA-256 támogatást. HTTPS kapcsolaton próbáld.');
+  const bytes=new TextEncoder().encode(str),hash=await crypto.subtle.digest('SHA-256',bytes);
+  return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('');
+ }
+ function payload(r,prev){
+  // Match PostgreSQL jsonb_build_object(... )::text canonical key order.
+  const obj={'id':r.id,'audit_id':r.audit_id,'report_id':norm(r.report_id),'actor_user_id':r.actor_user_id,'actor_email':norm(r.actor_email),'action':r.action,'outcome':norm(r.outcome),'notes':norm(r.notes),'created_at':r.created_at,'previous_hash':norm(prev)};
+  return obj;
+ }
+ function auditLabel(id){const a=audits.find(x=>String(x.id)===String(id));return a?`${a.audit_no||''} — ${a.title||'Audit'}`:id}
+ async function verify(){
+  const selected=$('v6221Audit').value;
+  const subset=rows.filter(r=>selected==='all'||String(r.audit_id)===selected);
+  const groups=new Map();
+  subset.forEach(r=>{if(!groups.has(r.audit_id))groups.set(r.audit_id,[]);groups.get(r.audit_id).push(r)});
+  const bad=[],results=[];
+  for(const [aid,arr] of groups){
+   arr.sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at))||String(a.id).localeCompare(String(b.id)));
+   let prev=null;
+   for(const r of arr){
+    let reason=[];
+    if(!r.event_hash)reason.push('Hiányzó event_hash');
+    if((r.previous_hash||null)!==prev)reason.push('previous_hash lánckapcsolat eltér');
+    try{
+     const expected=await sha256(canon(payload(r,prev)));
+     if(r.event_hash&&expected!==String(r.event_hash).toLowerCase())reason.push('Payload hash eltér');
+    }catch(e){throw e}
+    if(reason.length)bad.push({r,reason});
+    results.push({r,reason});
+    prev=r.event_hash||null;
+   }
+  }
+  $('v6221Total').textContent=results.length;
+  $('v6221Bad').textContent=bad.length;
+  $('v6221Summary').innerHTML=bad.length?`<b>Figyelmeztetés: ${bad.length} esemény ellenőrzést igényel.</b><div class="v6221-meta">Lehetséges ok: módosított adat, hiányzó hash, régi események nem egyező sorrendje vagy eltérő JSON-kódolás.</div>`:`<b>Nem találtunk eltérést.</b><div class="v6221-meta">A böngészőben végzett ellenőrzés a betöltött ${results.length} eseményre terjedt ki. Ez nem bizonyítja a teljes adatbázis sértetlenségét.</div>`;
+  $('v6221Results').innerHTML=results.length?results.slice(0,200).map(x=>`<div class="v6221-item"><b>${esc(auditLabel(x.r.audit_id))}</b><div class="v6221-meta">${esc(x.r.created_at)} · ${esc(x.r.action)} · ${esc(x.r.id)}</div><div>${x.reason.length?'<b>Eltérés: '+esc(x.reason.join('; '))+'</b>':'Hash-ellenőrzés rendben'}</div><div class="v6221-meta">Tárolt hash: ${esc(x.r.event_hash||'hiányzik')}</div></div>`).join(''):'<p class="small">Nincs ellenőrizhető esemény.</p>';
+  if(results.length>200)$('v6221Results').insertAdjacentHTML('beforeend','<p class="small">Az első 200 esemény látható.</p>');
+ }
+ window.v6221Verify=async function(){
+  const m=$('v6221Msg');m.textContent='Események betöltése…';m.className='small';
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+   const opt=$('v6221Audit'),old=opt.value;
+   rows=await api('/rest/v1/audit_activity_log?select=*&order=created_at.asc&limit=1000');
+   const ids=[...new Set(rows.map(r=>String(r.audit_id)))];
+   opt.innerHTML='<option value="all">Minden hozzáférhető audit</option>'+ids.map(id=>`<option value="${esc(id)}">${esc(auditLabel(id))}</option>`).join('');
+   if(old&&[...opt.options].some(o=>o.value===old))opt.value=old;
+   await verify();m.textContent='✓ Az ellenőrzés befejeződött.';m.className='small success';
+  }catch(e){m.textContent='✕ '+(e.message||'Ellenőrzési hiba');m.className='small error';$('v6221Summary').textContent='Az ellenőrzés nem fejeződött be. Ellenőrizd a hash oszlopokat, a hozzáférést és a böngésző Web Crypto támogatását.'}
+ };
+ setTimeout(()=>{if(typeof loadAudits==='function')window.v6221Verify()},9000);
+})();
+</script>
+
 </body>
 </html>
 
