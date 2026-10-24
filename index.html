@@ -3289,6 +3289,99 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v615-style">
+#v615ClosureDashboard,#v615ClosureDashboard *{box-sizing:border-box;min-width:0}
+#v615ClosureDashboard{width:100%;max-width:100%;overflow:hidden}
+.v615-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.v615-stat{border:1px solid #dbe2ea;border-radius:9px;background:#f7f9fc;padding:12px}
+.v615-stat b{display:block;font-size:22px;margin-top:4px}
+.v615-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v615-listitem{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v615-meta{font-size:12px;color:#596579;line-height:1.55}
+.v615-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.v615-controls label{flex:1;min-width:180px}
+.v615-controls select,.v615-controls input{width:100%;max-width:100%;padding:8px}
+@media(max-width:760px){.v615-grid{grid-template-columns:1fr}}
+</style>
+<section class="card" id="v615ClosureDashboard">
+<h2>V6.15 – Audit Closure Dashboard / Auditlezárási áttekintő</h2>
+<p class="small">Összesíti a jelentések lezárási állapotát, a mentett lezárási feljegyzéseket és az audit nyitott tételeit. A modul csak olvas; nem változtat státuszt, és nem hagy jóvá automatikusan jelentést.</p>
+<div class="v615-controls">
+ <label>Audit szűrése<select id="v615AuditFilter"><option value="all">Minden audit</option></select></label>
+ <button type="button" class="primary" onclick="v615Refresh()">↻ Frissítés</button>
+ <button type="button" onclick="v615Export()">CSV export</button>
+</div>
+<div class="v615-grid">
+ <div class="v615-stat">Összes jelentés<b id="v615Total">—</b></div>
+ <div class="v615-stat">Final jelentések<b id="v615Final">—</b></div>
+ <div class="v615-stat">Mentett lezárási feljegyzések<b id="v615Records">—</b></div>
+</div>
+<div class="v615-panel"><h3>Jelentések és lezárási állapot</h3><div id="v615ReportList"><p class="small">Adatok betöltése…</p></div></div>
+<p id="v615Msg" class="small"></p>
+<div class="notice"><b>Kontroll:</b> a lezárási feljegyzés megléte nem jelenti automatikusan a jelentés jóváhagyását. A jelentés hivatalos státuszát a meglévő jóváhagyási folyamat kezeli.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let reports=[],audits=[],findings=[],capas=[],questions=[],answers=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const closed=v=>['closed','completed','effective','cancelled','done'].includes(String(v||'').toLowerCase());
+ function parseRec(v){if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v)}catch(e){return {notes:String(v)}}}
+ function auditName(r){const a=audits.find(x=>String(x.id)===String(r.audit_id));return a?((a.audit_no||'')+' — '+(a.title||'Audit')):String(r.audit_id||'Audit nincs megadva')}
+ function populate(){
+  const el=$('v615AuditFilter'),old=el.value;
+  el.innerHTML='<option value="all">Minden audit</option>'+audits.map(a=>`<option value="${esc(a.id)}">${esc(a.audit_no||'')} — ${esc(a.title||'Audit')}</option>`).join('');
+  if(old&&[...el.options].some(o=>o.value===old))el.value=old;
+ }
+ function render(){
+  const aid=$('v615AuditFilter').value;
+  const list=reports.filter(r=>aid==='all'||String(r.audit_id)===aid);
+  const records=list.filter(r=>parseRec(r.closure_record));
+  $('v615Total').textContent=list.length;
+  $('v615Final').textContent=list.filter(r=>String(r.status||'').toLowerCase()==='final').length;
+  $('v615Records').textContent=records.length;
+  $('v615ReportList').innerHTML=list.length?list.map(r=>{
+   const rec=parseRec(r.closure_record);
+   const openFindings=findings.filter(f=>String(f.audit_id)===String(r.audit_id)&&!closed(f.status)).length;
+   const fids=new Set(findings.filter(f=>String(f.audit_id)===String(r.audit_id)).map(f=>String(f.id)));
+   const openCapas=capas.filter(c=>fids.has(String(c.finding_id))&&!closed(c.status)).length;
+   return `<div class="v615-listitem"><b>${esc(r.report_title||'Audit Report')} · v${esc(r.version??'—')}</b><div class="v615-meta">${esc(auditName(r))}<br>Jelentés státusza: <b>${esc(r.status||'nincs megadva')}</b> · Generálva: ${esc(r.generated_at||'—')}</div>
+   <p class="small">Nyitott findingok: ${openFindings} · Nyitott CAPA-k: ${openCapas}</p>
+   ${rec?`<div class="v615-meta">Lezárási feljegyzés: ${esc(rec.result||'nincs eredmény')} · Auditor: ${esc(rec.auditor||'—')} · Mentve: ${esc(rec.saved_at||'—')}</div><p class="small">${esc(rec.notes||'Nincs megjegyzés.')}</p>`:'<p class="small">Még nincs mentett lezárási feljegyzés.</p>'}
+   </div>`;
+  }).join(''):'<p class="small">Nincs jelentés ehhez a szűréshez.</p>';
+ }
+ window.v615Refresh=async function(){
+  const m=$('v615Msg');m.textContent='Adatok frissítése…';m.className='small';
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+   const [r,f,c,q,a]=await Promise.all([
+    api('/rest/v1/audit_reports?select=*&order=generated_at.desc'),
+    api('/rest/v1/findings?select=*&order=created_at.desc'),
+    api('/rest/v1/capa_actions?select=*&order=created_at.desc'),
+    api('/rest/v1/audit_questions?select=*&order=sequence_no.asc'),
+    api('/rest/v1/audit_answers?select=*&order=answered_at.desc')
+   ]);
+   reports=r||[];findings=f||[];capas=c||[];questions=q||[];answers=a||[];
+   populate();render();m.textContent='✓ Auditlezárási áttekintő frissítve.';m.className='small success';
+  }catch(e){m.textContent='✕ '+(e.message||'Betöltési hiba');m.className='small error'}
+ };
+ window.v615Export=function(){
+  const aid=$('v615AuditFilter').value, list=reports.filter(r=>aid==='all'||String(r.audit_id)===aid);
+  const headers=['audit','report_title','version','status','generated_at','closure_result','closure_auditor','closure_saved_at','closure_notes'];
+  const val=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=list.map(r=>{const rec=parseRec(r.closure_record)||{};return [auditName(r),r.report_title,r.version,r.status,r.generated_at,rec.result,rec.auditor,rec.saved_at,rec.notes].map(val).join(',')});
+  const blob=new Blob(['\ufeff'+[headers.map(val).join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ACAF_Audit_Closure_Dashboard.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  $('v615Msg').textContent=`✓ CSV export elkészült (${list.length} jelentés).`;$('v615Msg').className='small success';
+ };
+ $('v615AuditFilter').addEventListener('change',render);
+ setTimeout(()=>{if(typeof loadAudits==='function')window.v615Refresh()},5200);
+})();
+</script>
+
 </body>
 </html>
 
