@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.25</title>
+<title>ACAF Personal V6.25.1</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -2204,61 +2204,7 @@ async function v52Finalize(){try{await v52Transition('final')}catch(e){document.
 function v5PrintReport(){if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}window.print();}
 function v5WordReport(){
  if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}
- const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'
-<!-- V6.26: include review history in generated report preview and print/Word export -->
-<section class="card" id="v626ReviewReportCard" style="margin-top:18px">
-  <h2>V6.26 – Audit Review in Report / Felülvizsgálat a jelentésben</h2>
-  <p class="small">A jelentés generálásakor a kiválasztott jelentés V6.24 felülvizsgálati bejegyzéseit a jelentés előnézetéhez és exportjához fűzi. Csak olvas; nem módosítja a jóváhagyási státuszt. Ha nincs felülvizsgálati bejegyzés, a melléklet nem jelenik meg.</p>
-  <div class="notice"><b>Fontos:</b> a felülvizsgáló neve megadott szöveg, nem hitelesített digitális aláírás. A felülvizsgálat rögzítése nem jelent automatikus jóváhagyást.</div>
-  <p class="small" id="v626Status">A modul a következő jelentésgeneráláskor kapcsolódik be.</p>
-</section>
-<script id="acaf-v626-review-report-js">
-(function(){
- const esc26=v=>{try{return typeof v5Esc==='function'?v5Esc(v):String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}catch(e){return String(v??'')}};
- const parse26=v=>{if(Array.isArray(v))return v;if(typeof v==='string'){try{const x=JSON.parse(v);return Array.isArray(x)?x:[]}catch(e){return []}}return []};
- const decision26=v=>({review_required:'Review required / Felülvizsgálat szükséges',reviewed_open_items:'Reviewed – open items / Felülvizsgálva – nyitott tételekkel',reviewed_ready:'Reviewed – ready for consideration / Felülvizsgálva – megfontolásra kész',not_approved:'Not approved / Nem jóváhagyott'}[v]||v||'Review recorded / Felülvizsgálat rögzítve');
- function section26(entries,hu){
-  let h='<section class="acaf6-section v626-review-appendix"><h2>'+(hu?'Audit felülvizsgálati nyilvántartás':'Audit Review Register')+'</h2>';
-  h+='<p>'+(hu?'Az alábbi bejegyzések a jelentéshez kapcsolódó felülvizsgálati nyilvántartásból származnak. Ezek dokumentálják a felülvizsgálati folyamatot, de önmagukban nem jelentenek digitális aláírást vagy jóváhagyást.':'The following entries are taken from the review register associated with this report. They document the review process but do not, by themselves, constitute a digital signature or approval.')+'</p>';
-  h+='<table class="acaf6-table"><thead><tr><th>'+(hu?'Dátum':'Date')+'</th><th>'+(hu?'Felülvizsgáló':'Reviewer')+'</th><th>'+(hu?'Döntés':'Decision')+'</th><th>'+(hu?'Indoklás / megjegyzés':'Rationale / notes')+'</th></tr></thead><tbody>';
-  entries.forEach(x=>{h+='<tr><td>'+esc26(x.reviewed_at||x.timestamp||'—')+'</td><td>'+esc26(x.reviewer||'—')+'</td><td>'+esc26(decision26(x.review_decision||x.outcome))+'</td><td>'+esc26(x.notes||'—')+'</td></tr>'});
-  h+='</tbody></table><div class="acaf6-note"><b>'+(hu?'Státusz- és aláírási korlát:':'Status and signature limitation:')+'</b> '+(hu?'A felülvizsgálati bejegyzés nem változtatja meg a jelentés státuszát, az approved_at vagy finalized_at mezőket. A felülvizsgáló neve nem hitelesített személyazonosság.':'Review entries do not change the report status, approved_at or finalized_at fields. The reviewer name is not a verified identity.')+'</div></section>';
-  return h;
- }
- async function attach26(data){
-  if(!data||typeof data.html!=='string'||data.__v626ReviewAttached)return data;
-  const status=document.getElementById('v626Status');
-  try{
-   if(typeof api!=='function')throw new Error('Supabase API helper is not available.');
-   const auditId=data.audit&&data.audit.id;
-   const current=window.v52CurrentReport||{};
-   let reports=[];
-   if(current.id){reports=await api('/rest/v1/audit_reports?select=id,audit_id,report_title,version,status,audit_log&id=eq.'+encodeURIComponent(current.id));}
-   else if(auditId){reports=await api('/rest/v1/audit_reports?select=id,audit_id,report_title,version,status,audit_log&audit_id=eq.'+encodeURIComponent(auditId)+'&order=generated_at.desc&limit=1');}
-   const r=Array.isArray(reports)&&reports.length?reports[0]:null;
-   const entries=parse26(r&&r.audit_log).filter(x=>x&&(['review_required','reviewed_open_items','reviewed_ready','not_approved'].includes(x.review_decision)||x.event_type==='audit_review'));
-   if(entries.length){
-    const hu=(data.lang||'en')==='hu';
-    const appendix=section26(entries,hu);
-    const pos=data.html.lastIndexOf('</div>');
-    data.html=pos>=0?data.html.slice(0,pos)+appendix+data.html.slice(pos):data.html+appendix;
-    data.__v626ReviewAttached=true;
-    if(status){status.textContent='✓ A felülvizsgálati melléklet bekerült a jelentés előnézetébe és az abból készülő nyomtatási/Word-exportba ('+entries.length+' bejegyzés).';status.className='small success';}
-   }else if(status){status.textContent='Nincs felülvizsgálati bejegyzés a kiválasztott jelentéshez; melléklet nem került hozzáadásra.';status.className='small';}
-  }catch(e){if(status){status.textContent='A jelentés elkészült, de a felülvizsgálati melléklet nem tölthető be: '+(e.message||String(e));status.className='small error';}}
-  return data;
- }
- function install26(){
-  if(typeof window.v5BuildReport!=='function'||window.__v626Installed)return;
-  const original=window.v5BuildReport;
-  window.v5BuildReport=async function(){const data=await original.apply(this,arguments);return attach26(data)};
-  window.__v626Installed=true;
- }
- let n=0;const timer=setInterval(()=>{install26();if(++n>80)clearInterval(timer)},300);install26();
-})();
-</script>
-
-</body></html>'],{type:'application/msword'});
+ const blob=new Blob(['\\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>'],{type:'application/msword'});
  const a=document.createElement('a');
  a.href=URL.createObjectURL(blob);
  a.download=(v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report.doc';
@@ -2566,61 +2512,7 @@ function v5WordReport(){
       window.v5WordReport=function(){
         if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}
         const d=window.v5ReportData;
-        const html='\\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'
-<!-- V6.26: include review history in generated report preview and print/Word export -->
-<section class="card" id="v626ReviewReportCard" style="margin-top:18px">
-  <h2>V6.26 – Audit Review in Report / Felülvizsgálat a jelentésben</h2>
-  <p class="small">A jelentés generálásakor a kiválasztott jelentés V6.24 felülvizsgálati bejegyzéseit a jelentés előnézetéhez és exportjához fűzi. Csak olvas; nem módosítja a jóváhagyási státuszt. Ha nincs felülvizsgálati bejegyzés, a melléklet nem jelenik meg.</p>
-  <div class="notice"><b>Fontos:</b> a felülvizsgáló neve megadott szöveg, nem hitelesített digitális aláírás. A felülvizsgálat rögzítése nem jelent automatikus jóváhagyást.</div>
-  <p class="small" id="v626Status">A modul a következő jelentésgeneráláskor kapcsolódik be.</p>
-</section>
-<script id="acaf-v626-review-report-js">
-(function(){
- const esc26=v=>{try{return typeof v5Esc==='function'?v5Esc(v):String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}catch(e){return String(v??'')}};
- const parse26=v=>{if(Array.isArray(v))return v;if(typeof v==='string'){try{const x=JSON.parse(v);return Array.isArray(x)?x:[]}catch(e){return []}}return []};
- const decision26=v=>({review_required:'Review required / Felülvizsgálat szükséges',reviewed_open_items:'Reviewed – open items / Felülvizsgálva – nyitott tételekkel',reviewed_ready:'Reviewed – ready for consideration / Felülvizsgálva – megfontolásra kész',not_approved:'Not approved / Nem jóváhagyott'}[v]||v||'Review recorded / Felülvizsgálat rögzítve');
- function section26(entries,hu){
-  let h='<section class="acaf6-section v626-review-appendix"><h2>'+(hu?'Audit felülvizsgálati nyilvántartás':'Audit Review Register')+'</h2>';
-  h+='<p>'+(hu?'Az alábbi bejegyzések a jelentéshez kapcsolódó felülvizsgálati nyilvántartásból származnak. Ezek dokumentálják a felülvizsgálati folyamatot, de önmagukban nem jelentenek digitális aláírást vagy jóváhagyást.':'The following entries are taken from the review register associated with this report. They document the review process but do not, by themselves, constitute a digital signature or approval.')+'</p>';
-  h+='<table class="acaf6-table"><thead><tr><th>'+(hu?'Dátum':'Date')+'</th><th>'+(hu?'Felülvizsgáló':'Reviewer')+'</th><th>'+(hu?'Döntés':'Decision')+'</th><th>'+(hu?'Indoklás / megjegyzés':'Rationale / notes')+'</th></tr></thead><tbody>';
-  entries.forEach(x=>{h+='<tr><td>'+esc26(x.reviewed_at||x.timestamp||'—')+'</td><td>'+esc26(x.reviewer||'—')+'</td><td>'+esc26(decision26(x.review_decision||x.outcome))+'</td><td>'+esc26(x.notes||'—')+'</td></tr>'});
-  h+='</tbody></table><div class="acaf6-note"><b>'+(hu?'Státusz- és aláírási korlát:':'Status and signature limitation:')+'</b> '+(hu?'A felülvizsgálati bejegyzés nem változtatja meg a jelentés státuszát, az approved_at vagy finalized_at mezőket. A felülvizsgáló neve nem hitelesített személyazonosság.':'Review entries do not change the report status, approved_at or finalized_at fields. The reviewer name is not a verified identity.')+'</div></section>';
-  return h;
- }
- async function attach26(data){
-  if(!data||typeof data.html!=='string'||data.__v626ReviewAttached)return data;
-  const status=document.getElementById('v626Status');
-  try{
-   if(typeof api!=='function')throw new Error('Supabase API helper is not available.');
-   const auditId=data.audit&&data.audit.id;
-   const current=window.v52CurrentReport||{};
-   let reports=[];
-   if(current.id){reports=await api('/rest/v1/audit_reports?select=id,audit_id,report_title,version,status,audit_log&id=eq.'+encodeURIComponent(current.id));}
-   else if(auditId){reports=await api('/rest/v1/audit_reports?select=id,audit_id,report_title,version,status,audit_log&audit_id=eq.'+encodeURIComponent(auditId)+'&order=generated_at.desc&limit=1');}
-   const r=Array.isArray(reports)&&reports.length?reports[0]:null;
-   const entries=parse26(r&&r.audit_log).filter(x=>x&&(['review_required','reviewed_open_items','reviewed_ready','not_approved'].includes(x.review_decision)||x.event_type==='audit_review'));
-   if(entries.length){
-    const hu=(data.lang||'en')==='hu';
-    const appendix=section26(entries,hu);
-    const pos=data.html.lastIndexOf('</div>');
-    data.html=pos>=0?data.html.slice(0,pos)+appendix+data.html.slice(pos):data.html+appendix;
-    data.__v626ReviewAttached=true;
-    if(status){status.textContent='✓ A felülvizsgálati melléklet bekerült a jelentés előnézetébe és az abból készülő nyomtatási/Word-exportba ('+entries.length+' bejegyzés).';status.className='small success';}
-   }else if(status){status.textContent='Nincs felülvizsgálati bejegyzés a kiválasztott jelentéshez; melléklet nem került hozzáadásra.';status.className='small';}
-  }catch(e){if(status){status.textContent='A jelentés elkészült, de a felülvizsgálati melléklet nem tölthető be: '+(e.message||String(e));status.className='small error';}}
-  return data;
- }
- function install26(){
-  if(typeof window.v5BuildReport!=='function'||window.__v626Installed)return;
-  const original=window.v5BuildReport;
-  window.v5BuildReport=async function(){const data=await original.apply(this,arguments);return attach26(data)};
-  window.__v626Installed=true;
- }
- let n=0;const timer=setInterval(()=>{install26();if(++n>80)clearInterval(timer)},300);install26();
-})();
-</script>
-
-</body></html>';
+        const html='\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body></html>';
         const blob=new Blob([html],{type:'application/msword'});
         const a=document.createElement('a');
         a.href=URL.createObjectURL(blob);
