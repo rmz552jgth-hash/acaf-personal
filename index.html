@@ -3057,6 +3057,125 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style>
+.v613-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.v613-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;background:#fff}
+.v613-check{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #edf0f4}
+.v613-check input{margin-top:4px}
+.v613-status{font-weight:600}
+.v613-summary{padding:12px;border-radius:9px;background:#f4f6f9;border:1px solid #dce3ec;margin:10px 0}
+.v613-small{font-size:12px;color:#596579}
+@media(max-width:760px){.v613-grid{grid-template-columns:1fr}}
+</style>
+<section class="card" id="v613AuditClosure">
+<h2>V6.13 – Audit Closure Checklist / Auditlezárási ellenőrzőlista</h2>
+<p class="small">Lezárás előtti ellenőrzési lista az auditor számára. A pipák csak ebben a böngésző-munkamenetben jelzik a kézi ellenőrzést; nem mentenek adatot a Supabase-be, és önmagukban nem véglegesítik az auditot.</p>
+<div class="row">
+ <div><label for="v613Audit">Audit kiválasztása</label><select id="v613Audit"><option value="">Audit betöltése…</option></select></div>
+ <div><label for="v613Reviewer">Ellenőrzést végző auditor</label><input id="v613Reviewer" type="text" placeholder="Auditor neve"></div>
+</div>
+<div class="v613-summary"><b>Lezárási felkészültség</b><div id="v613Score" class="v613-status">Válassz auditot.</div><div id="v613Explanation" class="v613-small"></div></div>
+<div class="v613-grid">
+ <div class="v613-panel"><h3>1. Kötelező tartalmi ellenőrzések</h3><div id="v613Checks"></div></div>
+ <div class="v613-panel"><h3>2. Auditadatok és dokumentáció</h3><div id="v613Docs"></div></div>
+</div>
+<div class="v613-panel">
+ <h3>Auditori lezárási megjegyzés</h3>
+ <textarea id="v613Notes" rows="4" placeholder="Összegzés, nyitva maradó kérdések, jóváhagyás indoklása…"></textarea>
+ <div class="v613-small">A megjegyzés és a pipák jelenleg nem kerülnek adatbázisba. A végleges auditjelentés hivatalos jóváhagyását a meglévő report lifecycle folyamatban végezd el.</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+  <button type="button" class="primary" onclick="v613Recheck()">Ellenőrzések újraszámítása</button>
+  <button type="button" onclick="v613Print()">Ellenőrzőlista nyomtatása</button>
+ </div>
+ <p id="v613Msg" class="small"></p>
+</div>
+<div class="notice"><b>Fontos:</b> a „kész” állapot nem helyettesíti a szakmai megítélést, a szükséges független ellenőrzést vagy a szervezet által előírt jóváhagyást.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let data={audits:[],findings:[],capas:[],questions:[],answers:[],evidence:[],reports:[]};
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const closed=v=>['closed','completed','effective','cancelled','done'].includes(String(v||'').toLowerCase());
+ function populate(){
+  const el=$('v613Audit'),old=el.value;
+  data.audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  el.innerHTML='<option value="">Válassz auditot…</option>'+data.audits.map(a=>`<option value="${esc(a.id)}">${esc(a.audit_no||'')} — ${esc(a.title||'Audit')}</option>`).join('');
+  if(old&&data.audits.some(a=>String(a.id)===old))el.value=old;
+  else if(data.audits.length===1)el.value=data.audits[0].id;
+ }
+ function auditData(){
+  const id=$('v613Audit').value;
+  if(!id)return null;
+  const qs=data.questions.filter(q=>String(q.audit_id)===id);
+  const qids=new Set(qs.map(q=>String(q.id)));
+  const answers=data.answers.filter(a=>qids.has(String(a.question_id)));
+  const answeredIds=new Set(answers.filter(a=>a.assessment&&a.assessment!=='unanswered').map(a=>String(a.question_id)));
+  const unanswered=qs.filter(q=>!answeredIds.has(String(q.id)));
+  const findings=data.findings.filter(f=>String(f.audit_id)===id);
+  const openFindings=findings.filter(f=>!closed(f.status));
+  const findingIds=new Set(findings.map(f=>String(f.id)));
+  const capas=data.capas.filter(c=>findingIds.has(String(c.finding_id)));
+  const openCapas=capas.filter(c=>!closed(c.status));
+  const ev=data.evidence.filter(e=>String(e.audit_id)===id);
+  const report=data.reports.filter(r=>String(r.audit_id)===id).sort((a,b)=>(b.version||0)-(a.version||0))[0];
+  return {id,qs,answers,unanswered,findings,openFindings,capas,openCapas,ev,report};
+ }
+ function checkItem(id,title,detail,pass,manual=false){
+  return `<label class="v613-check"><input type="checkbox" data-v613="${esc(id)}" ${pass?'checked':''} ${manual?'':'disabled'}><span><b>${esc(title)}</b><div class="v613-small">${esc(detail)}</div></span></label>`;
+ }
+ function render(){
+  const d=auditData();
+  if(!d){$('v613Score').textContent='Válassz auditot.';$('v613Explanation').textContent='';$('v613Checks').innerHTML='';$('v613Docs').innerHTML='';return}
+  const required=[
+   ['questions', 'Auditkérdések áttekintve',`${d.qs.length} kérdés; ${d.unanswered.length} megválaszolatlan vagy unanswered.`,d.qs.length>0&&d.unanswered.length===0],
+   ['findings','Findingok lezárási állapota',`${d.openFindings.length} nyitott finding a ${d.findings.length} összesből.`,d.openFindings.length===0],
+   ['capas','CAPA-k lezárási állapota',`${d.openCapas.length} nyitott CAPA a ${d.capas.length} összesből.`,d.openCapas.length===0],
+   ['evidence','Bizonyítékok felülvizsgálata',`${d.ev.length} bizonyítékrekord található. Az elfogadhatóságot auditor ellenőrzi.`,false,true],
+   ['scope','Audit hatóköre és módszertana',`Ellenőrizd a jelentésben a scope és methodology mezőket.`,false,true]
+  ];
+  const docs=[
+   ['report','Jelentés elkészült',d.report?`Talált jelentés: ${d.report.report_title||'Audit report'} · státusz: ${d.report.status||'nincs megadva'}.`:'Nem található audit_reports rekord ehhez az audithoz.',!!d.report,false],
+   ['approval','Jóváhagyás és kiállítás ellenőrizve',d.report?`Aktuális jelentésstátusz: ${d.report.status||'nincs megadva'}.`:'A jelentés rekordja hiányzik.',!!d.report&&['approved','final'].includes(String(d.report.status||'').toLowerCase()),true],
+   ['auditor','Auditor neve ellenőrizve','Ellenőrizd, hogy a jelentésen a megfelelő auditor szerepel-e.',false,true],
+   ['archive','Bizonyítékok és jelentés archiválása','Ellenőrizd a szervezet dokumentumkezelési és megőrzési követelményeit.',false,true]
+  ];
+  $('v613Checks').innerHTML=required.map(x=>checkItem(...x)).join('');
+  $('v613Docs').innerHTML=docs.map(x=>checkItem(...x)).join('');
+  const all=[...$('v613Checks').querySelectorAll('input'),...$('v613Docs').querySelectorAll('input')];
+  const checked=all.filter(x=>x.checked).length;
+  const total=all.length;
+  const missing=all.filter(x=>!x.checked).length;
+  const hardStops=[d.unanswered.length,d.openFindings.length,d.openCapas.length].reduce((a,b)=>a+b,0);
+  $('v613Score').textContent=hardStops?'Lezárás előtt intézkedés szükséges':(missing?'Auditori kézi ellenőrzés szükséges':'Az ellenőrzőlista kipipálva – auditor végső döntése szükséges');
+  $('v613Explanation').textContent=`${checked}/${total} ellenőrzési pont kipipálva. ${hardStops?`Automatikus figyelmeztetés: ${hardStops} nyitott/hiányzó tétel a kérdések, findingok és CAPA-k között.`:'Nincs nyitott kérdés/finding/CAPA a lekérdezett adatokban.'}`;
+ }
+ window.v613Recheck=async function(){
+  const msg=$('v613Msg');msg.textContent='Adatok frissítése…';msg.className='small';
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   populate();
+   const [f,c,q,a,e,r]=await Promise.all([
+    api('/rest/v1/findings?select=*&order=created_at.desc'),
+    api('/rest/v1/capa_actions?select=*&order=created_at.desc'),
+    api('/rest/v1/audit_questions?select=*&order=sequence_no.asc'),
+    api('/rest/v1/audit_answers?select=*&order=answered_at.desc'),
+    api('/rest/v1/evidence?select=*&order=created_at.desc'),
+    api('/rest/v1/audit_reports?select=*&order=generated_at.desc')
+   ]);
+   data.findings=f||[];data.capas=c||[];data.questions=q||[];data.answers=a||[];data.evidence=e||[];data.reports=r||[];
+   render();msg.textContent='✓ Ellenőrzési adatok frissítve.';msg.className='small success';
+  }catch(e){msg.textContent='✕ '+(e.message||'Adatbetöltési hiba');msg.className='small error'}
+ };
+ window.v613Print=function(){window.print()};
+ $('v613Audit').addEventListener('change',render);
+ $('v613Checks').addEventListener('change',e=>{if(e.target.matches('input[data-v613]')){const all=[...$('v613Checks').querySelectorAll('input'),...$('v613Docs').querySelectorAll('input')];const checked=all.filter(x=>x.checked).length;$('v613Score').textContent=`${checked}/${all.length} ellenőrzési pont kipipálva – az auditor végső döntése szükséges.`}});
+ $('v613Docs').addEventListener('change',e=>{if(e.target.matches('input[data-v613]')){const all=[...$('v613Checks').querySelectorAll('input'),...$('v613Docs').querySelectorAll('input')];const checked=all.filter(x=>x.checked).length;$('v613Score').textContent=`${checked}/${all.length} ellenőrzési pont kipipálva – az auditor végső döntése szükséges.`}});
+ setTimeout(()=>{if(typeof loadAudits==='function')window.v613Recheck()},4200);
+})();
+</script>
+
 </body>
 </html>
 
