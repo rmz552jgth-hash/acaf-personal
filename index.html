@@ -2775,6 +2775,96 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style>
+.v610-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.v610-panel{border:1px solid #d9e0e8;border-radius:10px;padding:14px;background:#fff}
+.v610-panel input,.v610-panel select,.v610-panel textarea{width:100%;box-sizing:border-box;margin:5px 0 10px;padding:9px}
+.v610-task{padding:10px;border:1px solid #e0e5ec;border-radius:8px;margin:8px 0}
+.v610-muted{font-size:12px;color:#5c6675}
+@media(max-width:720px){.v610-grid{grid-template-columns:1fr}}
+</style>
+<section class="card" id="v610ReviewTaskManagement">
+<h2>V6.10 – Regulatory Review Task Management / Felülvizsgálati teendők kezelése</h2>
+<p class="small">A meglévő review task rekordok felelős kezeléséhez: státusz, határidő és megjegyzés módosítása. A modul csak a már létező mezőket írja; nem töröl feladatot és nem hoz létre automatikus findingot.</p>
+<div class="v610-grid">
+ <div class="v610-panel">
+  <h3>Teendők listája</h3>
+  <label>Szűrés</label>
+  <select id="v610Filter"><option value="open">Nyitott teendők</option><option value="all">Minden teendő</option><option value="overdue">Lejárt teendők</option></select>
+  <button type="button" class="primary" onclick="v610Refresh()">↻ Lista frissítése</button>
+  <div id="v610TaskList" style="margin-top:10px">Adatok betöltése…</div>
+ </div>
+ <div class="v610-panel">
+  <h3>Kiválasztott teendő</h3>
+  <p id="v610Empty" class="small">Válassz egy teendőt a listából.</p>
+  <div id="v610Editor" style="display:none">
+   <p id="v610Title"></p><p id="v610Context" class="v610-muted"></p>
+   <label>Státusz</label>
+   <select id="v610Status"><option value="open">open – Nyitott</option><option value="in_progress">in_progress – Folyamatban</option><option value="completed">completed – Befejezett</option><option value="closed">closed – Lezárt</option></select>
+   <label>Határidő</label><input id="v610Due" type="date">
+   <label>Megjegyzések</label><textarea id="v610Notes" rows="5" placeholder="Auditori megjegyzés / következő lépés"></textarea>
+   <div class="v610-muted">A státuszértékek elfogadását az adatbázis korlátozásai határozzák meg. Ha a mentést elutasítja, a hibaüzenet megmutatja az okot.</div>
+   <button type="button" class="primary" onclick="v610Save()">Mentés</button>
+   <p id="v610Msg" class="small"></p>
+  </div>
+ </div>
+</div>
+<div class="notice"><b>Audit trail:</b> ez a felület nem vezet külön módosítási naplót. A mentés a kiválasztott review task meglévő rekordját frissíti.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let selected=null;
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const closed=t=>['closed','completed','effective','cancelled','done'].includes(String(t.status||'').toLowerCase());
+ const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+ const changeTitle=t=>{const c=(Array.isArray(regulatoryChanges)?regulatoryChanges:[]).find(x=>x.id===t.regulatory_change_id);return c?.title||c?.new_version||c?.affected_reference||'Regulatory change';};
+ function draw(){
+  const tasks=Array.isArray(reviewTasks)?reviewTasks:[];
+  const filter=$('v610Filter').value, now=today();
+  let list=tasks.filter(t=>filter==='all'||(filter==='overdue'?(!closed(t)&&t.due_date&&new Date(t.due_date+'T00:00:00')<now):!closed(t)));
+  list.sort((a,b)=>(a.due_date||'9999-12-31').localeCompare(b.due_date||'9999-12-31'));
+  $('v610TaskList').innerHTML=list.length?list.map(t=>{
+   const late=!closed(t)&&t.due_date&&new Date(t.due_date+'T00:00:00')<now;
+   return `<div class="v610-task"><b>${esc(t.title||'Review task')}</b><div class="v610-muted">${esc(changeTitle(t))}</div><div class="v610-muted">Státusz: ${esc(t.status||'—')} · Határidő: ${esc(t.due_date||'nincs')}</div>${late?'<span style="color:#b42318">LEJÁRT</span><br>':''}<button type="button" onclick="v610Select('${esc(t.id)}')">Megnyitás / szerkesztés</button></div>`;
+  }).join(''):'<p class="small">Nincs a szűrésnek megfelelő teendő.</p>';
+ }
+ window.v610Select=function(id){
+  selected=(Array.isArray(reviewTasks)?reviewTasks:[]).find(t=>String(t.id)===String(id));
+  if(!selected)return;
+  $('v610Empty').style.display='none';$('v610Editor').style.display='block';
+  $('v610Title').textContent=selected.title||'Review task';
+  $('v610Context').textContent='Kapcsolódó változás: '+changeTitle(selected)+' · Task ID: '+selected.id;
+  $('v610Status').value=selected.status||'open';
+  $('v610Due').value=selected.due_date||'';
+  $('v610Notes').value=selected.notes||'';
+  $('v610Msg').textContent='';
+ };
+ window.v610Save=async function(){
+  const msg=$('v610Msg');
+  try{
+   if(!selected?.id)throw new Error('Előbb válassz ki egy teendőt.');
+   const payload={status:$('v610Status').value,due_date:$('v610Due').value||null,notes:$('v610Notes').value.trim()||null};
+   msg.textContent='Mentés…';msg.className='small';
+   await api('/rest/v1/review_tasks?id=eq.'+encodeURIComponent(selected.id),{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+   msg.textContent='✓ Mentés elküldve. Frissítem a listát…';msg.className='small success';
+   await loadRegulatoryWatch();
+   selected=(Array.isArray(reviewTasks)?reviewTasks:[]).find(t=>String(t.id)===String(selected.id))||null;
+   draw();
+   if(selected)window.v610Select(selected.id);
+  }catch(e){msg.textContent='✕ '+(e.message||'A mentés nem sikerült.');msg.className='small error';}
+ };
+ window.v610Refresh=async function(){
+  const msg=$('v610Msg');
+  try{await loadRegulatoryWatch();draw();if(msg)msg.textContent='';}
+  catch(e){if(msg){msg.textContent='✕ '+e.message;msg.className='small error';}}
+ };
+ $('v610Filter').addEventListener('change',draw);
+ setTimeout(()=>{if(typeof loadRegulatoryWatch==='function')window.v610Refresh();},2600);
+})();
+</script>
+
 </body>
 </html>
 
