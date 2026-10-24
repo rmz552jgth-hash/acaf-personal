@@ -2869,6 +2869,100 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style>
+.v611-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.v611-stat{border:1px solid #dce3ec;background:#f7f9fc;border-radius:9px;padding:12px}
+.v611-stat b{display:block;font-size:22px;margin-top:4px}
+.v611-filters{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.v611-filters input,.v611-filters select{padding:8px;min-width:190px;max-width:100%}
+.v611-card{border:1px solid #dce3ec;border-radius:9px;padding:12px;margin:8px 0;overflow-wrap:anywhere}
+.v611-meta{font-size:12px;color:#5b6573;line-height:1.6}
+@media(max-width:760px){.v611-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<section class="card" id="v611ReviewOverview">
+<h2>V6.11 – Regulatory Review Overview / Felülvizsgálati áttekintő</h2>
+<p class="small">Összekapcsolt nézet a szabályozási változásokról, az auditor hatásvizsgálatairól és a review taskokról. A modul a meglévő rekordokat olvassa, nem módosítja a megfelelőségi értékeléseket.</p>
+<div class="v611-stats">
+ <div class="v611-stat">Változások<b id="v611Changes">—</b></div>
+ <div class="v611-stat">Hatásvizsgálatok<b id="v611Impacts">—</b></div>
+ <div class="v611-stat">Nyitott teendők<b id="v611Open">—</b></div>
+ <div class="v611-stat">Lejárt teendők<b id="v611Late">—</b></div>
+</div>
+<div class="v611-filters">
+ <input id="v611Search" type="search" placeholder="Keresés változásra vagy teendőre">
+ <select id="v611Status"><option value="open">Nyitott teendők</option><option value="all">Minden teendő</option><option value="late">Lejárt teendők</option><option value="closed">Lezárt teendők</option></select>
+ <button type="button" class="primary" onclick="v611Refresh()">↻ Frissítés</button>
+ <button type="button" onclick="v611Export()">CSV export</button>
+</div>
+<div id="v611List"><p class="small">Adatok betöltése…</p></div>
+<p id="v611Msg" class="small"></p>
+<div class="notice"><b>Auditori döntési elv:</b> a változás vagy a nyitott task önmagában nem bizonyít megfelelőségi eltérést. A döntést és az esetleges findingot az auditor rögzíti.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let rowsCache=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const closed=t=>['closed','completed','effective','cancelled','done'].includes(String(t.status||'').toLowerCase());
+ const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+ const dueDate=v=>{if(!v)return 'Nincs határidő';const d=new Date(v+'T00:00:00');return isNaN(d)?String(v):d.toLocaleDateString('hu-HU')};
+ function build(){
+  const changes=Array.isArray(window.regulatoryChanges)?window.regulatoryChanges:[];
+  const impacts=Array.isArray(window.regulatoryImpacts)?window.regulatoryImpacts:[];
+  const tasks=Array.isArray(window.reviewTasks)?window.reviewTasks:[];
+  const audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  const now=today(),open=tasks.filter(t=>!closed(t)),late=open.filter(t=>t.due_date&&new Date(t.due_date+'T00:00:00')<now);
+  $('v611Changes').textContent=changes.length;$('v611Impacts').textContent=impacts.length;$('v611Open').textContent=open.length;$('v611Late').textContent=late.length;
+  rowsCache=tasks.map(t=>{
+   const c=changes.find(x=>x.id===t.regulatory_change_id)||{};
+   const a=audits.find(x=>x.id===t.audit_id)||{};
+   const i=impacts.find(x=>x.regulatory_change_id===t.regulatory_change_id&&(!t.audit_id||x.audit_id===t.audit_id))||impacts.find(x=>x.regulatory_change_id===t.regulatory_change_id)||{};
+   return {task:t,change:c,audit:a,impact:i,late:!closed(t)&&!!t.due_date&&new Date(t.due_date+'T00:00:00')<now};
+  });
+  render();
+ }
+ function render(){
+  const term=$('v611Search').value.trim().toLowerCase(),status=$('v611Status').value;
+  const filtered=rowsCache.filter(x=>{
+   if(status==='open'&&closed(x.task))return false;
+   if(status==='closed'&&!closed(x.task))return false;
+   if(status==='late'&&!x.late)return false;
+   const hay=[x.task.title,x.task.notes,x.task.status,x.change.title,x.change.new_version,x.change.affected_reference,x.audit.title,x.audit.audit_no,x.impact.decision,x.impact.action_required].join(' ').toLowerCase();
+   return !term||hay.includes(term);
+  }).sort((a,b)=>(a.task.due_date||'9999-12-31').localeCompare(b.task.due_date||'9999-12-31'));
+  $('v611List').innerHTML=filtered.length?filtered.map(x=>`<div class="v611-card">
+   <b>${esc(x.task.title||'Regulatory review task')}</b>${x.late?' <span style="color:#b42318;font-weight:bold">· LEJÁRT</span>':''}
+   <div class="v611-meta">Változás: ${esc(x.change.title||x.change.new_version||x.change.affected_reference||'Nincs kapcsolva')}<br>
+   Audit: ${esc(x.audit.title||x.audit.audit_no||x.task.audit_id||'Nincs megadva')}<br>
+   Hatásvizsgálat: ${esc(x.impact.decision||'Nincs kapcsolódó döntés')} · Státusz: ${esc(x.task.status||'—')} · Határidő: ${esc(dueDate(x.task.due_date))}</div>
+   ${x.task.notes?'<p class="small">'+esc(x.task.notes)+'</p>':''}
+   <button type="button" onclick="v611OpenTask('${esc(x.task.id)}')">Teendő megnyitása a V6.10 modulban</button>
+  </div>`).join(''):'<p class="small">Nincs a szűrésnek megfelelő teendő. Ha még nem hoztál létre review taskot az Impact Assessment részen, először ott rögzíts egyet.</p>';
+ }
+ window.v611OpenTask=function(id){
+  const el=document.getElementById('v610ReviewTaskManagement');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(()=>{if(typeof window.v610Select==='function')window.v610Select(id);},350);
+ };
+ window.v611Refresh=async function(){
+  const m=$('v611Msg');m.textContent='Frissítés…';m.className='small';
+  try{await loadRegulatoryWatch();if(typeof loadAudits==='function')await loadAudits();build();m.textContent='✓ Áttekintő frissítve.';m.className='small success';}
+  catch(e){m.textContent='✕ '+(e.message||'Frissítési hiba');m.className='small error';}
+ };
+ window.v611Export=function(){
+  const headers=['task_title','task_status','due_date','task_type','change_title','change_id','audit_title','audit_id','impact_decision','action_required','notes'];
+  const csvVal=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv=[headers.map(csvVal).join(','),...rowsCache.map(x=>[x.task.title,x.task.status,x.task.due_date,x.task.task_type,x.change.title||x.change.new_version||x.change.affected_reference,x.change.id,x.audit.title||x.audit.audit_no,x.task.audit_id,x.impact.decision,x.impact.action_required,x.task.notes].map(csvVal).join(','))].join('\r\n');
+  const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download='ACAF_Regulatory_Review_Overview.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  $('v611Msg').textContent='✓ CSV export elkészült.';$('v611Msg').className='small success';
+ };
+ $('v611Search').addEventListener('input',render);$('v611Status').addEventListener('change',render);
+ setTimeout(()=>{if(typeof loadRegulatoryWatch==='function')window.v611Refresh();},3200);
+})();
+</script>
+
 </body>
 </html>
 
