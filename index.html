@@ -3382,6 +3382,107 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v616-style">
+#v616AuditTrail,#v616AuditTrail *{box-sizing:border-box;min-width:0}
+#v616AuditTrail{width:100%;max-width:100%;overflow:hidden}
+.v616-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v616-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v616-panel input,.v616-panel select,.v616-panel textarea{width:100%;max-width:100%;box-sizing:border-box;padding:9px;margin:5px 0 10px}
+.v616-item{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v616-meta{font-size:12px;color:#596579;line-height:1.55}
+@media(max-width:760px){.v616-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+<section class="card" id="v616AuditTrail">
+<h2>V6.16 – Auditor Activity Log / Auditori tevékenységnapló</h2>
+<p class="small">Rögzíti a lezárás előtti ellenőrzések eseményeit az adatbázisban. A naplóbejegyzés új, külön rekordként jön létre; a jelentés státuszát és a korábbi bejegyzéseket nem módosítja.</p>
+<div class="v616-grid">
+ <div class="v616-panel">
+  <h3>Új naplóbejegyzés</h3>
+  <label for="v616Audit">Audit</label><select id="v616Audit"><option value="">Audit betöltése…</option></select>
+  <label for="v616Report">Kapcsolódó jelentés (nem kötelező)</label><select id="v616Report"><option value="">Nincs kiválasztva</option></select>
+  <label for="v616Actor">Auditor neve</label><input id="v616Actor" placeholder="Ellenőrzést végző auditor">
+  <label for="v616Action">Tevékenység</label>
+  <select id="v616Action">
+   <option value="closure_check_started">Lezárási ellenőrzés megkezdve</option>
+   <option value="closure_check_completed">Lezárási ellenőrzés befejezve</option>
+   <option value="finding_reviewed">Finding felülvizsgálva</option>
+   <option value="capa_reviewed">CAPA felülvizsgálva</option>
+   <option value="evidence_reviewed">Bizonyíték felülvizsgálva</option>
+   <option value="report_reviewed">Jelentés felülvizsgálva</option>
+   <option value="other">Egyéb auditori tevékenység</option>
+  </select>
+  <label for="v616Outcome">Eredmény</label>
+  <select id="v616Outcome"><option value="completed">Befejezve</option><option value="actions_required">További intézkedés szükséges</option><option value="deferred">Elhalasztva</option><option value="information_only">Tájékoztató jellegű</option></select>
+  <label for="v616Notes">Megjegyzés / indoklás</label><textarea id="v616Notes" rows="4" placeholder="Mit ellenőriztél, mi volt az eredmény, mi a következő lépés?"></textarea>
+  <button type="button" class="primary" onclick="v616Save()">Naplóbejegyzés mentése</button>
+  <p id="v616Msg" class="small"></p>
+ </div>
+ <div class="v616-panel">
+  <h3>Korábbi naplóbejegyzések</h3>
+  <div class="v616-meta">Az aktuálisan kiválasztott audit bejegyzései időrendben jelennek meg.</div>
+  <div id="v616List"><p class="small">Válassz auditot.</p></div>
+  <button type="button" onclick="v616Refresh()">↻ Napló frissítése</button>
+ </div>
+</div>
+<div class="notice"><b>Adatbázis-követelmény:</b> a modul a meglévő audit_reports táblát használja. Ha a V6.16 audit log oszlopa még nincs létrehozva, a mentés egyértelmű hibaüzenetet ad; automatikusan nem módosítja az adatbázis sémáját.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let audits=[],reports=[],logRows=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function populate(){
+  audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  const old=$('v616Audit').value;
+  $('v616Audit').innerHTML='<option value="">Válassz auditot…</option>'+audits.map(a=>`<option value="${esc(a.id)}">${esc(a.audit_no||'')} — ${esc(a.title||'Audit')}</option>`).join('');
+  if(old&&audits.some(a=>String(a.id)===old))$('v616Audit').value=old;
+  const aid=$('v616Audit').value,oldReport=$('v616Report').value;
+  const list=reports.filter(r=>String(r.audit_id)===aid);
+  $('v616Report').innerHTML='<option value="">Nincs kiválasztva</option>'+list.map(r=>`<option value="${esc(r.id)}">${esc(r.report_title||'Audit Report')} · v${esc(r.version??'—')} · ${esc(r.status||'draft')}</option>`).join('');
+  if(oldReport&&list.some(r=>String(r.id)===oldReport))$('v616Report').value=oldReport;
+ }
+ function selectedAudit(){return $('v616Audit').value}
+ function parseLog(r){let v=r.audit_log;if(!v)return [];if(Array.isArray(v))return v;if(typeof v==='object')return [v];try{const p=JSON.parse(v);return Array.isArray(p)?p:[p]}catch(e){return [{notes:String(v)}]}}
+ function render(){
+  const aid=selectedAudit();
+  const entries=logRows.filter(r=>String(r.audit_id)===aid).flatMap(r=>parseLog(r).map((x,i)=>({...x,_report:r,_index:i})));
+  entries.sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
+  $('v616List').innerHTML=aid?(entries.length?entries.map(x=>`<div class="v616-item"><b>${esc(x.action||'Auditori tevékenység')}</b><div class="v616-meta">${esc(x.timestamp||'Időpont nincs megadva')} · ${esc(x.actor||'Auditor nincs megadva')} · ${esc(x.outcome||'')}</div><p class="small">${esc(x.notes||'Nincs megjegyzés.')}</p><div class="v616-meta">Jelentés: ${esc(x._report.report_title||'Audit Report')} · v${esc(x._report.version??'—')}</div></div>`).join(''):'<p class="small">Ehhez az audithoz még nincs naplóbejegyzés.</p>'):'<p class="small">Válassz auditot.</p>';
+ }
+ window.v616Refresh=async function(){
+  const msg=$('v616Msg');if(msg){msg.textContent='Napló betöltése…';msg.className='small'}
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   reports=await api('/rest/v1/audit_reports?select=*&order=generated_at.desc');
+   populate();
+   logRows=reports.filter(r=>r.audit_log);
+   render();
+   if(msg){msg.textContent='✓ Napló frissítve.';msg.className='small success'}
+  }catch(e){if(msg){msg.textContent='✕ '+(e.message||'Betöltési hiba');msg.className='small error'}}
+ };
+ window.v616Save=async function(){
+  const msg=$('v616Msg');
+  try{
+   const aid=selectedAudit();if(!aid)throw new Error('Válassz auditot.');
+   const rid=$('v616Report').value;if(!rid)throw new Error('Válassz jelentést, hogy a naplóbejegyzés hozzá legyen kapcsolva.');
+   const report=reports.find(r=>String(r.id)===rid);if(!report)throw new Error('A kiválasztott jelentés nem található.');
+   const entry={timestamp:new Date().toISOString(),actor:$('v616Actor').value.trim(),action:$('v616Action').value,outcome:$('v616Outcome').value,notes:$('v616Notes').value.trim()};
+   const prior=parseLog(report);
+   const next=[...prior,entry];
+   msg.textContent='Mentés…';msg.className='small';
+   await api('/rest/v1/audit_reports?id=eq.'+encodeURIComponent(rid),{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify({audit_log:next})});
+   await window.v616Refresh();
+   $('v616Notes').value='';
+   msg.textContent='✓ Naplóbejegyzés mentve.';msg.className='small success';
+  }catch(e){msg.textContent='✕ Nem sikerült menteni: '+(e.message||'ismeretlen hiba')+'. Ellenőrizd, hogy az audit_log oszlop létezik-e az audit_reports táblában.';msg.className='small error'}
+ };
+ $('v616Audit').addEventListener('change',populate);
+ $('v616Report').addEventListener('change',render);
+ setTimeout(window.v616Refresh,6000);
+})();
+</script>
+
 </body>
 </html>
 
