@@ -3655,76 +3655,112 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 </script>
 
 
-<style id="v619-style">
-#v619AuditLogControl,#v619AuditLogControl *{box-sizing:border-box;min-width:0}
-#v619AuditLogControl{width:100%;max-width:100%;overflow:hidden}
-.v619-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.v619-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
-.v619-panel input,.v619-panel select,.v619-panel textarea{width:100%;max-width:100%;padding:9px;margin:5px 0 10px}
-.v619-meta{font-size:12px;color:#596579;line-height:1.55}
-.v619-good{color:#16794b}.v619-warn{color:#9a5b00}.v619-bad{color:#a12828}
-@media(max-width:760px){.v619-grid{grid-template-columns:minmax(0,1fr)}}
+<style id="v6201-style">
+#v6201ActivityLog,#v6201ActivityLog *{box-sizing:border-box;min-width:0}
+#v6201ActivityLog{width:100%;max-width:100%;overflow:hidden}
+.v6201-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v6201-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v6201-panel input,.v6201-panel select,.v6201-panel textarea{width:100%;max-width:100%;padding:9px;margin:5px 0 10px}
+.v6201-item{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v6201-meta{font-size:12px;color:#596579;line-height:1.55}
+@media(max-width:760px){.v6201-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
-<section class="card" id="v619AuditLogControl">
-<h2>V6.19 – Audit Log Access Control / Napló-hozzáférés ellenőrzése</h2>
-<p class="small">Ellenőrzi a meglévő naplóírási jogosultságokat és a bejelentkezett felhasználó hozzáférését. Ez a modul nem módosít RLS-szabályt és nem ír adatot.</p>
-<div class="v619-grid">
- <div class="v619-panel">
-  <h3>Hitelesített felhasználó</h3>
-  <div id="v619Identity">Ellenőrzés folyamatban…</div>
-  <h3>Auditnapló elérése</h3>
-  <div id="v619Read">Ellenőrzés folyamatban…</div>
+<section class="card" id="v6201ActivityLog">
+<h2>V6.20.1 – Separate Auditor Activity Log / Külön auditori eseménynapló</h2>
+<p class="small">Ez a modul a külön public.audit_activity_log táblát használja. A bejelentkezett Supabase-felhasználó azonosítóját a hitelesített munkamenetből ellenőrzi; a szerveroldali RLS szabályozza, hogy mely események olvashatók és rögzíthetők. A korábbi audit_reports.audit_log adatokat nem módosítja.</p>
+<div class="v6201-grid">
+ <div class="v6201-panel">
+  <h3>Új esemény rögzítése</h3>
+  <label for="v6201Audit">Audit</label><select id="v6201Audit"><option value="">Audit betöltése…</option></select>
+  <label for="v6201Report">Kapcsolódó jelentés (nem kötelező)</label><select id="v6201Report"><option value="">Nincs kiválasztva</option></select>
+  <label for="v6201Action">Tevékenység</label>
+  <select id="v6201Action">
+   <option value="closure_check_started">Lezárási ellenőrzés megkezdve</option>
+   <option value="closure_check_completed">Lezárási ellenőrzés befejezve</option>
+   <option value="finding_reviewed">Finding felülvizsgálva</option>
+   <option value="capa_reviewed">CAPA felülvizsgálva</option>
+   <option value="evidence_reviewed">Bizonyíték felülvizsgálva</option>
+   <option value="report_reviewed">Jelentés felülvizsgálva</option>
+   <option value="other">Egyéb auditori tevékenység</option>
+  </select>
+  <label for="v6201Outcome">Eredmény</label>
+  <select id="v6201Outcome"><option value="completed">Befejezve</option><option value="actions_required">További intézkedés szükséges</option><option value="deferred">Elhalasztva</option><option value="information_only">Tájékoztató jellegű</option></select>
+  <label for="v6201Notes">Megjegyzés / indoklás</label><textarea id="v6201Notes" rows="4" placeholder="Mit ellenőriztél, mi volt az eredmény, mi a következő lépés?"></textarea>
+  <button type="button" class="primary" onclick="v6201Save()">Esemény mentése</button>
+  <p id="v6201Msg" class="small"></p>
  </div>
- <div class="v619-panel">
-  <h3>Írási jogosultság megítélése</h3>
-  <div id="v619Write">Az ellenőrzés folyamatban…</div>
-  <p class="v619-meta">Az írási jogosultságot nem próbáljuk ki hamis vagy törlendő bejegyzéssel. Az RLS/policy beállítások külön, a Supabase Dashboardban ellenőrizendők.</p>
-  <button type="button" class="primary" onclick="v619Refresh()">↻ Ellenőrzés újra</button>
+ <div class="v6201-panel">
+  <h3>Mentett események</h3>
+  <label for="v6201Filter">Megjelenítés</label><select id="v6201Filter"><option value="current">Kiválasztott audit</option><option value="all">Minden hozzáférhető audit</option></select>
+  <button type="button" onclick="v6201Refresh()">↻ Napló frissítése</button>
+  <div id="v6201Identity" class="v6201-meta">Bejelentkezés ellenőrzése…</div>
+  <div id="v6201List"><p class="small">Adatok betöltése…</p></div>
  </div>
 </div>
-<div class="v619-panel">
- <h3>Biztonsági javaslat</h3>
- <p>Az <code>audit_reports.audit_log</code> JSONB mezőben tárolt napló továbbra is a jelentésrekord része. Ha a bejelentkezett felhasználó módosíthatja a rekordot, a napló nem tekinthető megváltoztathatatlannak. Erősebb védelemhez külön táblában tárolt események, korlátozott INSERT jogosultság és szerveroldali időbélyeg/azonosító szükséges.</p>
- <p class="v619-meta">A modul csak megfigyelést végez; nem módosít adatbázis-sémát, adatot vagy jogosultságot.</p>
-</div>
-<p id="v619Msg" class="small"></p>
+<div class="notice"><b>Védelmi korlát:</b> a kliens nem kap UPDATE/DELETE jogosultságot erre a táblára. Ez csökkenti a módosítás kockázatát, de a teljes, adminisztrátorral szemben is megváltoztathatatlan naplóhoz további szerveroldali kontrollok szükségesek.</div>
 </section>
 <script>
 (function(){
  const $=id=>document.getElementById(id);
+ let audits=[],reports=[],entries=[],user=null;
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- function block(el,heading,detail,kind){
-  $(el).innerHTML=`<b class="${kind||''}">${esc(heading)}</b><div class="v619-meta">${esc(detail||'')}</div>`;
+ function auditLabel(a){return `${a.audit_no||''} — ${a.title||'Audit'}`.trim()}
+ async function populate(){
+  if(typeof loadAudits==='function')await loadAudits();
+  audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  const old=$('v6201Audit').value;
+  $('v6201Audit').innerHTML='<option value="">Válassz auditot…</option>'+audits.map(a=>`<option value="${esc(a.id)}">${esc(auditLabel(a))}</option>`).join('');
+  if(old&&audits.some(a=>String(a.id)===old))$('v6201Audit').value=old;
+  const aid=$('v6201Audit').value,oldReport=$('v6201Report').value;
+  reports=await api('/rest/v1/audit_reports?select=id,audit_id,report_title,version,status,generated_at&order=generated_at.desc');
+  const list=reports.filter(r=>String(r.audit_id)===aid);
+  $('v6201Report').innerHTML='<option value="">Nincs kiválasztva</option>'+list.map(r=>`<option value="${esc(r.id)}">${esc(r.report_title||'Audit Report')} · v${esc(r.version??'—')} · ${esc(r.status||'draft')}</option>`).join('');
+  if(oldReport&&list.some(r=>String(r.id)===oldReport))$('v6201Report').value=oldReport;
  }
- window.v619Refresh=async function(){
-  $('v619Msg').textContent='Ellenőrzés…';
-  block('v619Identity','Ellenőrzés folyamatban…','');
-  block('v619Read','Ellenőrzés folyamatban…','');
-  block('v619Write','Ellenőrzés folyamatban…','');
+ function render(){
+  const aid=$('v6201Audit').value;
+  const shown=entries.filter(x=>$('v6201Filter').value==='all'||String(x.audit_id)===aid);
+  $('v6201List').innerHTML=shown.length?shown.map(x=>`<div class="v6201-item"><b>${esc(x.action||'Auditori tevékenység')}</b><div class="v6201-meta">${esc(x.created_at||'Időpont nincs megadva')}<br>Auditor: ${esc(x.actor_email||x.actor_user_id||'—')}<br>Audit: ${esc(audits.find(a=>String(a.id)===String(x.audit_id))?auditLabel(audits.find(a=>String(a.id)===String(x.audit_id))):x.audit_id)}<br>Eredmény: ${esc(x.outcome||'—')}</div><p>${esc(x.notes||'Nincs megjegyzés.')}</p></div>`).join(''):'<p class="small">Nincs megjeleníthető esemény. Ha most hoztad létre a táblát, ellenőrizd, hogy van-e mentett esemény.</p>';
+ }
+ window.v6201Refresh=async function(){
+  const msg=$('v6201Msg');msg.textContent='Napló betöltése…';msg.className='small';
   try{
-   if(typeof session==='undefined'||!session?.access_token){
-    block('v619Identity','Nincs aktív bejelentkezés','Jelentkezz be az ACAF bejelentkezési paneljén.','v619-bad');
-    block('v619Read','Nem ellenőrizhető','Bejelentkezés szükséges.','v619-warn');
-    block('v619Write','Nem ellenőrizhető','Bejelentkezés szükséges.','v619-warn');
-    $('v619Msg').textContent='Ellenőrzés befejezve.';return;
-   }
-   let user=null;
-   try{user=await api('/auth/v1/user')}catch(e){throw new Error('A Supabase nem igazolta vissza a bejelentkezett felhasználót: '+e.message)}
-   block('v619Identity','Hitelesített munkamenet','User ID: '+(user?.id||session.user?.id||'nem érhető el')+' · E-mail: '+(user?.email||'nem érhető el'),'v619-good');
-   try{
-    const rows=await api('/rest/v1/audit_reports?select=id&limit=1');
-    block('v619Read','Olvasási lekérdezés sikeres','Az audit_reports tábla elérhető. Visszaadott sorok: '+(Array.isArray(rows)?rows.length:'válasz érkezett'),'v619-good');
-   }catch(e){block('v619Read','Olvasás nem igazolt',e.message,'v619-bad')}
-   block('v619Write','Nem tesztelt – biztonságos megközelítés','A modul nem hajt végre írási próbát. Az adatbázis RLS/policy szabályait a Supabase Dashboardban kell ellenőrizni.','v619-warn');
-   $('v619Msg').textContent='✓ Ellenőrzés befejezve. Jogosultságot nem módosítottunk.';$('v619Msg').className='small success';
+   await populate();
+   user=await api('/auth/v1/user');
+   if(!user?.id)throw new Error('Nincs hitelesített felhasználó. Jelentkezz be újra.');
+   $('v6201Identity').textContent='Hitelesített felhasználó: '+(user.email||user.id);
+   const aid=$('v6201Audit').value;
+   const filter=$('v6201Filter').value;
+   const query=filter==='all'
+    ? '/rest/v1/audit_activity_log?select=*&order=created_at.desc&limit=300'
+    : '/rest/v1/audit_activity_log?select=*&audit_id=eq.'+encodeURIComponent(aid)+'&order=created_at.desc&limit=300';
+   entries=aid||filter==='all'?await api(query):[];
+   render();msg.textContent='✓ Külön eseménynapló frissítve.';msg.className='small success';
   }catch(e){
-   block('v619Identity','Identitásellenőrzés sikertelen',e.message,'v619-bad');
-   block('v619Read','Nem ellenőrizhető','Először a hitelesített munkamenetet kell ellenőrizni.','v619-warn');
-   block('v619Write','Nem ellenőrzött','Nincs írási próba, nem változott jogosultság.','v619-warn');
-   $('v619Msg').textContent='✕ '+e.message;$('v619Msg').className='small error';
+   msg.textContent='✕ '+(e.message||'Betöltési hiba');msg.className='small error';
+   $('v6201List').innerHTML='<p class="small">A napló nem tölthető be. Ellenőrizd, hogy a V6.20 SQL-migráció sikeresen lefutott-e, és a felhasználó jogosult-e a kiválasztott audithoz.</p>';
   }
  };
- setTimeout(window.v619Refresh,7500);
+ window.v6201Save=async function(){
+  const msg=$('v6201Msg');
+  try{
+   const aid=$('v6201Audit').value;if(!aid)throw new Error('Válassz auditot.');
+   if(!user?.id)user=await api('/auth/v1/user');
+   if(!user?.id)throw new Error('Nincs hitelesített felhasználó. Jelentkezz be újra.');
+   const rid=$('v6201Report').value||null;
+   const report=rid?reports.find(r=>String(r.id)===rid):null;
+   if(rid&&(!report||String(report.audit_id)!==aid))throw new Error('A jelentés nem ehhez az audithoz tartozik.');
+   const payload={audit_id:aid,report_id:rid,actor_user_id:user.id,actor_email:user.email||null,action:$('v6201Action').value,outcome:$('v6201Outcome').value,notes:$('v6201Notes').value.trim()||null};
+   msg.textContent='Mentés…';msg.className='small';
+   await api('/rest/v1/audit_activity_log',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+   $('v6201Notes').value='';
+   await window.v6201Refresh();
+   msg.textContent='✓ Esemény mentve a külön auditori naplótáblába.';msg.className='small success';
+  }catch(e){msg.textContent='✕ Nem sikerült menteni: '+(e.message||'ismeretlen hiba');msg.className='small error'}
+ };
+ $('v6201Audit').addEventListener('change',()=>{populate().then(render).catch(e=>{ $('v6201Msg').textContent=e.message||'Betöltési hiba'; });});
+ $('v6201Filter').addEventListener('change',render);
+ setTimeout(window.v6201Refresh,7500);
 })();
 </script>
 
