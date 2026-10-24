@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.7</title>
+<title>ACAF Personal V6.23</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -3918,6 +3918,86 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v623-readiness-style">
+#v623Readiness,#v623Readiness *{box-sizing:border-box;min-width:0}#v623Readiness{width:100%;max-width:100%}.v623-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.v623-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}.v623-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}.v623-stat{border:1px solid #dbe2ea;border-radius:8px;padding:12px;background:#f7f9fc}.v623-stat b{display:block;font-size:22px;margin-top:4px}.v623-item{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}.v623-ok{border-left:4px solid #25834a}.v623-warn{border-left:4px solid #b7791f}.v623-bad{border-left:4px solid #b42318}.v623-meta{font-size:12px;color:#596579;line-height:1.55}@media(max-width:760px){.v623-grid{grid-template-columns:1fr}.v623-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<section class="card" id="v623Readiness">
+<h2>V6.23 – Audit Readiness Review / Audit lezárás előtti áttekintés</h2>
+<p class="small">Olvasási módú ellenőrzőlista a jelentés lezárása előtt. Összegyűjti a megválaszolatlan kérdéseket, a bizonyítékhiányokat, a nyitott Findingokat és a nyitott CAPA-kat. Ez támogató áttekintés, nem automatikus megfelelőségi döntés, és nem zár le vagy módosít auditot.</p>
+<div class="v623-grid">
+ <div class="v623-panel">
+  <label for="v623Audit">Audit</label><select id="v623Audit"><option value="">Válassz auditot…</option></select>
+  <button type="button" class="primary" id="v623Run">Lezárás előtti ellenőrzés futtatása</button>
+  <p id="v623Msg" class="small">Válassz auditot, majd futtasd az ellenőrzést.</p>
+  <div class="v623-stats">
+   <div class="v623-stat">Kérdések<b id="v623Questions">—</b></div>
+   <div class="v623-stat">Megválaszolatlan<b id="v623Unanswered">—</b></div>
+   <div class="v623-stat">Bizonyítékhiány<b id="v623Evidence">—</b></div>
+   <div class="v623-stat">Nyitott Finding / CAPA<b id="v623Open">—</b></div>
+  </div>
+  <div id="v623Verdict" class="v623-item">Az ellenőrzés még nem futott le.</div>
+ </div>
+ <div class="v623-panel">
+  <h3>Ellenőrzési tételek</h3>
+  <div id="v623Details"><p class="small">Az eredmények itt jelennek meg.</p></div>
+ </div>
+</div>
+<div class="notice"><b>Fontos:</b> a rendszer nem tiltja le a jelentés jóváhagyását automatikusan. Az auditor felelős azért, hogy a nyitott tételek jelentőségét értékelje, és dokumentálja a lezárásról hozott döntést.</div>
+</section>
+<script id="v623-readiness-js">
+(function(){
+ const $=id=>document.getElementById(id);
+ const escv=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const terminalFinding=s=>String(s||'').toLowerCase()==='closed';
+ const terminalCapa=s=>['closed','effective','completed'].includes(String(s||'').toLowerCase());
+ function addCheck(list,title,count,detail,level){list.push({title,count,detail,level});}
+ async function populate(){
+  if(typeof loadAudits==='function')await loadAudits();
+  const audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  const sel=$('v623Audit'),old=sel.value;
+  sel.innerHTML='<option value="">Válassz auditot…</option>'+audits.map(a=>'<option value="'+escv(a.id)+'">'+escv((a.audit_no?a.audit_no+' — ':'')+(a.title||'Audit'))+'</option>').join('');
+  if(old&&audits.some(a=>String(a.id)===old))sel.value=old;
+  else {const main=$('v5AuditSelect');if(main&&main.value&&audits.some(a=>String(a.id)===String(main.value)))sel.value=main.value;}
+ }
+ async function run(){
+  const aid=$('v623Audit').value;
+  if(!aid){$('v623Msg').textContent='Válassz auditot.';return;}
+  $('v623Msg').textContent='Ellenőrzés folyamatban…';$('v623Msg').className='small';$('v623Details').innerHTML='';
+  try{
+   const qs=await api('/rest/v1/audit_questions?select=*&audit_id=eq.'+encodeURIComponent(aid)+'&order=sequence_no.asc');
+   const qids=(qs||[]).map(q=>q.id).filter(Boolean);let answers=[];
+   if(qids.length)answers=await api('/rest/v1/audit_answers?select=*&question_id=in.('+qids.map(encodeURIComponent).join(',')+')');
+   const amap={};(answers||[]).forEach(a=>amap[a.question_id]=a);
+   const unans=(qs||[]).filter(q=>{const a=amap[q.id]||{};return !a.assessment||a.assessment==='unanswered';});
+   const missingEvidence=(qs||[]).filter(q=>{const a=amap[q.id]||{};return a.assessment&&a.assessment!=='unanswered'&&a.assessment!=='na'&&!String(a.evidence||'').trim();});
+   const findings=await api('/rest/v1/findings?select=*&audit_id=eq.'+encodeURIComponent(aid)+'&order=finding_no.asc');
+   const openFindings=(findings||[]).filter(f=>!terminalFinding(f.status));
+   const fids=(findings||[]).map(f=>f.id).filter(Boolean);let capas=[];
+   if(fids.length)capas=await api('/rest/v1/capa_actions?select=*&finding_id=in.('+fids.map(encodeURIComponent).join(',')+')');
+   const openCapas=(capas||[]).filter(c=>!terminalCapa(c.status));
+   $('v623Questions').textContent=(qs||[]).length;$('v623Unanswered').textContent=unans.length;$('v623Evidence').textContent=missingEvidence.length;$('v623Open').textContent=openFindings.length+' / '+openCapas.length;
+   const checks=[];
+   addCheck(checks,'Auditkérdések értékelése',unans.length,unans.length?'Van megválaszolatlan vagy nem értékelt kérdés.':'Minden kérdés értékelve van.',unans.length?'warn':'ok');
+   addCheck(checks,'Bizonyíték rögzítése',missingEvidence.length,missingEvidence.length?'Értékelt kérdés(ek)nél nincs rögzített bizonyíték.':'Nem találtunk hiányzó bizonyítékot az értékelt, nem N/A kérdéseknél.',missingEvidence.length?'warn':'ok');
+   addCheck(checks,'Finding státuszok',openFindings.length,openFindings.length?'Nyitott Finding maradt az auditban.':'Nincs nyitott Finding.',openFindings.length?'warn':'ok');
+   addCheck(checks,'CAPA státuszok',openCapas.length,openCapas.length?'Nyitott CAPA maradt a kapcsolódó Findingokhoz.':'Nincs nyitott CAPA a lekérdezett Findingokhoz.',openCapas.length?'warn':'ok');
+   const blockers=unans.length+openFindings.length+openCapas.length;
+   $('v623Verdict').className='v623-item '+(blockers||missingEvidence.length?'v623-warn':'v623-ok');
+   $('v623Verdict').innerHTML=blockers||missingEvidence.length?'<b>Auditori felülvizsgálat szükséges.</b><div class="v623-meta">Találtunk lezárás előtt áttekintendő tételeket. Ez nem automatikus elutasítás; az auditor értékeli és dokumentálja a döntést.</div>':'<b>Az alapvető lezárás előtti ellenőrzések rendben.</b><div class="v623-meta">Ez nem helyettesíti az auditor szakmai döntését, a jelentés tartalmi felülvizsgálatát vagy a jóváhagyási folyamatot.</div>';
+   $('v623Details').innerHTML=checks.map(c=>'<div class="v623-item '+(c.level==='ok'?'v623-ok':'v623-warn')+'"><b>'+escv(c.title)+': '+escv(c.count)+'</b><div>'+escv(c.detail)+'</div></div>').join('')+
+    (unans.length?'<h4>Megválaszolatlan kérdések</h4>'+unans.slice(0,30).map(q=>'<div class="v623-item">#'+escv(q.sequence_no??'—')+' · Kérdés ID: '+escv(q.id)+'</div>').join(''):'')+
+    (missingEvidence.length?'<h4>Bizonyítékhiány</h4>'+missingEvidence.slice(0,30).map(q=>'<div class="v623-item">#'+escv(q.sequence_no??'—')+' · Kérdés ID: '+escv(q.id)+' · Értékelés: '+escv((amap[q.id]||{}).assessment)+'</div>').join(''):'')+
+    (openFindings.length?'<h4>Nyitott Findingok</h4>'+openFindings.slice(0,30).map(f=>'<div class="v623-item">Finding #'+escv(f.finding_no??'—')+' · '+escv(f.status||'open')+' · '+escv(f.objective_statement||f.classification||'')+'</div>').join(''):'')+
+    (openCapas.length?'<h4>Nyitott CAPA-k</h4>'+openCapas.slice(0,30).map(c=>'<div class="v623-item">'+escv(c.status||'open')+' · '+escv(c.corrective_action||c.preventive_action||'CAPA')+'</div>').join(''):'');
+   $('v623Msg').textContent='✓ Az áttekintés befejeződött. Az eredmény nem módosította az adatbázist.';$('v623Msg').className='small success';
+  }catch(e){$('v623Msg').textContent='✕ Ellenőrzési hiba: '+(e.message||String(e));$('v623Msg').className='small error';$('v623Verdict').textContent='Az ellenőrzés nem fejeződött be. Ellenőrizd a bejelentkezést és a táblákhoz való hozzáférést.';}
+ }
+ $('v623Run').addEventListener('click',run);
+ $('v623Audit').addEventListener('change',()=>{const main=$('v5AuditSelect');if(main&&$('v623Audit').value)main.value=$('v623Audit').value;});
+ let tries=0;const timer=setInterval(()=>{if(typeof api==='function'&&typeof loadAudits==='function'){populate().catch(e=>{$('v623Msg').textContent='Auditlista betöltési hiba: '+(e.message||String(e));});clearInterval(timer);}if(++tries>60)clearInterval(timer);},500);
+})();
+</script>
+
 </body>
 </html>
-
