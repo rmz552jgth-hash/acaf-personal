@@ -1687,9 +1687,7 @@ function renderQuestionImpact(){
       <div>
        <b>${esc(a.title||a.audit_no||'Audit')}</b>
        <div class="small">Question ID: ${esc(q.id||'')} · Sequence: ${esc(q.sequence_no??'')}</div>
-       <div class="small" style="margin-top:5px">
-         <span class="review">REVIEW REQUIRED</span>
-       </div>
+       <!-- V4.0: hide the redundant REVIEW REQUIRED badge in the impacted-audit list; the review requirement remains documented in the workflow text above. -->
       </div>
       <button class="secondary" onclick="openImpactedAudit('${esc(a.id||'')}')">Open audit</button>
     </div>
