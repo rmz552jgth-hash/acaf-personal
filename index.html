@@ -3195,6 +3195,100 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v614-style">
+#v614AuditClosureHistory,#v614AuditClosureHistory *{box-sizing:border-box;min-width:0}
+#v614AuditClosureHistory{width:100%;max-width:100%;overflow:hidden}
+.v614-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.v614-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v614-panel input,.v614-panel select,.v614-panel textarea{width:100%;max-width:100%;box-sizing:border-box;margin:5px 0 10px;padding:9px}
+.v614-listitem{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v614-meta{font-size:12px;color:#596579;line-height:1.55}
+@media(max-width:760px){.v614-row{grid-template-columns:minmax(0,1fr)}}
+</style>
+<section class="card" id="v614AuditClosureHistory">
+<h2>V6.14 – Audit Closure Record / Auditlezárási feljegyzés</h2>
+<p class="small">A V6.13 ellenőrzőlista kézi eredményét és az auditor lezárási megjegyzését rögzíti az audit_reports meglévő rekordjához. Mentés előtt válaszd ki az auditot és a hozzá tartozó jelentést. A feljegyzés nem helyettesíti a szervezet hivatalos jóváhagyási folyamatát.</p>
+<div class="v614-row">
+ <div class="v614-panel">
+  <label for="v614Audit">Audit</label><select id="v614Audit"><option value="">Audit betöltése…</option></select>
+  <label for="v614Report">Jelentésverzió</label><select id="v614Report"><option value="">Válassz auditot először</option></select>
+  <label for="v614Auditor">Ellenőrzést végző auditor</label><input id="v614Auditor" placeholder="Auditor neve">
+  <label for="v614Result">Ellenőrzés eredménye</label>
+  <select id="v614Result"><option value="ready">Ellenőrzés kész – további auditor-jóváhagyás szükséges</option><option value="actions_required">További intézkedés szükséges</option><option value="deferred">Lezárás elhalasztva</option></select>
+  <label for="v614Notes">Lezárási megjegyzés</label><textarea id="v614Notes" rows="5" placeholder="Ellenőrzések összegzése, hiányosságok, további lépések…"></textarea>
+  <button type="button" class="primary" onclick="v614Save()">Feljegyzés mentése</button>
+  <p id="v614Msg" class="small"></p>
+ </div>
+ <div class="v614-panel">
+  <h3>Korábbi lezárási feljegyzések</h3>
+  <p class="v614-meta">A lista a kiválasztott jelentéshez elmentett, closure_record mezőt tartalmazó rekordokat mutatja, amennyiben a mező már rendelkezésre áll.</p>
+  <div id="v614History"><p class="small">Válassz jelentést.</p></div>
+ </div>
+</div>
+<div class="notice"><b>Adatbázis-kompatibilitás:</b> a mentés először a jelentés meglévő rekordján próbálja tárolni a feljegyzést. Ha a closure_record mező nincs az adatbázisban, a modul nem végez sémamódosítást; hibaüzenetet mutat. Ilyenkor a következő lépés a mező szabályos migrációja.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let audits=[],reports=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function populateAudits(){
+  audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  const el=$('v614Audit'),old=el.value;
+  el.innerHTML='<option value="">Válassz auditot…</option>'+audits.map(a=>`<option value="${esc(a.id)}">${esc(a.audit_no||'')} — ${esc(a.title||'Audit')}</option>`).join('');
+  if(old&&audits.some(a=>String(a.id)===old))el.value=old;
+  updateReports();
+ }
+ function updateReports(){
+  const aid=$('v614Audit').value;
+  const el=$('v614Report');
+  const list=reports.filter(r=>String(r.audit_id)===aid);
+  el.innerHTML='<option value="">Válassz jelentésverziót…</option>'+list.map(r=>`<option value="${esc(r.id)}">${esc(r.report_title||'Audit report')} · v${esc(r.version??'—')} · ${esc(r.status||'draft')}</option>`).join('');
+  if(list.length===1)el.value=list[0].id;
+  renderHistory();
+ }
+ function renderHistory(){
+  const id=$('v614Report').value;
+  const r=reports.find(x=>String(x.id)===id);
+  if(!r){$('v614History').innerHTML='<p class="small">Válassz jelentést.</p>';return}
+  const rec=r.closure_record;
+  if(!rec){$('v614History').innerHTML='<p class="small">Ehhez a jelentéshez még nincs lezárási feljegyzés, vagy az adatbázis nem tartalmazza a closure_record mezőt.</p>';return}
+  let obj=rec;
+  if(typeof rec==='string'){try{obj=JSON.parse(rec)}catch(e){obj={notes:rec}}}
+  $('v614History').innerHTML=`<div class="v614-listitem"><b>${esc(obj.result||'Eredmény nincs megadva')}</b><div class="v614-meta">Auditor: ${esc(obj.auditor||'—')} · Mentés: ${esc(obj.saved_at||'—')}</div><p>${esc(obj.notes||'Nincs megjegyzés.')}</p></div>`;
+  $('v614Auditor').value=obj.auditor||$('v614Auditor').value;
+  $('v614Result').value=obj.result||'ready';
+  $('v614Notes').value=obj.notes||'';
+ }
+ window.v614Save=async function(){
+  const msg=$('v614Msg'),rid=$('v614Report').value;
+  try{
+   if(!rid)throw new Error('Válassz ki egy jelentésverziót.');
+   const record={auditor:$('v614Auditor').value.trim(),result:$('v614Result').value,notes:$('v614Notes').value.trim(),saved_at:new Date().toISOString()};
+   msg.textContent='Mentés…';msg.className='small';
+   await api('/rest/v1/audit_reports?id=eq.'+encodeURIComponent(rid),{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify({closure_record:record})});
+   const result=await api('/rest/v1/audit_reports?select=*&id=eq.'+encodeURIComponent(rid));
+   reports=reports.map(r=>String(r.id)===String(rid)?(result[0]||r):r);
+   renderHistory();msg.textContent='✓ Lezárási feljegyzés mentve.';msg.className='small success';
+  }catch(e){msg.textContent='✕ Nem sikerült menteni: '+(e.message||'ismeretlen hiba')+'. Ha a closure_record oszlop nem létezik, adatbázis-migráció szükséges.';msg.className='small error'}
+ };
+ async function refresh(){
+  const msg=$('v614Msg');
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   populateAudits();
+   reports=await api('/rest/v1/audit_reports?select=*&order=generated_at.desc');
+   updateReports();
+   if(msg)msg.textContent='';
+  }catch(e){if(msg){msg.textContent='✕ '+(e.message||'Betöltési hiba');msg.className='small error'}}
+ }
+ $('v614Audit').addEventListener('change',updateReports);
+ $('v614Report').addEventListener('change',renderHistory);
+ setTimeout(refresh,4500);
+})();
+</script>
+
 </body>
 </html>
 
