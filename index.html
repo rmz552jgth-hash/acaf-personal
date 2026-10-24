@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.26.3</title>
+<title>ACAF Personal V6.27</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -136,7 +136,7 @@ body{background:#fff!important}body>.container>section,body>.container>div{displ
 </style><style id="acaf-v6-3-evidence-verification-css">.v63-card{margin-top:12px}.v63-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.v63-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:12px 0}.v63-kpi{border:1px solid #d9dde5;border-radius:8px;padding:10px;background:#fafbfc}.v63-kpi strong{display:block;font-size:20px;margin-bottom:3px}.v63-table-wrap{overflow-x:auto;margin-top:10px}.v63-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}.v63-table th,.v63-table td{border:1px solid #bfc5cf;padding:6px 7px;vertical-align:top;overflow-wrap:anywhere}.v63-table th{font-weight:700;background:#f4f5f7;white-space:nowrap}.v63-code{font-weight:700;white-space:nowrap}.v63-review{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.v63-review select{font-size:10pt;padding:4px 6px}.v63-review button{font-size:10pt;padding:5px 8px}.v63-note{font-size:9pt;color:#666;margin-top:6px}@media(max-width:800px){.v63-summary{grid-template-columns:repeat(2,minmax(120px,1fr))}}</style></head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.26.3</h1>
+<h1>ACAF Personal V6.27</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -1684,12 +1684,12 @@ function renderQuestionImpact(){
    const a=q.audits||{};
    return `<div class="sourceBox" style="margin-bottom:8px">
     <div style="display:flex;justify-content:space-between;gap:10px">
-      <div>
+      <div style="flex:1;min-width:0;overflow-wrap:anywhere">
        <b>${esc(a.title||a.audit_no||'Audit')}</b>
        <div class="small">Question ID: ${esc(q.id||'')} · Sequence: ${esc(q.sequence_no??'')}</div>
-       <!-- V4.0: hide the redundant REVIEW REQUIRED badge in the impacted-audit list; the review requirement remains documented in the workflow text above. -->
+       <div class="small" style="margin-top:4px;color:#8a5a00">Review required · Auditor decision pending</div>
       </div>
-      <button class="secondary" onclick="openImpactedAudit('${esc(a.id||'')}')">Open audit</button>
+      <button class="secondary" style="flex-shrink:0;white-space:nowrap" onclick="openImpactedAudit('${esc(a.id||'')}')">Open audit</button>
     </div>
    </div>`;
  }).join('');
@@ -2089,7 +2089,8 @@ async function v5BuildReport(){
  const orgRec=oo.find(o=>o.id===audit.organisation_id);
  const orgName=orgRec?.name||audit.organisation_id||'—';
  const allFindingsClosed=ff.length>0 && ff.every(f=>f.status==='closed');
- const overall=ff.length && allFindingsClosed && counts.noncompliant ? (lang==='hu'?'Lezárt – megfelelőség helyreállítva':'Closed – compliance restored') : counts.noncompliant?(lang==='hu'?'Nem megfelelő':'Non-compliant'):counts.partial?(lang==='hu'?'Részben megfelelő':'Partially compliant'):counts.answered?(lang==='hu'?'Megfelelő':'Compliant'):(lang==='hu'?'Tervezet':'Draft');
+ const unanswered=counts.total-counts.answered;
+ const overall=unanswered>0 ? (lang==='hu'?'Auditori felülvizsgálat szükséges – '+unanswered+' kérdés nincs értékelve':'Auditor review required — '+unanswered+' question(s) unanswered') : (ff.length && allFindingsClosed && counts.noncompliant ? (lang==='hu'?'Lezárt – a kapcsolódó Findingok és CAPA-k lezárva; a teljes audit lezárását külön ellenőrizni kell':'Recorded Findings/CAPAs closed — overall audit closure must be confirmed separately') : counts.noncompliant?(lang==='hu'?'Nem megfelelő':'Non-compliant'):counts.partial?(lang==='hu'?'Részben megfelelő':'Partially compliant'):counts.answered?(lang==='hu'?'Megfelelő':'Compliant'):(lang==='hu'?'Tervezet':'Draft'));
  const L=lang==='hu'?{exec:'Vezetői összefoglaló',info:'Audit adatok',scope:'Hatókör és módszertan',overview:'Megfelelőségi áttekintés',questions:'Audit követelmények és értékelések',findings:'Megállapítások / Findings',capa:'CAPA és hatékonyság-ellenőrzés',conclusion:'Következtetés',evidence:'Bizonyíték',notes:'Auditori megjegyzés',req:'Követelmény',assessment:'Értékelés',status:'Státusz',risk:'Kockázat',classification:'Osztályozás',due:'Határidő',action:'Intézkedés',verification:'Verification / Ellenőrzés',date:'Dátum',auditNo:'Audit szám',organisation:'Szervezet',auditor:'Auditor',methodology:'Módszertan'}:{exec:'Executive Summary',info:'Audit Information',scope:'Scope and Methodology',overview:'Compliance Overview',questions:'Audit Requirements and Assessments',findings:'Findings',capa:'CAPA and Effectiveness Verification',conclusion:'Conclusion',evidence:'Evidence',notes:'Auditor Notes',req:'Requirement',assessment:'Assessment',status:'Status',risk:'Risk',classification:'Classification',due:'Due Date',action:'Action',verification:'Verification',date:'Date',auditNo:'Audit No.',organisation:'Organisation',auditor:'Auditor',methodology:'Methodology'};
  let html=`<div class="v5-report" id="v5PrintableReport">
   <div class="v5-cover"><h1>${v5Esc(title)}</h1><div class="meta">ACAF Personal • ${v5Esc(audit.title||'')} • ${v5FmtDate(audit.created_at)}</div></div>
@@ -4074,6 +4075,11 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 
 
 <!-- V6.26: include review history in generated report preview and print/Word export -->
+<section class="card" id="v627ConsistencyCard" style="margin-top:18px">
+  <h2>V6.27 – Report Lifecycle Consistency / Jelentés-életciklus konzisztencia</h2>
+  <p class="small">A jelentésösszegzés nem állít automatikusan helyreállt megfelelőséget, ha auditkérdés nincs értékelve. A legutóbbi „Review required” vagy „Not approved” döntés látható figyelmeztetést ad a jelentésben; az adatbázisban lévő FINAL státuszt ez a modul nem módosítja.</p>
+  <div class="notice"><b>Auditori kontroll:</b> a figyelmeztetés nem automatikus elutasítás és nem módosítja a végleges jelentést. A nyitott kérdéseket és a felülvizsgálati döntést az auditor rendezi.</div>
+</section>
 <section class="card" id="v626ReviewReportCard" style="margin-top:18px">
   <h2>V6.26 – Audit Review in Report / Felülvizsgálat a jelentésben</h2>
   <p class="small">A jelentés generálásakor a kiválasztott jelentés V6.24 felülvizsgálati bejegyzéseit a jelentés előnézetéhez és exportjához fűzi. Csak olvas; nem módosítja a jóváhagyási státuszt. Ha nincs felülvizsgálati bejegyzés, a melléklet nem jelenik meg.</p>
@@ -4107,6 +4113,8 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
    const entries=parse26(r&&r.audit_log).filter(x=>x&&(['review_required','reviewed_open_items','reviewed_ready','not_approved'].includes(x.review_decision)||x.event_type==='audit_review'));
    if(entries.length){
     const hu=(data.lang||'en')==='hu';
+    const latest=[...entries].sort((a,b)=>String(a.reviewed_at||a.timestamp||'').localeCompare(String(b.reviewed_at||b.timestamp||''))).at(-1);
+    if(latest && ['review_required','not_approved'].includes(latest.review_decision)){const previous=String(data.overall||'—');const revised=latest.review_decision==='not_approved'?(hu?'Jelentés nem jóváhagyott – auditor döntése szükséges':'Report not approved — auditor action required'):(hu?'Auditori felülvizsgálat szükséges – a legutóbbi döntés további felülvizsgálatot kér':'Auditor review required — latest review decision requires further review');data.overall=revised;if(previous&&previous!=='—')data.html=data.html.split(esc26(previous)).join(esc26(revised));}
     const appendix=section26(entries,hu);
     const pos=data.html.lastIndexOf('</div>');
     data.html=pos>=0?data.html.slice(0,pos)+appendix+data.html.slice(pos):data.html+appendix;
