@@ -147,7 +147,17 @@ body{background:#fff!important}body>.container>section,body>.container>div{displ
 </div>
 <button onclick="signIn()" class="primary">Sign in</button>
 <button onclick="signUp()">Create account</button>
+<button type="button" onclick="requestPasswordReset()">Forgot password? / Elfelejtett jelszó</button>
 <p id="authMsg" class="small"></p>
+<div id="resetPasswordPanel" class="hidden" style="margin-top:12px;padding:12px;border:1px solid #d9dde5;border-radius:8px">
+ <h3>Set new password / Új jelszó beállítása</h3>
+ <label>New password / Új jelszó</label>
+ <input id="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Legalább 8 karakter">
+ <label>Confirm password / Jelszó megerősítése</label>
+ <input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Írd be újra">
+ <button type="button" class="primary" onclick="submitNewPassword()">Save new password / Új jelszó mentése</button>
+ <p id="resetMsg" class="small"></p>
+</div>
 </section>
 
 <section id="app" class="hidden">
@@ -791,6 +801,58 @@ async function signUp(){
   document.getElementById("authMsg").textContent="Account created. Check your email if confirmation is enabled.";
  }catch(e){document.getElementById("authMsg").textContent=e.message}
 }
+let passwordRecoveryToken=null;
+async function requestPasswordReset(){
+ const email=document.getElementById("email").value.trim();
+ const msg=document.getElementById("authMsg");
+ try{
+  if(!email)throw new Error("Enter your account email first / Először add meg a regisztrált e-mail-címedet.");
+  msg.textContent="Sending password reset email… / Visszaállító e-mail küldése…";
+  const redirectTo=window.location.origin+window.location.pathname;
+  const r=await fetch(SUPABASE_URL+"/auth/v1/recover?redirect_to="+encodeURIComponent(redirectTo),{
+   method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+   body:JSON.stringify({email})
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.msg||d.message||"Could not send reset email.");
+  msg.textContent="If this email belongs to an account, a password reset link has been sent. Check Inbox and Spam. / Ha ehhez az e-mailhez fiók tartozik, elküldtük a visszaállító linket. Nézd meg a Spam mappát is.";
+ }catch(e){msg.textContent=e.message||"Password reset failed."}
+}
+function detectPasswordRecovery(){
+ try{
+  const hash=new URLSearchParams(window.location.hash.replace(/^#/,""));
+  const type=hash.get("type"),token=hash.get("access_token");
+  if(type==="recovery"&&token){
+   passwordRecoveryToken=token;
+   document.getElementById("resetPasswordPanel").classList.remove("hidden");
+   document.getElementById("authMsg").textContent="Recovery link verified. Set a new password below. / Állíts be új jelszót lent.";
+   document.getElementById("password").value="";
+   document.getElementById("resetPasswordPanel").scrollIntoView({behavior:"smooth",block:"center"});
+  }else if(window.location.search.includes("error=")){
+   document.getElementById("authMsg").textContent="The reset link may have expired. Request a new one. / A visszaállító link lejárhatott; kérj újat.";
+  }
+ }catch(e){}
+}
+async function submitNewPassword(){
+ const p=document.getElementById("newPassword").value, p2=document.getElementById("confirmNewPassword").value;
+ const msg=document.getElementById("resetMsg");
+ try{
+  if(!passwordRecoveryToken)throw new Error("Open the recovery link from your email first.");
+  if(p.length<8)throw new Error("Use at least 8 characters.");
+  if(p!==p2)throw new Error("The passwords do not match.");
+  msg.textContent="Saving…";
+  const r=await fetch(SUPABASE_URL+"/auth/v1/user",{method:"PUT",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+passwordRecoveryToken,"Content-Type":"application/json"},body:JSON.stringify({password:p})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.msg||d.message||"Could not update password.");
+  passwordRecoveryToken=null;
+  document.getElementById("newPassword").value="";document.getElementById("confirmNewPassword").value="";
+  document.getElementById("resetPasswordPanel").classList.add("hidden");
+  document.getElementById("authMsg").textContent="Password updated. Sign in with your new password. / Jelszó frissítve, most lépj be az új jelszóval.";
+  history.replaceState(null,"",window.location.pathname);
+ }catch(e){msg.textContent=e.message||"Could not update password."}
+}
+window.addEventListener("load",detectPasswordRecovery);
+
 function signOut(){session=null;localStorage.removeItem("acaf_session");document.getElementById("app").classList.add("hidden");document.getElementById("auth").classList.remove("hidden")}
 function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("status").textContent="Connected to Supabase";initialiseRegulatoryWatch();loadAudits()}
 
@@ -2710,40 +2772,6 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  window.v67Refresh=async function(){const m=$('v67Msg');m.textContent='Adatok frissítése…';try{await loadRegulatoryWatch();render67();render66();m.textContent='✓ Felülvizsgálati munkafolyamat frissítve.';m.className='small success';}catch(e){m.textContent='✕ '+e.message;m.className='small error';}};
  $('v67Search').addEventListener('input',render67);$('v67Filter').addEventListener('change',render67);
  setTimeout(()=>{if(typeof loadRegulatoryWatch==='function')window.v67Refresh();},2200);
-})();
-</script>
-
-<style>
-.v68-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}.v68-stat{padding:12px;border:1px solid #dce3ec;border-radius:10px;background:#f7f9fc}.v68-stat b{display:block;font-size:22px;margin-top:4px}.v68-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.v68-tablewrap{overflow-x:auto;margin-top:10px}.v68-table{border-collapse:collapse;width:100%;font-size:13px}.v68-table th,.v68-table td{border:1px solid #d8dee8;padding:8px;text-align:left;vertical-align:top}.v68-table th{background:#f1f4f8}@media(max-width:700px){.v68-grid{grid-template-columns:1fr}}
-</style>
-<section class="card" id="v68RegulatoryReviewExport">
-<h2>V6.8 – Regulatory Review Pack / Felülvizsgálati összesítő</h2>
-<p class="small">A szabályozási változások, hatásvizsgálatok és review taskok áttekintése és CSV-exportja. Az export a jelenleg betöltött rekordokat tartalmazza; nem ír vissza adatot az adatbázisba.</p>
-<div class="v68-grid"><div class="v68-stat">Hatásvizsgálat nélküli változások<b id="v68NoImpact">—</b></div><div class="v68-stat">Lejárt, nyitott teendők<b id="v68Overdue">—</b></div><div class="v68-stat">Határidő nélküli nyitott teendők<b id="v68NoDue">—</b></div></div>
-<div class="v68-actions"><button class="primary" onclick="v68Export('all')">CSV export – minden rekord</button><button onclick="v68Export('open')">CSV export – nyitott teendők</button><button onclick="v68Refresh()">↻ Adatok frissítése</button></div><div id="v68Msg" class="small"></div>
-<h3>Figyelmet igénylő változások</h3><div class="v68-tablewrap"><table class="v68-table"><thead><tr><th>Szabályozási változás</th><th>Hatásvizsgálat</th><th>Nyitott teendő</th><th>Határidő</th><th>Teendő</th></tr></thead><tbody id="v68Rows"><tr><td colspan="5">Adatok betöltése…</td></tr></tbody></table></div>
-<div class="notice"><b>Auditori kontroll:</b> a lista csak nyomon követést segít. A hatásvizsgálatot és a megfelelőségi döntést az auditor végzi; a modul nem állapít meg automatikus non-compliance-t.</div></section>
-<script>
-(function(){
- const $=id=>document.getElementById(id);
- const esc68=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const title68=c=>c?.title||c?.new_version||c?.affected_reference||'Regulatory change';
- const closed68=t=>['closed','completed','effective','cancelled','done'].includes(String(t?.status||'').toLowerCase());
- const today68=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
- const date68=v=>{if(!v)return 'Nincs határidő';const d=new Date(v+'T00:00:00');return isNaN(d)?String(v):d.toLocaleDateString('hu-HU')};
- function getRows68(){
-  const changes=Array.isArray(regulatoryChanges)?regulatoryChanges:[], impacts=Array.isArray(regulatoryImpacts)?regulatoryImpacts:[], tasks=Array.isArray(reviewTasks)?reviewTasks:[], out=[];
-  changes.forEach(c=>out.push({record_type:'regulatory_change',change_title:title68(c),change_id:c.id,affected_reference:c.affected_reference||'',publication_date:c.publication_date||'',requirement_code:'',requirement_id:'',decision:'',risk:'',auditor_comment:'',action_required:'',task_title:'',task_status:'',due_date:'',audit_id:'',notes:''}));
-  impacts.forEach(i=>{const c=changes.find(x=>x.id===i.regulatory_change_id)||{}, r=(Array.isArray(requirements)?requirements:[]).find(x=>x.id===i.requirement_id)||{};out.push({record_type:'impact_assessment',change_title:title68(c),change_id:i.regulatory_change_id||'',affected_reference:c.affected_reference||'',publication_date:c.publication_date||'',requirement_code:r.requirement_code||'',requirement_id:i.requirement_id||'',decision:i.decision||'',risk:i.risk||'',auditor_comment:i.auditor_comment||'',action_required:i.action_required||'',task_title:'',task_status:'',due_date:i.due_date||'',audit_id:i.audit_id||'',notes:''})});
-  tasks.forEach(t=>{const c=changes.find(x=>x.id===t.regulatory_change_id)||{};out.push({record_type:'review_task',change_title:title68(c),change_id:t.regulatory_change_id||'',affected_reference:c.affected_reference||'',publication_date:c.publication_date||'',requirement_code:'',requirement_id:'',decision:'',risk:'',auditor_comment:'',action_required:'',task_title:t.title||'',task_status:t.status||'',due_date:t.due_date||'',audit_id:t.audit_id||'',notes:t.notes||''})});return {changes,impacts,tasks,out};
- }
- function render68(){const {changes,impacts,tasks}=getRows68(),today=today68(),noImpact=changes.filter(c=>!impacts.some(i=>i.regulatory_change_id===c.id)),open=tasks.filter(t=>!closed68(t)),overdue=open.filter(t=>t.due_date&&new Date(t.due_date+'T00:00:00')<today),noDue=open.filter(t=>!t.due_date);$('v68NoImpact').textContent=noImpact.length;$('v68Overdue').textContent=overdue.length;$('v68NoDue').textContent=noDue.length;
-  const attention=noImpact.map(c=>({c,impact:null,task:tasks.find(t=>t.regulatory_change_id===c.id&&!closed68(t))||null,reason:'Hatásvizsgálat hiányzik'}));overdue.forEach(t=>{const c=changes.find(x=>x.id===t.regulatory_change_id)||{};if(!attention.some(x=>x.task?.id===t.id))attention.push({c,impact:impacts.find(i=>i.regulatory_change_id===c.id)||null,task:t,reason:'Lejárt teendő'})});
-  $('v68Rows').innerHTML=attention.length?attention.slice(0,100).map(x=>`<tr><td>${esc68(title68(x.c))}<div class="small">${esc68(x.c.affected_reference||'')}</div></td><td>${esc68(x.impact?.decision||'Nincs rögzítve')}</td><td>${esc68(x.task?.title||x.reason)}</td><td>${esc68(date68(x.task?.due_date||x.impact?.due_date))}</td><td>${esc68(x.task?.notes||x.impact?.action_required||x.reason)}</td></tr>`).join(''):'<tr><td colspan="5">Nincs megjelenítendő kiemelt tétel a betöltött adatok alapján.</td></tr>';
- }
- window.v68Export=function(mode){const {out}=getRows68(),rows=mode==='open'?out.filter(x=>x.record_type==='review_task'&&!closed68({status:x.task_status})):out,headers=['record_type','change_title','change_id','affected_reference','publication_date','requirement_code','requirement_id','decision','risk','auditor_comment','action_required','task_title','task_status','due_date','audit_id','notes'],csvVal=v=>'"'+String(v??'').replace(/"/g,'""')+'"',csv=[headers.map(csvVal).join(','),...rows.map(r=>headers.map(h=>csvVal(r[h])).join(','))].join('\r\n'),blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=mode==='open'?'ACAF_Regulatory_Open_Tasks.csv':'ACAF_Regulatory_Review_Pack.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);$('v68Msg').textContent=`✓ Export elkészült: ${rows.length} rekord.`;$('v68Msg').className='small success'};
- window.v68Refresh=async function(){const m=$('v68Msg');m.textContent='Adatok frissítése…';try{await loadRegulatoryWatch();render68();m.textContent='✓ Felülvizsgálati összesítő frissítve.';m.className='small success'}catch(e){m.textContent='✕ '+e.message;m.className='small error'}};
- setTimeout(()=>{if(typeof loadRegulatoryWatch==='function')render68()},2400);
 })();
 </script>
 
