@@ -3614,14 +3614,15 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 (function(){
  const $=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- function getSession(){
+ async function getSession(){
   try{
-   if(typeof supabaseClient!=='undefined'&&supabaseClient){
-    if(typeof supabaseClient.auth?.getUser==='function')return supabaseClient.auth.getUser().then(x=>({user:x.data?.user||null,error:x.error||null}));
-    if(typeof supabaseClient.auth?.getSession==='function')return supabaseClient.auth.getSession().then(x=>({user:x.data?.session?.user||null,error:x.error||null}));
+   // This application uses its own REST-based session object, not supabase-js.
+   if(typeof session!=='undefined'&&session?.access_token){
+    const user=await api('/auth/v1/user');
+    return {user:user||session.user||null,error:null};
    }
-  }catch(e){return Promise.resolve({user:null,error:e})}
-  return Promise.resolve({user:null,error:new Error('A Supabase auth kliens nem érhető el a modul számára.')});
+   return {user:null,error:null};
+  }catch(e){return {user:null,error:e}}
  }
  window.v618Refresh=async function(){
   const msg=$('v618Msg');msg.textContent='Ellenőrzés…';msg.className='small';
