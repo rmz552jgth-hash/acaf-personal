@@ -2656,7 +2656,7 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  const today66=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
  const isClosed66=t=>['closed','completed','effective','cancelled','done'].includes(String(t?.status||'').toLowerCase());
  const changeName66=id=>{const c=(regulatoryChanges||[]).find(x=>x.id===id);return c?.title||'Azonosítatlan regulatory change';};
- function render66(){
+ window.render66=function(){
   const changes=regulatoryChanges||[], impacts=regulatoryImpacts||[], tasks=reviewTasks||[];
   const today=today66();
   const open=tasks.filter(t=>!isClosed66(t));
@@ -2691,7 +2691,7 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  }
  window.v66Refresh=async function(){
   const msg=$('v66Msg');msg.textContent='Adatok frissítése…';msg.className='small';
-  try{await loadRegulatoryWatch();render66();msg.textContent='✓ Regulatory Change Impact Tracker frissítve.';msg.className='small success';}
+  try{await loadRegulatoryWatch();window.render66();msg.textContent='✓ Regulatory Change Impact Tracker frissítve.';msg.className='small success';}
   catch(e){msg.textContent='✕ '+e.message;msg.className='small error';}
  };
  $('v66Search').addEventListener('input',render66);
@@ -2769,7 +2769,7 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
   if(target){target.value=changeId;document.getElementById('operationalCard')?.scrollIntoView({behavior:'smooth',block:'start'});const m=document.getElementById('opImpactMsg');if(m){m.textContent='A szabályozási változás kiválasztva. Ellenőrizd az érintett requirementet és rögzítsd az auditori döntést.';m.className='small';}}
   else {const box=document.getElementById('impactWorkspace');if(box){box.classList.remove('hidden');const sel=document.getElementById('impactChange');if(sel)sel.value=changeId;box.scrollIntoView({behavior:'smooth',block:'start'});}}
  };
- window.v67Refresh=async function(){const m=$('v67Msg');m.textContent='Adatok frissítése…';try{await loadRegulatoryWatch();render67();render66();m.textContent='✓ Felülvizsgálati munkafolyamat frissítve.';m.className='small success';}catch(e){m.textContent='✕ '+e.message;m.className='small error';}};
+ window.v67Refresh=async function(){const m=$('v67Msg');m.textContent='Adatok frissítése…';try{await loadRegulatoryWatch();render67();window.render66();m.textContent='✓ Felülvizsgálati munkafolyamat frissítve.';m.className='small success';}catch(e){m.textContent='✕ '+e.message;m.className='small error';}};
  $('v67Search').addEventListener('input',render67);$('v67Filter').addEventListener('change',render67);
  setTimeout(()=>{if(typeof loadRegulatoryWatch==='function')window.v67Refresh();},2200);
 })();
