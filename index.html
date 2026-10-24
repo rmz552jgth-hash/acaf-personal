@@ -1220,6 +1220,10 @@ async function loadRegulatoryWatch(){
    api("/rest/v1/review_tasks?select=*&order=created_at.desc")
   ]);
   regulatorySources=s||[]; regulatoryChanges=c||[]; regulatoryImpacts=i||[]; reviewTasks=t||[];
+  window.regulatorySources=regulatorySources;
+  window.regulatoryChanges=regulatoryChanges;
+  window.regulatoryImpacts=regulatoryImpacts;
+  window.reviewTasks=reviewTasks;
   document.getElementById("rwSources").textContent=tableCountText(regulatorySources);
   document.getElementById("rwChanges").textContent=tableCountText(regulatoryChanges);
   document.getElementById("rwImpacts").textContent=tableCountText(regulatoryImpacts);
@@ -2819,9 +2823,9 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const closed=t=>['closed','completed','effective','cancelled','done'].includes(String(t.status||'').toLowerCase());
  const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
- const changeTitle=t=>{const c=(Array.isArray(regulatoryChanges)?regulatoryChanges:[]).find(x=>x.id===t.regulatory_change_id);return c?.title||c?.new_version||c?.affected_reference||'Regulatory change';};
+ const changeTitle=t=>{const c=(Array.isArray(window.regulatoryChanges)?window.regulatoryChanges:[]).find(x=>x.id===t.regulatory_change_id);return c?.title||c?.new_version||c?.affected_reference||'Regulatory change';};
  function draw(){
-  const tasks=Array.isArray(reviewTasks)?reviewTasks:[];
+  const tasks=Array.isArray(window.reviewTasks)?window.reviewTasks:[];
   const filter=$('v610Filter').value, now=today();
   let list=tasks.filter(t=>filter==='all'||(filter==='overdue'?(!closed(t)&&t.due_date&&new Date(t.due_date+'T00:00:00')<now):!closed(t)));
   list.sort((a,b)=>(a.due_date||'9999-12-31').localeCompare(b.due_date||'9999-12-31'));
@@ -2831,7 +2835,7 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
   }).join(''):'<p class="small">Nincs a szűrésnek megfelelő teendő.</p>';
  }
  window.v610Select=function(id){
-  selected=(Array.isArray(reviewTasks)?reviewTasks:[]).find(t=>String(t.id)===String(id));
+  selected=(Array.isArray(window.reviewTasks)?window.reviewTasks:[]).find(t=>String(t.id)===String(id));
   if(!selected)return;
   $('v610Empty').style.display='none';$('v610Editor').style.display='block';
   $('v610Title').textContent=selected.title||'Review task';
@@ -2850,7 +2854,7 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
    await api('/rest/v1/review_tasks?id=eq.'+encodeURIComponent(selected.id),{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
    msg.textContent='✓ Mentés elküldve. Frissítem a listát…';msg.className='small success';
    await loadRegulatoryWatch();
-   selected=(Array.isArray(reviewTasks)?reviewTasks:[]).find(t=>String(t.id)===String(selected.id))||null;
+   selected=(Array.isArray(window.reviewTasks)?window.reviewTasks:[]).find(t=>String(t.id)===String(selected.id))||null;
    draw();
    if(selected)window.v610Select(selected.id);
   }catch(e){msg.textContent='✕ '+(e.message||'A mentés nem sikerült.');msg.className='small error';}
