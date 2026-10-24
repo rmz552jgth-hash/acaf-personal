@@ -3068,6 +3068,25 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 .v613-small{font-size:12px;color:#596579}
 @media(max-width:760px){.v613-grid{grid-template-columns:1fr}}
 </style>
+
+<style id="v613-layout-fix">
+#v613AuditClosure, #v613AuditClosure * { box-sizing:border-box; min-width:0; }
+#v613AuditClosure { width:100%; max-width:100%; overflow:hidden; }
+#v613AuditClosure .row { display:grid !important; grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; gap:12px !important; width:100% !important; }
+#v613AuditClosure .v613-grid { display:grid !important; grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; gap:12px !important; width:100% !important; }
+#v613AuditClosure .v613-panel { min-width:0 !important; width:100% !important; overflow-wrap:anywhere; }
+#v613AuditClosure .v613-check { display:grid !important; grid-template-columns:18px minmax(0,1fr) !important; gap:10px !important; width:100% !important; align-items:start !important; }
+#v613AuditClosure .v613-check input { width:16px !important; min-width:16px !important; margin:3px 0 0 !important; }
+#v613AuditClosure .v613-check span { display:block !important; min-width:0 !important; overflow-wrap:anywhere; }
+#v613AuditClosure input:not([type=checkbox]), #v613AuditClosure select, #v613AuditClosure textarea { width:100% !important; max-width:100% !important; }
+#v613AuditClosure button { max-width:100%; white-space:normal; }
+@media(max-width:760px) {
+ #v613AuditClosure .row, #v613AuditClosure .v613-grid { grid-template-columns:minmax(0,1fr) !important; }
+}
+@media print {
+ #v613AuditClosure .row, #v613AuditClosure .v613-grid { grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; }
+}
+</style>
 <section class="card" id="v613AuditClosure">
 <h2>V6.13 – Audit Closure Checklist / Auditlezárási ellenőrzőlista</h2>
 <p class="small">Lezárás előtti ellenőrzési lista az auditor számára. A pipák csak ebben a böngésző-munkamenetben jelzik a kézi ellenőrzést; nem mentenek adatot a Supabase-be, és önmagukban nem véglegesítik az auditot.</p>
