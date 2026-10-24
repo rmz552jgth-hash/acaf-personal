@@ -2963,6 +2963,100 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style>
+.v612-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.v612-kpi{border:1px solid #dbe2ea;border-radius:9px;padding:12px;background:#f7f9fc}
+.v612-kpi b{display:block;font-size:22px;margin-top:4px}
+.v612-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v612-card{border:1px solid #dbe2ea;border-radius:9px;padding:12px;margin:8px 0;overflow-wrap:anywhere}
+.v612-meta{font-size:12px;color:#596579;line-height:1.55}
+.v612-filters{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.v612-filters input,.v612-filters select{padding:8px;min-width:190px;max-width:100%}
+@media(max-width:760px){.v612-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.v612-grid{grid-template-columns:1fr}}
+</style>
+<section class="card" id="v612AuditReadiness">
+<h2>V6.12 – Audit Readiness Dashboard / Auditindítási felkészültség</h2>
+<p class="small">Az audit kiválasztása után összesíti a nyitott findingokat, a lejárt CAPA-határidőket és a bizonyítékok ellenőrzési állapotát. A modul csak meglévő adatokat olvas; nem módosít státuszokat és nem minősít automatikusan megfelelőséget.</p>
+<div class="v612-filters">
+ <label for="v612Audit">Audit kiválasztása</label>
+ <select id="v612Audit"><option value="">Audit betöltése…</option></select>
+ <button type="button" class="primary" onclick="v612Refresh()">↻ Frissítés</button>
+</div>
+<div class="v612-kpis">
+ <div class="v612-kpi">Nyitott findingok<b id="v612Findings">—</b></div>
+ <div class="v612-kpi">Lejárt CAPA-k<b id="v612OverdueCapa">—</b></div>
+ <div class="v612-kpi">Bizonyíték-ellenőrzésre vár<b id="v612EvidencePending">—</b></div>
+ <div class="v612-kpi">Auditválaszok nélkül<b id="v612Unanswered">—</b></div>
+</div>
+<div class="v612-grid">
+ <div><h3>Teendők az audit előtt</h3><div id="v612ReadinessList"><p class="small">Válassz auditot.</p></div></div>
+ <div><h3>Nyitott findingok és CAPA-k</h3><div id="v612CapaList"><p class="small">Válassz auditot.</p></div></div>
+</div>
+<p id="v612Msg" class="small"></p>
+<div class="notice"><b>Értelmezés:</b> ez a dashboard támogatja az audit előkészítését, de nem helyettesíti az auditor felülvizsgálatát. A bizonyítékot és az audit kérdéseire adott válaszokat az illetékes auditor ellenőrzi.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let auditRows=[], findingRows=[], capaRows=[], answerRows=[], evidenceRows=[], questionRows=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const closed=v=>['closed','completed','effective','cancelled','done'].includes(String(v||'').toLowerCase());
+ const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+ const fmtDate=v=>{if(!v)return 'Nincs határidő';const d=new Date(v+'T00:00:00');return isNaN(d)?String(v):d.toLocaleDateString('hu-HU')};
+ function populate(){
+  const el=$('v612Audit'), old=el.value;
+  const audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+  el.innerHTML='<option value="">Válassz auditot…</option>'+audits.map(a=>`<option value="${esc(a.id)}">${esc(a.audit_no||'')} — ${esc(a.title||'Audit')}</option>`).join('');
+  if(old&&audits.some(a=>String(a.id)===old))el.value=old;
+  else if(audits.length===1)el.value=audits[0].id;
+ }
+ function selectedAudit(){return $('v612Audit').value}
+ function render(){
+  const id=selectedAudit();
+  if(!id){$('v612Findings').textContent='—';$('v612OverdueCapa').textContent='—';$('v612EvidencePending').textContent='—';$('v612Unanswered').textContent='—';$('v612ReadinessList').innerHTML='<p class="small">Válassz auditot.</p>';$('v612CapaList').innerHTML='';return}
+  const findings=findingRows.filter(f=>String(f.audit_id)===id&&!closed(f.status));
+  const fidSet=new Set(findings.map(f=>String(f.id)));
+  const capas=capaRows.filter(c=>fidSet.has(String(c.finding_id))&&!closed(c.status));
+  const now=today(),overdue=capas.filter(c=>c.target_date&&new Date(c.target_date+'T00:00:00')<now);
+  const answers=answerRows.filter(a=>questionRows.some(q=>String(q.id)===String(a.question_id)&&String(q.audit_id)===id));
+  const answered=new Set(answers.map(a=>String(a.question_id)));
+  const questions=questionRows.filter(q=>String(q.audit_id)===id);
+  const unanswered=questions.filter(q=>!answered.has(String(q.id)));
+  const pendingEvidence=evidenceRows.filter(e=>String(e.audit_id)===id&&!['verified','accepted','approved'].includes(String(e.verification_status||e.status||'').toLowerCase()));
+  $('v612Findings').textContent=findings.length;$('v612OverdueCapa').textContent=overdue.length;$('v612EvidencePending').textContent=pendingEvidence.length;$('v612Unanswered').textContent=unanswered.length;
+  const checks=[];
+  if(unanswered.length)checks.push({title:'Auditkérdések megválaszolatlanok',detail:`${unanswered.length} kérdéshez nem található válasz.`});
+  if(findings.length)checks.push({title:'Nyitott findingok',detail:`${findings.length} finding még nincs lezárva.`});
+  if(overdue.length)checks.push({title:'Lejárt CAPA-határidők',detail:`${overdue.length} nyitott CAPA határideje lejárt.`});
+  if(pendingEvidence.length)checks.push({title:'Bizonyítékok ellenőrzése szükséges',detail:`${pendingEvidence.length} bizonyíték rekord állapota nem jelzi egyértelműen az elfogadást/ellenőrzést.`});
+  $('v612ReadinessList').innerHTML=checks.length?checks.map(c=>`<div class="v612-card"><b>${esc(c.title)}</b><p class="small">${esc(c.detail)}</p></div>`).join(''):'<div class="v612-card"><b>Az alapellenőrzések nem jeleznek nyitott tételt.</b><p class="small">Ez nem jelent automatikus audit-jóváhagyást; ellenőrizd a teljes dokumentációt.</p></div>';
+  $('v612CapaList').innerHTML=findings.length?findings.map(f=>{
+   const fc=capas.filter(c=>String(c.finding_id)===String(f.id));
+   return `<div class="v612-card"><b>Finding #${esc(f.finding_no??'—')} · ${esc(f.classification||'Classification nincs megadva')}</b><div class="v612-meta">Státusz: ${esc(f.status||'—')} · Határidő: ${esc(fmtDate(f.due_date))}</div><p class="small">${esc(f.objective_statement||'Nincs finding leírás.')}</p>${fc.length?fc.map(c=>`<div class="v612-card"><b>CAPA</b><div class="v612-meta">Státusz: ${esc(c.status||'—')} · Célhatáridő: ${esc(fmtDate(c.target_date))}</div><p class="small">${esc(c.corrective_action||'Nincs corrective action leírás.')}</p></div>`).join(''):'<p class="small">Nincs nyitott CAPA ehhez a findinghoz.</p>'}</div>`;
+  }).join(''):'<div class="v612-card">Nincs nyitott finding ennél az auditnál.</div>';
+ }
+ window.v612Refresh=async function(){
+  const msg=$('v612Msg');msg.textContent='Adatok betöltése…';msg.className='small';
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   populate();
+   const [f,c,q,a,e]=await Promise.all([
+    api('/rest/v1/findings?select=*&order=created_at.desc'),
+    api('/rest/v1/capa_actions?select=*&order=created_at.desc'),
+    api('/rest/v1/audit_questions?select=*&order=sequence_no.asc'),
+    api('/rest/v1/audit_answers?select=*&order=answered_at.desc'),
+    api('/rest/v1/evidence?select=*&order=created_at.desc')
+   ]);
+   findingRows=f||[];capaRows=c||[];questionRows=q||[];answerRows=a||[];evidenceRows=e||[];
+   render();msg.textContent='✓ Felkészültségi adatok frissítve.';msg.className='small success';
+  }catch(e){msg.textContent='✕ '+(e.message||'Adatbetöltési hiba');msg.className='small error'}
+ };
+ $('v612Audit').addEventListener('change',render);
+ setTimeout(()=>{if(typeof loadAudits==='function')window.v612Refresh()},3600);
+})();
+</script>
+
 </body>
 </html>
 
