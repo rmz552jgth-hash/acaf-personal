@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.23</title>
+<title>ACAF Personal V6.24</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -3996,6 +3996,44 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  $('v623Run').addEventListener('click',run);
  $('v623Audit').addEventListener('change',()=>{const main=$('v5AuditSelect');if(main&&$('v623Audit').value)main.value=$('v623Audit').value;});
  let tries=0;const timer=setInterval(()=>{if(typeof api==='function'&&typeof loadAudits==='function'){populate().catch(e=>{$('v623Msg').textContent='Auditlista betöltési hiba: '+(e.message||String(e));});clearInterval(timer);}if(++tries>60)clearInterval(timer);},500);
+})();
+</script>
+
+
+<style id="v624-review-style">
+#v624Review,#v624Review *{box-sizing:border-box;min-width:0}#v624Review{width:100%;max-width:100%}.v624-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.v624-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}.v624-panel label{display:block;font-weight:600;margin:8px 0 4px}.v624-panel input,.v624-panel select,.v624-panel textarea{width:100%;max-width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:7px;font:inherit}.v624-panel textarea{min-height:100px;resize:vertical}.v624-note{font-size:12px;color:#596579;line-height:1.55}.v624-history-item{border:1px solid #dbe2ea;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}@media(max-width:760px){.v624-grid{grid-template-columns:1fr}}
+</style>
+<section class="card" id="v624Review">
+<h2>V6.24 – Audit Review & Approval Workflow / Audit felülvizsgálat és jóváhagyási munkafolyamat</h2>
+<p class="small">Rögzíti az auditor felülvizsgálati döntését és indoklását a kiválasztott jelentés meglévő audit_log mezőjében. Nem módosítja automatikusan a jelentés státuszát, nem zár Findingot vagy CAPA-t, és nem helyettesíti a hivatalos jóváhagyási folyamatot.</p>
+<div class="v624-grid">
+ <div class="v624-panel">
+  <label for="v624Audit">Audit</label><select id="v624Audit"><option value="">Válassz auditot…</option></select>
+  <label for="v624Report">Kapcsolódó jelentés</label><select id="v624Report"><option value="">Válassz jelentést…</option></select>
+  <label for="v624Reviewer">Felülvizsgáló neve</label><input id="v624Reviewer" maxlength="120" placeholder="Auditor neve">
+  <label for="v624Decision">Felülvizsgálati eredmény</label><select id="v624Decision"><option value="review_required">További felülvizsgálat szükséges</option><option value="reviewed_open_items">Felülvizsgálva – nyitott tételekkel</option><option value="reviewed_ready">Felülvizsgálva – továbblépésre javasolt</option><option value="not_approved">Nem javasolt jóváhagyásra</option></select>
+  <label for="v624Notes">Indoklás / felülvizsgálati megjegyzés</label><textarea id="v624Notes" maxlength="5000" placeholder="Írd le az áttekintett tételeket, a döntés indokát és a következő lépést…"></textarea>
+  <button type="button" class="primary" id="v624Save">Felülvizsgálat rögzítése</button>
+  <p id="v624Msg" class="small">Válassz auditot és jelentést.</p>
+  <div class="notice"><b>Fontos:</b> a felülvizsgáló neve itt megadott szöveg, nem hitelesített személyazonosság. A mentés nem állítja át az audit_reports.status, approved_at vagy finalized_at mezőit.</div>
+ </div>
+ <div class="v624-panel">
+  <h3>Korábbi felülvizsgálati bejegyzések</h3><div id="v624History"><p class="small">Válassz jelentést a bejegyzések megtekintéséhez.</p></div>
+ </div>
+</div>
+</section>
+<script id="v624-review-js">
+(function(){
+ const $=id=>document.getElementById(id);const esc24=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let reports=[];
+ function parseLog(v){if(Array.isArray(v))return v;if(typeof v==='string'){try{const x=JSON.parse(v);return Array.isArray(x)?x:[]}catch(e){return []}}return []}
+ function decisionLabel(v){return ({review_required:'További felülvizsgálat szükséges',reviewed_open_items:'Felülvizsgálva – nyitott tételekkel',reviewed_ready:'Felülvizsgálva – továbblépésre javasolt',not_approved:'Nem javasolt jóváhagyásra'})[v]||v||'—'}
+ async function loadAudits24(){if(typeof loadAudits==='function')await loadAudits();const arr=Array.isArray(window.acafAudits)?window.acafAudits:[];const sel=$('v624Audit'),old=sel.value;sel.innerHTML='<option value="">Válassz auditot…</option>'+arr.map(a=>'<option value="'+esc24(a.id)+'">'+esc24((a.audit_no?a.audit_no+' — ':'')+(a.title||'Audit'))+'</option>').join('');if(old&&arr.some(a=>String(a.id)===old))sel.value=old;else if($('v5AuditSelect')?.value)sel.value=$('v5AuditSelect').value;await loadReports24();}
+ async function loadReports24(){const aid=$('v624Audit').value;const sel=$('v624Report');sel.innerHTML='<option value="">Válassz jelentést…</option>';reports=[];$('v624History').innerHTML='<p class="small">Válassz jelentést a bejegyzések megtekintéséhez.</p>';if(!aid)return;try{reports=await api('/rest/v1/audit_reports?select=*&audit_id=eq.'+encodeURIComponent(aid)+'&order=generated_at.desc');if(!Array.isArray(reports))reports=[];sel.innerHTML='<option value="">Válassz jelentést…</option>'+reports.map(r=>'<option value="'+esc24(r.id)+'">'+esc24((r.report_title||'Audit report')+' · v'+(r.version??'—')+' · '+(r.status||'—')+' · '+(r.generated_at||'').slice(0,10))+'</option>').join('');if(reports.length===1)sel.value=reports[0].id;renderHistory24();}catch(e){$('v624Msg').textContent='Jelentéslista betöltési hiba: '+(e.message||String(e));$('v624Msg').className='small error';}}
+ function selectedReport24(){return reports.find(r=>String(r.id)===$('v624Report').value)}
+ function renderHistory24(){const r=selectedReport24();if(!r){$('v624History').innerHTML='<p class="small">Válassz jelentést a bejegyzések megtekintéséhez.</p>';return}const log=parseLog(r.audit_log).filter(x=>x&&(['review_required','reviewed_open_items','reviewed_ready','not_approved'].includes(x.review_decision)||x.event_type==='audit_review'));$('v624History').innerHTML=log.length?log.slice().reverse().map(x=>'<div class="v624-history-item"><b>'+esc24(decisionLabel(x.review_decision))+'</b><div class="v624-note">'+esc24(x.reviewed_at||x.timestamp||'')+' · '+esc24(x.reviewer||'Felülvizsgáló nincs megadva')+'</div><div>'+esc24(x.notes||'Nincs megjegyzés')+'</div></div>').join(''):'<p class="small">Ehhez a jelentéshez még nincs V6.24 felülvizsgálati bejegyzés.</p>'}
+ async function save24(){const msg=$('v624Msg'),rid=$('v624Report').value,reviewer=$('v624Reviewer').value.trim(),notes=$('v624Notes').value.trim(),decision=$('v624Decision').value;try{if(!$('v624Audit').value)throw new Error('Válassz auditot.');if(!rid)throw new Error('Válassz kapcsolódó jelentést.');if(!reviewer)throw new Error('Add meg a felülvizsgáló nevét.');if(!notes)throw new Error('Az indoklás mező kitöltése kötelező.');const r=selectedReport24();if(!r)throw new Error('A kiválasztott jelentés nem található.');msg.textContent='Felülvizsgálat mentése…';msg.className='small';const fresh=await api('/rest/v1/audit_reports?select=*&id=eq.'+encodeURIComponent(rid));if(!Array.isArray(fresh)||!fresh[0])throw new Error('A jelentés nem olvasható vagy már nem érhető el.');const current=fresh[0],log=parseLog(current.audit_log);const entry={event_type:'audit_review',review_decision:decision,reviewer,notes,reviewed_at:new Date().toISOString(),report_id:rid,audit_id:$('v624Audit').value,source_module:'ACAF Personal V6.24'};log.push(entry);await api('/rest/v1/audit_reports?id=eq.'+encodeURIComponent(rid),{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify({audit_log:log})});r.audit_log=log;$('v624Notes').value='';renderHistory24();msg.textContent='✓ A felülvizsgálati bejegyzés elmentve. A jelentés státusza nem változott.';msg.className='small success';}catch(e){msg.textContent='✕ Nem sikerült menteni: '+(e.message||String(e));msg.className='small error';}}
+ $('v624Audit').addEventListener('change',loadReports24);$('v624Report').addEventListener('change',renderHistory24);$('v624Save').addEventListener('click',save24);let tries=0;const timer=setInterval(()=>{if(typeof api==='function'&&typeof loadAudits==='function'){loadAudits24().catch(e=>{$('v624Msg').textContent='Betöltési hiba: '+(e.message||String(e));});clearInterval(timer)}if(++tries>60)clearInterval(timer)},500);
 })();
 </script>
 
