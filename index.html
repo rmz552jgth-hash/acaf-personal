@@ -2189,6 +2189,23 @@ async function v52Transition(nextStatus){
  const current=v52CurrentReport.status;
  const allowed={draft:'auditor_review',auditor_review:'approved',approved:'final'};
  if(allowed[current]!==nextStatus) throw new Error('Érvénytelen jelentés-életciklus átmenet.');
+ // V6.32: prevent approval/finalization while mandatory audit questions remain unanswered.
+ // This is a guard only: it does not alter audit answers or report lifecycle data.
+ if(nextStatus==='approved' || nextStatus==='final'){
+  const built=await v5BuildReport();
+  const pending=(built.questions||[]).filter(x=>!x.a || !x.a.assessment || x.a.assessment==='unanswered');
+  if(pending.length){
+   const lang=document.getElementById('v5Language').value||'en';
+   const list=pending.slice(0,8).map(x=>{
+    const code=x.r?.requirement_code||'Requirement';
+    return `${code}`;
+   }).join(', ');
+   const more=pending.length>8?(lang==='hu'?' és további ':' and more ')+(pending.length-8):'';
+   throw new Error(lang==='hu'
+    ? `Jóváhagyás/véglegesítés nem engedélyezett: ${pending.length} auditkérdés nincs értékelve (${list}${more}). Értékeld a kérdéseket, majd generáld újra a jelentést.`
+    : `Approval/finalization blocked: ${pending.length} audit question(s) remain unanswered (${list}${more}). Assess the questions and regenerate the report.`);
+  }
+ }
  const patch={status:nextStatus};
  if(nextStatus==='approved'){
   patch.approved_at=new Date().toISOString();
