@@ -4125,6 +4125,14 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
     const hu=(data.lang||'en')==='hu';
     const latest=[...entries].sort((a,b)=>String(a.reviewed_at||a.timestamp||'').localeCompare(String(b.reviewed_at||b.timestamp||''))).at(-1);
     if(latest && ['review_required','not_approved'].includes(latest.review_decision)){const previous=String(data.overall||'—');const revised=latest.review_decision==='not_approved'?(hu?'Jelentés nem jóváhagyott – auditor döntése szükséges':'Report not approved — auditor action required'):(hu?'Auditori felülvizsgálat szükséges – a legutóbbi döntés további felülvizsgálatot kér':'Auditor review required — latest review decision requires further review');data.overall=revised;if(previous&&previous!=='—')data.html=data.html.split(esc26(previous)).join(esc26(revised));}
+    const unanswered=(data.questions||[]).filter(x=>{const a=x.a||{};return !a.assessment||a.assessment==='unanswered'});
+    const latestReady=latest&&latest.review_decision==='reviewed_ready';
+    if(unanswered.length&&latestReady){
+      const warning=hu
+       ? '<section class=\"acaf6-section\"><h2>Felülvizsgálati összhang-ellenőrzés</h2><div class=\"acaf6-note\"><b>Auditori ellenőrzés szükséges:</b> a legutóbbi felülvizsgálati döntés továbblépésre javasolt, de '+unanswered.length+' auditkérdés továbbra sincs értékelve. A rendszer nem módosítja automatikusan a döntést vagy a jelentés státuszát; az ellentmondást az auditor ellenőrizze.</div></section>'
+       : '<section class=\"acaf6-section\"><h2>Review consistency check</h2><div class=\"acaf6-note\"><b>Auditor verification required:</b> the latest review decision recommends proceeding, but '+unanswered.length+' audit question(s) remain unanswered. The system does not automatically change the decision or report status; the auditor should resolve this discrepancy.</div></section>';
+      const insertAt=data.html.lastIndexOf('</div>');data.html=insertAt>=0?data.html.slice(0,insertAt)+warning+data.html.slice(insertAt):data.html+warning;
+    }
     const appendix=section26(entries,hu);
     const pos=data.html.lastIndexOf('</div>');
     data.html=pos>=0?data.html.slice(0,pos)+appendix+data.html.slice(pos):data.html+appendix;
