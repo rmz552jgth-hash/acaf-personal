@@ -3572,6 +3572,87 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v618-style">
+#v618IdentityAudit,#v618IdentityAudit *{box-sizing:border-box;min-width:0}
+#v618IdentityAudit{width:100%;max-width:100%;overflow:hidden}
+.v618-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v618-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v618-panel input,.v618-panel select,.v618-panel textarea{width:100%;max-width:100%;padding:9px;margin:5px 0 10px}
+.v618-item{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v618-meta{font-size:12px;color:#596579;line-height:1.55}
+@media(max-width:760px){.v618-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+<section class="card" id="v618IdentityAudit">
+<h2>V6.18 – Authenticated Audit Trail / Hitelesített tevékenységnapló</h2>
+<p class="small">A modul a Supabase bejelentkezett felhasználójának azonosítóját és a napló-hozzáférés állapotát jeleníti meg. Nem állítja bejegyzésről, hogy hitelesített, ha a szerveroldali identitás nem ellenőrizhető. A meglévő audit_log JSONB mezőt csak olvassa.</p>
+<div class="v618-grid">
+ <div class="v618-panel">
+  <h3>Bejelentkezési identitás</h3>
+  <div id="v618AuthStatus" class="v618-item">Identitás ellenőrzése…</div>
+  <button type="button" class="primary" onclick="v618Refresh()">↻ Identitás ellenőrzése</button>
+  <p class="v618-meta">A felhasználói azonosító nem jelszó és nem titkos kulcs. Ne oszd meg másokkal a session tokent.</p>
+ </div>
+ <div class="v618-panel">
+  <h3>Napló-hozzáférés ellenőrzése</h3>
+  <div id="v618LogStatus" class="v618-item">Ellenőrzés folyamatban…</div>
+  <p class="v618-meta">Ez az ellenőrzés megvizsgálja, hogy a bejelentkezett kliens olvashatja-e a jelentésnaplókat. Nem módosít RLS-szabályt és nem tesz próbát jogosulatlan írásra.</p>
+ </div>
+</div>
+<div class="v618-panel">
+ <h3>Fontos biztonsági különbség</h3>
+ <ul>
+  <li>A böngészőben megadott auditor név önmagában nem bizonyítja a személyazonosságot.</li>
+  <li>A hitelesített Supabase user ID azonosítja a bejelentkezett fiókot.</li>
+  <li>A JSONB-napló kliensoldali módosítása önmagában nem jelent megváltoztathatatlan audit trailt.</li>
+  <li>Megfelelőségi célú erősebb naplózáshoz külön, szerveroldali eseményrögzítés és korlátozott írási jogosultság ajánlott.</li>
+ </ul>
+</div>
+<p id="v618Msg" class="small"></p>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function getSession(){
+  try{
+   if(typeof supabaseClient!=='undefined'&&supabaseClient){
+    if(typeof supabaseClient.auth?.getUser==='function')return supabaseClient.auth.getUser().then(x=>({user:x.data?.user||null,error:x.error||null}));
+    if(typeof supabaseClient.auth?.getSession==='function')return supabaseClient.auth.getSession().then(x=>({user:x.data?.session?.user||null,error:x.error||null}));
+   }
+  }catch(e){return Promise.resolve({user:null,error:e})}
+  return Promise.resolve({user:null,error:new Error('A Supabase auth kliens nem érhető el a modul számára.')});
+ }
+ window.v618Refresh=async function(){
+  const msg=$('v618Msg');msg.textContent='Ellenőrzés…';msg.className='small';
+  $('v618AuthStatus').textContent='Identitás ellenőrzése…';$('v618LogStatus').textContent='Hozzáférés ellenőrzése…';
+  try{
+   const result=await getSession();
+   if(result.error)throw result.error;
+   const u=result.user;
+   if(!u){
+    $('v618AuthStatus').innerHTML='<b>Nincs bejelentkezett felhasználó.</b><div class="v618-meta">Jelentkezz be az ACAF Login / Bejelentkezés paneljén.</div>';
+    $('v618LogStatus').textContent='A napló-hozzáférés nem ellenőrizhető bejelentkezés nélkül.';
+    msg.textContent='A bejelentkezési identitás nem áll rendelkezésre.';msg.className='small error';return;
+   }
+   $('v618AuthStatus').innerHTML=`<b>Bejelentkezve</b><div class="v618-meta">User ID: ${esc(u.id)}</div><div class="v618-meta">E-mail: ${esc(u.email||'nem érhető el')}</div><div class="v618-meta">E-mail megerősítve: ${u.email_confirmed_at?'Igen':'Nem / nem jelzett'}</div>`;
+   try{
+    const rows=await api('/rest/v1/audit_reports?select=id&limit=1');
+    $('v618LogStatus').innerHTML=`<b>Olvasási lekérdezés sikeres</b><div class="v618-meta">A kliens hozzáfért az audit_reports táblához. Visszaadott rekordok: ${Array.isArray(rows)?rows.length:'válasz érkezett'}.</div>`;
+   }catch(e){
+    $('v618LogStatus').innerHTML=`<b>Olvasási hozzáférés nem igazolt</b><div class="v618-meta">${esc(e.message||'A lekérdezés sikertelen.')}</div>`;
+   }
+   msg.textContent='✓ Ellenőrzés befejezve. Ez nem minősíti a naplót megváltoztathatatlannak.';msg.className='small success';
+  }catch(e){
+   $('v618AuthStatus').textContent='Az identitás ellenőrzése sikertelen.';
+   $('v618LogStatus').textContent='A napló-hozzáférés nem ellenőrizhető.';
+   msg.textContent='✕ '+(e.message||'Ellenőrzési hiba');msg.className='small error';
+  }
+ };
+ setTimeout(window.v618Refresh,7000);
+})();
+</script>
+
 </body>
 </html>
 
