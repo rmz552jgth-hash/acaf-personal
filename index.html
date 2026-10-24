@@ -3764,6 +3764,90 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v621-style">
+#v621AuditTrailReport,#v621AuditTrailReport *{box-sizing:border-box;min-width:0}
+#v621AuditTrailReport{width:100%;max-width:100%;overflow:hidden}
+.v621-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v621-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v621-panel input,.v621-panel select{width:100%;max-width:100%;padding:9px;margin:5px 0 10px}
+.v621-item{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v621-meta{font-size:12px;color:#596579;line-height:1.55}
+@media(max-width:760px){.v621-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+<section class="card" id="v621AuditTrailReport">
+<h2>V6.21 – Audit Trail Review & Export / Naplófelülvizsgálat és export</h2>
+<p class="small">A külön auditori eseménynapló ellenőrzése, szűrése és exportja. A modul csak olvas; nem módosít naplórekordot, és nem változtat jogosultságot.</p>
+<div class="v621-grid">
+ <div class="v621-panel">
+  <label for="v621Audit">Audit</label><select id="v621Audit"><option value="all">Minden hozzáférhető audit</option></select>
+  <label for="v621Action">Tevékenység</label><select id="v621Action"><option value="all">Minden tevékenység</option></select>
+  <label for="v621Outcome">Eredmény</label><select id="v621Outcome"><option value="all">Minden eredmény</option></select>
+  <label for="v621Search">Szöveges keresés</label><input id="v621Search" type="search" placeholder="Auditor, megjegyzés, audit…">
+  <label for="v621From">Kezdő dátum</label><input id="v621From" type="date">
+  <label for="v621To">Záró dátum</label><input id="v621To" type="date">
+  <button type="button" class="primary" onclick="v621Refresh()">↻ Frissítés</button>
+  <button type="button" onclick="v621Export()">CSV export</button>
+  <p id="v621Msg" class="small"></p>
+ </div>
+ <div class="v621-panel">
+  <h3>Találatok</h3><div id="v621Count" class="v621-meta">Adatok betöltése…</div>
+  <div id="v621List"><p class="small">Adatok betöltése…</p></div>
+ </div>
+</div>
+<div class="notice"><b>Megjegyzés:</b> az export csak az aktuális felhasználó számára az RLS alapján hozzáférhető rekordokat tartalmazza. A naplóbejegyzések időpontját az adatbázis tárolja.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let audits=[],entries=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function auditLabel(id){const a=audits.find(x=>String(x.id)===String(id));return a?`${a.audit_no||''} — ${a.title||'Audit'}`:String(id||'—')}
+ function options(id,values,label){const el=$(id),old=el.value;el.innerHTML='<option value="all">'+label+'</option>'+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');if(old&&[...el.options].some(o=>o.value===old))el.value=old}
+ function filtered(){
+  const aid=$('v621Audit').value,act=$('v621Action').value,out=$('v621Outcome').value,term=$('v621Search').value.trim().toLowerCase(),from=$('v621From').value,to=$('v621To').value;
+  return entries.filter(x=>{
+   if(aid!=='all'&&String(x.audit_id)!==aid)return false;
+   if(act!=='all'&&x.action!==act)return false;
+   if(out!=='all'&&String(x.outcome||'')!==out)return false;
+   const d=String(x.created_at||'').slice(0,10);if(from&&d<from)return false;if(to&&d>to)return false;
+   const text=[x.actor_email,x.actor_user_id,x.action,x.outcome,x.notes,auditLabel(x.audit_id)].join(' ').toLowerCase();
+   return !term||text.includes(term);
+  }).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+ }
+ function render(){
+  const list=filtered();$('v621Count').textContent=`${list.length} esemény · ${new Set(list.map(x=>x.audit_id)).size} audit`;
+  $('v621List').innerHTML=list.length?list.slice(0,150).map(x=>`<div class="v621-item"><b>${esc(x.action||'Esemény')}</b><div class="v621-meta">${esc(x.created_at||'Időpont nincs megadva')}<br>Auditor/fiók: ${esc(x.actor_email||x.actor_user_id||'—')}<br>Audit: ${esc(auditLabel(x.audit_id))}<br>Eredmény: ${esc(x.outcome||'—')}<br>Jelentés ID: ${esc(x.report_id||'—')}</div><p>${esc(x.notes||'Nincs megjegyzés.')}</p></div>`).join(''):'<p class="small">Nincs a szűrésnek megfelelő naplóbejegyzés.</p>';
+  if(list.length>150)$('v621List').insertAdjacentHTML('beforeend','<p class="small">Az első 150 találat látható. A CSV-export a teljes szűrt listát tartalmazza.</p>');
+ }
+ window.v621Refresh=async function(){
+  const m=$('v621Msg');m.textContent='Napló betöltése…';m.className='small';
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+   entries=await api('/rest/v1/audit_activity_log?select=*&order=created_at.desc&limit=1000');
+   options('v621Audit',[...new Set(entries.map(x=>String(x.audit_id)))].map(id=>({id,label:auditLabel(id)})).map(x=>x.id),'Minden hozzáférhető audit');
+   const auditEl=$('v621Audit'),old=auditEl.value;
+   auditEl.innerHTML='<option value="all">Minden hozzáférhető audit</option>'+[...new Set(entries.map(x=>String(x.audit_id)))].map(id=>`<option value="${esc(id)}">${esc(auditLabel(id))}</option>`).join('');
+   if(old&&[...auditEl.options].some(o=>o.value===old))auditEl.value=old;
+   options('v621Action',[...new Set(entries.map(x=>x.action).filter(Boolean))].sort(),'Minden tevékenység');
+   options('v621Outcome',[...new Set(entries.map(x=>x.outcome).filter(Boolean))].sort(),'Minden eredmény');
+   render();m.textContent='✓ Napló betöltve.';m.className='small success';
+  }catch(e){m.textContent='✕ '+(e.message||'Betöltési hiba');m.className='small error';$('v621List').innerHTML='<p class="small">Nem sikerült beolvasni a külön eseménynaplót. Ellenőrizd a V6.20 migrációt és a hozzáférési szabályokat.</p>'}
+ };
+ window.v621Export=function(){
+  const list=filtered(),headers=['created_at','audit','audit_id','report_id','actor_user_id','actor_email','action','outcome','notes'];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=list.map(x=>[x.created_at,auditLabel(x.audit_id),x.audit_id,x.report_id,x.actor_user_id,x.actor_email,x.action,x.outcome,x.notes].map(q).join(','));
+  const blob=new Blob(['\ufeff'+[headers.map(q).join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ACAF_Separate_Audit_Trail.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  $('v621Msg').textContent=`✓ CSV export elkészült (${list.length} esemény).`;$('v621Msg').className='small success';
+ };
+ ['v621Audit','v621Action','v621Outcome','v621Search','v621From','v621To'].forEach(id=>$(id).addEventListener('input',render));
+ setTimeout(window.v621Refresh,8000);
+})();
+</script>
+
 </body>
 </html>
 
