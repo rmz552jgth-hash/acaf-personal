@@ -2202,8 +2202,7 @@ async function v52Finalize(){try{await v52Transition('final')}catch(e){document.
 function v5PrintReport(){if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}window.print();}
 function v5WordReport(){
  if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}
- const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'<!-- ACAF V6.28: V4.0 workflow callout clarified; evidence adequacy disclaimer strengthened. -->
-</body></html>'],{type:'application/msword'});
+ const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>'],{type:'application/msword'});
  const a=document.createElement('a');
  a.href=URL.createObjectURL(blob);
  a.download=(v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report.doc';
