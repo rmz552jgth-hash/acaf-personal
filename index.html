@@ -3654,6 +3654,80 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v619-style">
+#v619AuditLogControl,#v619AuditLogControl *{box-sizing:border-box;min-width:0}
+#v619AuditLogControl{width:100%;max-width:100%;overflow:hidden}
+.v619-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v619-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v619-panel input,.v619-panel select,.v619-panel textarea{width:100%;max-width:100%;padding:9px;margin:5px 0 10px}
+.v619-meta{font-size:12px;color:#596579;line-height:1.55}
+.v619-good{color:#16794b}.v619-warn{color:#9a5b00}.v619-bad{color:#a12828}
+@media(max-width:760px){.v619-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+<section class="card" id="v619AuditLogControl">
+<h2>V6.19 – Audit Log Access Control / Napló-hozzáférés ellenőrzése</h2>
+<p class="small">Ellenőrzi a meglévő naplóírási jogosultságokat és a bejelentkezett felhasználó hozzáférését. Ez a modul nem módosít RLS-szabályt és nem ír adatot.</p>
+<div class="v619-grid">
+ <div class="v619-panel">
+  <h3>Hitelesített felhasználó</h3>
+  <div id="v619Identity">Ellenőrzés folyamatban…</div>
+  <h3>Auditnapló elérése</h3>
+  <div id="v619Read">Ellenőrzés folyamatban…</div>
+ </div>
+ <div class="v619-panel">
+  <h3>Írási jogosultság megítélése</h3>
+  <div id="v619Write">Az ellenőrzés folyamatban…</div>
+  <p class="v619-meta">Az írási jogosultságot nem próbáljuk ki hamis vagy törlendő bejegyzéssel. Az RLS/policy beállítások külön, a Supabase Dashboardban ellenőrizendők.</p>
+  <button type="button" class="primary" onclick="v619Refresh()">↻ Ellenőrzés újra</button>
+ </div>
+</div>
+<div class="v619-panel">
+ <h3>Biztonsági javaslat</h3>
+ <p>Az <code>audit_reports.audit_log</code> JSONB mezőben tárolt napló továbbra is a jelentésrekord része. Ha a bejelentkezett felhasználó módosíthatja a rekordot, a napló nem tekinthető megváltoztathatatlannak. Erősebb védelemhez külön táblában tárolt események, korlátozott INSERT jogosultság és szerveroldali időbélyeg/azonosító szükséges.</p>
+ <p class="v619-meta">A modul csak megfigyelést végez; nem módosít adatbázis-sémát, adatot vagy jogosultságot.</p>
+</div>
+<p id="v619Msg" class="small"></p>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function block(el,heading,detail,kind){
+  $(el).innerHTML=`<b class="${kind||''}">${esc(heading)}</b><div class="v619-meta">${esc(detail||'')}</div>`;
+ }
+ window.v619Refresh=async function(){
+  $('v619Msg').textContent='Ellenőrzés…';
+  block('v619Identity','Ellenőrzés folyamatban…','');
+  block('v619Read','Ellenőrzés folyamatban…','');
+  block('v619Write','Ellenőrzés folyamatban…','');
+  try{
+   if(typeof session==='undefined'||!session?.access_token){
+    block('v619Identity','Nincs aktív bejelentkezés','Jelentkezz be az ACAF bejelentkezési paneljén.','v619-bad');
+    block('v619Read','Nem ellenőrizhető','Bejelentkezés szükséges.','v619-warn');
+    block('v619Write','Nem ellenőrizhető','Bejelentkezés szükséges.','v619-warn');
+    $('v619Msg').textContent='Ellenőrzés befejezve.';return;
+   }
+   let user=null;
+   try{user=await api('/auth/v1/user')}catch(e){throw new Error('A Supabase nem igazolta vissza a bejelentkezett felhasználót: '+e.message)}
+   block('v619Identity','Hitelesített munkamenet','User ID: '+(user?.id||session.user?.id||'nem érhető el')+' · E-mail: '+(user?.email||'nem érhető el'),'v619-good');
+   try{
+    const rows=await api('/rest/v1/audit_reports?select=id&limit=1');
+    block('v619Read','Olvasási lekérdezés sikeres','Az audit_reports tábla elérhető. Visszaadott sorok: '+(Array.isArray(rows)?rows.length:'válasz érkezett'),'v619-good');
+   }catch(e){block('v619Read','Olvasás nem igazolt',e.message,'v619-bad')}
+   block('v619Write','Nem tesztelt – biztonságos megközelítés','A modul nem hajt végre írási próbát. Az adatbázis RLS/policy szabályait a Supabase Dashboardban kell ellenőrizni.','v619-warn');
+   $('v619Msg').textContent='✓ Ellenőrzés befejezve. Jogosultságot nem módosítottunk.';$('v619Msg').className='small success';
+  }catch(e){
+   block('v619Identity','Identitásellenőrzés sikertelen',e.message,'v619-bad');
+   block('v619Read','Nem ellenőrizhető','Először a hitelesített munkamenetet kell ellenőrizni.','v619-warn');
+   block('v619Write','Nem ellenőrzött','Nincs írási próba, nem változott jogosultság.','v619-warn');
+   $('v619Msg').textContent='✕ '+e.message;$('v619Msg').className='small error';
+  }
+ };
+ setTimeout(window.v619Refresh,7500);
+})();
+</script>
+
 </body>
 </html>
 
