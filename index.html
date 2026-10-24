@@ -3483,6 +3483,95 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+
+<style id="v617-style">
+#v617AuditLogReport,#v617AuditLogReport *{box-sizing:border-box;min-width:0}
+#v617AuditLogReport{width:100%;max-width:100%;overflow:hidden}
+.v617-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v617-panel{border:1px solid #dbe2ea;border-radius:10px;padding:14px;margin:10px 0;background:#fff}
+.v617-panel input,.v617-panel select{width:100%;max-width:100%;padding:9px;margin:5px 0 10px}
+.v617-item{border:1px solid #e0e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow-wrap:anywhere}
+.v617-meta{font-size:12px;color:#596579;line-height:1.55}
+@media(max-width:760px){.v617-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+<section class="card" id="v617AuditLogReport">
+<h2>V6.17 – Activity Log Search & Export / Naplókereső és export</h2>
+<p class="small">A V6.16-ban mentett auditori naplóbejegyzések keresése, szűrése és exportálása. Ez a modul csak olvassa a naplót; nem írja át a bejegyzéseket.</p>
+<div class="v617-grid">
+ <div class="v617-panel">
+  <label for="v617Audit">Audit</label><select id="v617Audit"><option value="all">Minden audit</option></select>
+  <label for="v617Action">Tevékenység</label><select id="v617Action"><option value="all">Minden tevékenység</option></select>
+  <label for="v617Search">Keresés a bejegyzésekben</label><input id="v617Search" type="search" placeholder="Auditor, megjegyzés, eredmény…">
+  <label for="v617From">Kezdő dátum</label><input id="v617From" type="date">
+  <label for="v617To">Záró dátum</label><input id="v617To" type="date">
+  <button type="button" class="primary" onclick="v617Refresh()">↻ Frissítés</button>
+  <button type="button" onclick="v617Export()">CSV export</button>
+  <p id="v617Msg" class="small"></p>
+ </div>
+ <div class="v617-panel">
+  <h3>Találatok</h3>
+  <div id="v617Count" class="v617-meta">Adatok betöltése…</div>
+  <div id="v617List"><p class="small">Adatok betöltése…</p></div>
+ </div>
+</div>
+<div class="notice"><b>Megjegyzés:</b> az exportban szereplő auditor neve a bejegyzésben megadott érték, nem hitelesített felhasználói azonosító. A napló a `audit_reports.audit_log` JSONB mezőből olvas.</div>
+</section>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ let audits=[],reports=[],entries=[];
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function parse(v){if(!v)return [];if(Array.isArray(v))return v;if(typeof v==='object')return [v];try{const x=JSON.parse(v);return Array.isArray(x)?x:[x]}catch(e){return [{notes:String(v)}]}}
+ function auditName(id){const a=audits.find(x=>String(x.id)===String(id));return a?`${a.audit_no||''} — ${a.title||'Audit'}`:String(id||'Audit nincs megadva')}
+ function collect(){
+  entries=reports.flatMap(r=>parse(r.audit_log).map((x,i)=>({...x,audit_id:r.audit_id,report_id:r.id,report_title:r.report_title||'Audit Report',version:r.version,status:r.status,entry_index:i})));
+  const auditSel=$('v617Audit'),old=auditSel.value;
+  auditSel.innerHTML='<option value="all">Minden audit</option>'+audits.map(a=>`<option value="${esc(a.id)}">${esc(a.audit_no||'')} — ${esc(a.title||'Audit')}</option>`).join('');
+  if(old&&[...auditSel.options].some(o=>o.value===old))auditSel.value=old;
+  const actSel=$('v617Action'),oldAct=actSel.value,actions=[...new Set(entries.map(x=>x.action).filter(Boolean))].sort();
+  actSel.innerHTML='<option value="all">Minden tevékenység</option>'+actions.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  if(oldAct&&[...actSel.options].some(o=>o.value===oldAct))actSel.value=oldAct;
+  render();
+ }
+ function filtered(){
+  const aid=$('v617Audit').value,act=$('v617Action').value,term=$('v617Search').value.trim().toLowerCase(),from=$('v617From').value,to=$('v617To').value;
+  return entries.filter(x=>{
+   if(aid!=='all'&&String(x.audit_id)!==aid)return false;
+   if(act!=='all'&&x.action!==act)return false;
+   const date=String(x.timestamp||'').slice(0,10);
+   if(from&&date<from)return false;if(to&&date>to)return false;
+   const hay=[x.actor,x.action,x.outcome,x.notes,x.report_title,auditName(x.audit_id)].join(' ').toLowerCase();
+   return !term||hay.includes(term);
+  }).sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
+ }
+ function render(){
+  const list=filtered();
+  $('v617Count').textContent=`${list.length} naplóbejegyzés · ${new Set(list.map(x=>x.audit_id)).size} audit`;
+  $('v617List').innerHTML=list.length?list.slice(0,150).map(x=>`<div class="v617-item"><b>${esc(x.action||'Auditori tevékenység')}</b><div class="v617-meta">${esc(x.timestamp||'Időpont nincs megadva')} · ${esc(x.actor||'Auditor nincs megadva')}<br>Audit: ${esc(auditName(x.audit_id))}<br>Jelentés: ${esc(x.report_title)} · v${esc(x.version??'—')} · ${esc(x.status||'')}</div><p class="small">Eredmény: ${esc(x.outcome||'—')}</p><p class="small">${esc(x.notes||'Nincs megjegyzés.')}</p></div>`).join(''):'<p class="small">Nincs a szűrésnek megfelelő naplóbejegyzés.</p>';
+  if(list.length>150)$('v617List').insertAdjacentHTML('beforeend','<p class="small">Az első 150 találat látható; a CSV-export a teljes szűrt listát tartalmazza.</p>');
+ }
+ window.v617Refresh=async function(){
+  const msg=$('v617Msg');msg.textContent='Betöltés…';msg.className='small';
+  try{
+   if(typeof loadAudits==='function')await loadAudits();
+   audits=Array.isArray(window.acafAudits)?window.acafAudits:[];
+   reports=await api('/rest/v1/audit_reports?select=*&order=generated_at.desc');
+   collect();msg.textContent='✓ Napló frissítve.';msg.className='small success';
+  }catch(e){msg.textContent='✕ '+(e.message||'Betöltési hiba');msg.className='small error'}
+ };
+ window.v617Export=function(){
+  const list=filtered(),headers=['timestamp','audit','report_title','report_version','report_status','actor','action','outcome','notes'];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=list.map(x=>[x.timestamp,auditName(x.audit_id),x.report_title,x.version,x.status,x.actor,x.action,x.outcome,x.notes].map(q).join(','));
+  const blob=new Blob(['\ufeff'+[headers.map(q).join(','),...rows].join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ACAF_Auditor_Activity_Log.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  $('v617Msg').textContent=`✓ CSV export elkészült (${list.length} bejegyzés).`;$('v617Msg').className='small success';
+ };
+ ['v617Audit','v617Action','v617Search','v617From','v617To'].forEach(id=>$(id).addEventListener('input',render));
+ setTimeout(window.v617Refresh,6500);
+})();
+</script>
+
 </body>
 </html>
 
