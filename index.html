@@ -4449,4 +4449,34 @@ async function acafRefreshFindingCapaSummary(){
 })();
 </script>
 
+
+<!-- V6.46: central audit-selection synchronization for report history and read-only trackers. -->
+<script id="acaf-v646-audit-sync">
+(function(){
+  function byId(id){return document.getElementById(id);}
+  async function syncAuditSelection(){
+    const sel=byId('v5AuditSelect');
+    if(!sel)return;
+    const auditId=sel.value;
+    const historyBox=byId('v531History');
+    if(!auditId){if(historyBox)historyBox.innerHTML='<span class="v531-muted">Válassz auditot.</span>';return;}
+    try{
+      if(typeof api==='function'){
+        const rows=await api('/rest/v1/audit_reports?select=id,version,language,status,generated_at,approved_at,finalized_at&audit_id=eq.'+encodeURIComponent(auditId)+'&order=version.desc');
+        if(historyBox){
+          if(!Array.isArray(rows)||!rows.length) historyBox.innerHTML='<span class="v531-muted">Ehhez az audithoz még nincs mentett report.</span>';
+          else historyBox.innerHTML=rows.map(r=>'<div class="v531-row"><b>V'+(typeof v5Esc==='function'?v5Esc(r.version):String(r.version))+'</b><span>'+(typeof v5Esc==='function'?v5Esc(r.status||''):String(r.status||''))+'</span><span>'+(typeof v5FmtDate==='function'?v5FmtDate(r.generated_at):(r.generated_at||''))+'</span><span>'+(typeof v5Esc==='function'?v5Esc(r.language||''):String(r.language||''))+'</span></div>').join('');
+        }
+      }
+      const tasks=['v61LoadEvidenceControl','v62LoadEvidenceReview','v63LoadEvidenceVerification','v64LoadDashboard','v65LoadActionTracker','v66LoadRegulatoryImpact','acafRefreshFindingCapaSummary'];
+      for(const name of tasks){if(typeof window[name]==='function'){try{await window[name]();}catch(e){console.warn('ACAF audit sync '+name,e);}}}
+    }catch(e){if(historyBox)historyBox.innerHTML='<span class="v531-error">Jelentéselőzmények betöltési hiba: '+(typeof v5Esc==='function'?v5Esc(e.message||String(e)):String(e.message||e))+'</span>';}
+  }
+  function bind(){const sel=byId('v5AuditSelect');if(!sel)return false;if(!sel.__v646SyncBound){sel.addEventListener('change',syncAuditSelection,true);sel.__v646SyncBound=true;}if(sel.value)syncAuditSelection();return true;}
+  let tries=0;const timer=setInterval(()=>{tries++;if(bind()||tries>60)clearInterval(timer);},500);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+  window.addEventListener('load',bind);
+})();
+</script>
+
 </html>
