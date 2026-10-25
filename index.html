@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.35</title>
+<title>ACAF Personal V6.45</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -4392,42 +4392,56 @@ async function acafRefreshFindingCapaSummary(){
 </script>
 </body>
 
-<script id="acaf-v644-audit-selector-recovery">
+<script id="acaf-v645-audit-selector-recovery">
 (function(){
- let tries=0, timer=null;
+ let tries=0,timer=null,busy=false;
+ const escHtml=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
  async function populateAuditSelector(){
   const sel=document.getElementById('v5AuditSelect');
-  if(!sel) return false;
+  if(!sel||busy)return false;
+  busy=true;
   try{
+   if(typeof refreshSession==='function'){
+    try{await refreshSession(false);}catch(_){/* report the actual list/API error below */}
+   }
    let rows=Array.isArray(window.acafAudits)?window.acafAudits:[];
-   if(!rows.length && typeof loadAudits==='function'){
-    await loadAudits();
-    rows=Array.isArray(window.acafAudits)?window.acafAudits:[];
+   const hasUsableRows=rows.some(a=>a&&a.id);
+   if(!hasUsableRows&&typeof api==='function'){
+    const fetched=await api('/rest/v1/audits?select=id,audit_no,title,organisation_id,created_at&order=created_at.desc');
+    rows=Array.isArray(fetched)?fetched:[];
+    if(rows.length)window.acafAudits=rows;
    }
-   if(!rows.length && typeof api==='function'){
-    rows=await api('/rest/v1/audits?select=id,audit_no,title,organisation_id,created_at&order=created_at.desc');
-    window.acafAudits=Array.isArray(rows)?rows:[];
-   }
-   rows=Array.isArray(rows)?rows:[];
+   rows=rows.filter(a=>a&&a.id);
    const current=sel.value;
-   const existing=Array.from(sel.options).some(o=>o.value && rows.some(a=>String(a.id)===String(o.value)));
-   if(rows.length && (!existing || sel.options.length<=1)){
-    sel.innerHTML='<option value="">Audit kiválasztása...</option>'+rows.map(a=>'<option value="'+String(a.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+String(a.audit_no||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')+' – '+String(a.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</option>').join('');
+   const options='<option value="">Audit kiválasztása...</option>'+rows.map(a=>'<option value="'+escHtml(a.id)+'">'+escHtml(a.audit_no||'')+(a.audit_no?' – ':'')+escHtml(a.title||'Audit')+'</option>').join('');
+   const signature=rows.map(a=>String(a.id)).join('|');
+   if(rows.length && (sel.dataset.acafAuditSignature!==signature || sel.options.length!==rows.length+1)){
+    sel.innerHTML=options;
+    sel.dataset.acafAuditSignature=signature;
    }
-   if(current && rows.some(a=>String(a.id)===String(current)))sel.value=current;
+   if(current&&rows.some(a=>String(a.id)===String(current)))sel.value=current;
    if(sel.options.length>1){
-    sel.dispatchEvent(new Event('change',{bubbles:true}));
+    if(!sel.dataset.acafV645ChangeBound){
+     sel.addEventListener('change',()=>{
+      const id=sel.value;
+      if(typeof v52LoadLatestReport==='function')v52LoadLatestReport(id).catch(e=>{const m=document.getElementById('v52LifecycleMsg');if(m)m.textContent='Report betöltési hiba: '+(e.message||String(e));});
+      ['v61LoadEvidenceControl','v62LoadEvidenceReview','v63LoadEvidenceVerification','v64LoadDashboard','v65LoadActionTracker'].forEach(fn=>{if(typeof window[fn]==='function')Promise.resolve(window[fn]()).catch(()=>{});});
+     });
+     sel.dataset.acafV645ChangeBound='1';
+    }
     return true;
    }
+   const status=document.getElementById('v52LifecycleMsg')||document.getElementById('v5Status');
+   if(status&&tries>=5)status.textContent='Az auditlista még nem érhető el. Ellenőrizd a Supabase-kapcsolatot és a bejelentkezést, majd frissítsd az oldalt.';
   }catch(e){
-   const status=document.getElementById('v5Status');
+   const status=document.getElementById('v52LifecycleMsg')||document.getElementById('v5Status');
    if(status)status.textContent='Auditlista betöltési hiba: '+(e.message||String(e));
-  }
+  }finally{busy=false;}
   return false;
  }
  function start(){
   if(timer)clearInterval(timer);tries=0;
-  timer=setInterval(async()=>{tries++;const ok=await populateAuditSelector();if(ok||tries>=30)clearInterval(timer);},1000);
+  timer=setInterval(async()=>{tries++;const ok=await populateAuditSelector();if(ok||tries>=30)clearInterval(timer);},1500);
   populateAuditSelector();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
