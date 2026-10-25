@@ -4391,4 +4391,48 @@ async function acafRefreshFindingCapaSummary(){
 })();
 </script>
 </body>
+
+<script id="acaf-v644-audit-selector-recovery">
+(function(){
+ let tries=0, timer=null;
+ async function populateAuditSelector(){
+  const sel=document.getElementById('v5AuditSelect');
+  if(!sel) return false;
+  try{
+   let rows=Array.isArray(window.acafAudits)?window.acafAudits:[];
+   if(!rows.length && typeof loadAudits==='function'){
+    await loadAudits();
+    rows=Array.isArray(window.acafAudits)?window.acafAudits:[];
+   }
+   if(!rows.length && typeof api==='function'){
+    rows=await api('/rest/v1/audits?select=id,audit_no,title,organisation_id,created_at&order=created_at.desc');
+    window.acafAudits=Array.isArray(rows)?rows:[];
+   }
+   rows=Array.isArray(rows)?rows:[];
+   const current=sel.value;
+   const existing=Array.from(sel.options).some(o=>o.value && rows.some(a=>String(a.id)===String(o.value)));
+   if(rows.length && (!existing || sel.options.length<=1)){
+    sel.innerHTML='<option value="">Audit kiválasztása...</option>'+rows.map(a=>'<option value="'+String(a.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+String(a.audit_no||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')+' – '+String(a.title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</option>').join('');
+   }
+   if(current && rows.some(a=>String(a.id)===String(current)))sel.value=current;
+   if(sel.options.length>1){
+    sel.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+   }
+  }catch(e){
+   const status=document.getElementById('v5Status');
+   if(status)status.textContent='Auditlista betöltési hiba: '+(e.message||String(e));
+  }
+  return false;
+ }
+ function start(){
+  if(timer)clearInterval(timer);tries=0;
+  timer=setInterval(async()=>{tries++;const ok=await populateAuditSelector();if(ok||tries>=30)clearInterval(timer);},1000);
+  populateAuditSelector();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+ window.addEventListener('load',start);
+})();
+</script>
+
 </html>
