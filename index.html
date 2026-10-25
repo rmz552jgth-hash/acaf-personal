@@ -1877,7 +1877,17 @@ A FINAL jelentés nem módosítható.
     <button id="v52ApproveBtn" onclick="v52Approve()" disabled>Approve Report</button>
     <button id="v52FinalizeBtn" onclick="v52Finalize()" disabled>Finalize Report</button>
   </div>
-  <div id="v52LifecycleMsg" class="small" style="margin-top:10px"></div>
+  <div class="sourceBox" style="margin-top:12px">
+  <strong>Jelentés véglegesítése – lépések</strong>
+  <ol style="margin:8px 0 0 20px;padding:0">
+    <li><b>Generate / Save Draft:</b> a jelentés tervezetének létrehozása vagy mentése.</li>
+    <li><b>Submit for Auditor Review:</b> a tervezet átadása felülvizsgálatra.</li>
+    <li><b>Approve Report:</b> a felülvizsgálat utáni jóváhagyás.</li>
+    <li><b>Finalize Report:</b> a jóváhagyott jelentés véglegesítése.</li>
+  </ol>
+  <p class="small" style="margin:8px 0 0">A gombok az aktuális jelentés státusza szerint aktiválódnak. Ha a jóváhagyás vagy véglegesítés blokkolva van, ellenőrizd az értékeletlen auditkérdéseket, majd generáld újra a tervezetet.</p>
+</div>
+<div id="v52LifecycleMsg" class="small" style="margin-top:10px" role="status" aria-live="polite"></div>
 </div>
 
 <div style="margin-top:12px">
@@ -2219,7 +2229,7 @@ async function v52Transition(nextStatus){
  if(!row)throw new Error('A státusz frissítése nem adott vissza rekordot.');
  v52CurrentReport=row;
  v52RenderLifecycle();
- document.getElementById('v52LifecycleMsg').textContent=`Report státusz frissítve: ${v52ReportStatusLabel(row.status,document.getElementById('v5Language').value)}.`;
+ document.getElementById('v52LifecycleMsg').textContent=`Sikeres státuszváltás: ${v52ReportStatusLabel(row.status,document.getElementById('v5Language').value)}. Következő lépés: ${row.status==='auditor_review'?'Approve Report':row.status==='approved'?'Finalize Report':row.status==='final'?'A jelentés végleges.':'Submit for Auditor Review'}.`;
  document.getElementById('v5PreviewStatus').textContent=v52ReportStatusLabel(row.status,document.getElementById('v5Language').value);
 }
 async function v52SubmitReview(){try{await v52Transition('auditor_review')}catch(e){document.getElementById('v52LifecycleMsg').textContent='Hiba: '+e.message}}
