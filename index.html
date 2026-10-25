@@ -161,11 +161,22 @@ button.bad{background:#ffebeb;border-color:#efc0c0;color:#9c2828}
 .req.selected{border-color:var(--acaf-blue);background:var(--acaf-blue-bg)}
 .progress>div{background:var(--acaf-blue)}
 @media(max-width:800px){.container{padding:12px}.card{padding:16px;border-radius:12px}.card.acaf-group-audit,.card.acaf-group-regulatory,.card.acaf-group-findings,.card.acaf-group-report,.card.acaf-group-risk{background:#fff}}
+/* V6.36 quick navigation */
+.acaf-quicknav{position:sticky;top:0;z-index:20;display:flex;gap:8px;flex-wrap:wrap;padding:10px;margin:10px 0 16px;background:rgba(255,255,255,.96);border:1px solid var(--acaf-line);border-radius:12px;box-shadow:0 4px 16px rgba(22,48,78,.08);backdrop-filter:blur(8px)}
+.acaf-quicknav button{border-radius:999px;padding:8px 12px;font-size:13px;white-space:nowrap}
+.acaf-quicknav button[data-group="audit"]{background:var(--acaf-blue-bg);border-color:#c7dcf3;color:var(--acaf-blue)}
+.acaf-quicknav button[data-group="regulatory"]{background:var(--acaf-teal-bg);border-color:#c8e8e3;color:var(--acaf-teal)}
+.acaf-quicknav button[data-group="findings"]{background:var(--acaf-amber-bg);border-color:#f0dfbd;color:var(--acaf-amber)}
+.acaf-quicknav button[data-group="reports"]{background:var(--acaf-purple-bg);border-color:#ddd2f4;color:var(--acaf-purple)}
+.acaf-quicknav button[data-group="review"]{background:#eef1f5;border-color:#d9e0e8;color:#46586a}
+.acaf-quicknav button:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+@media(max-width:700px){.acaf-quicknav{position:relative;top:auto}.acaf-quicknav button{flex:1 1 42%;white-space:normal}}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.35</h1>
+<h1>ACAF Personal V6.36</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -197,6 +208,13 @@ button.bad{background:#ffebeb;border-color:#efc0c0;color:#9c2828}
 <button onclick="signOut()">Sign out</button>
 </div>
 </div>
+<nav class="acaf-quicknav" aria-label="ACAF module quick navigation">
+<button type="button" data-group="audit" onclick="acafJumpTo(['New Audit','My audits','Audit Dashboard'])">Auditok</button>
+<button type="button" data-group="regulatory" onclick="acafJumpTo(['Regulatory & Requirement Engine','Requirement Library','Regulatory Watch'])">Szabályozás és követelmények</button>
+<button type="button" data-group="findings" onclick="acafJumpTo(['Finding & CAPA Engine','Finding Creation','CAPA Creation'])">Finding / CAPA</button>
+<button type="button" data-group="review" onclick="acafJumpTo(['Evidence Control','Evidence Adequacy Review','Evidence Verification'])">Bizonyítékok</button>
+<button type="button" data-group="reports" onclick="acafJumpTo(['Controlled Audit Report Lifecycle','Professional Report Controls','Audit Report'])">Jelentések és jóváhagyás</button>
+</nav>
 
 <div id="dashboardView">
 <div class="card">
@@ -4247,5 +4265,26 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
 })();
 </script>
+
+<script id="acaf-v636-quick-navigation">
+function acafJumpTo(terms){
+ const headings=Array.from(document.querySelectorAll('h2'));
+ let target=null;
+ for(const term of terms){
+  target=headings.find(h=>h.textContent.toLowerCase().includes(term.toLowerCase()));
+  if(target)break;
+ }
+ if(!target){
+  const status=document.getElementById('status');
+  if(status)status.textContent='A keresett modul még nem található a jelenlegi nézetben.';
+  return;
+ }
+ const section=target.closest('section.card')||target.closest('.card')||target;
+ section.scrollIntoView({behavior:'smooth',block:'start'});
+ section.classList.add('acaf-nav-highlight');
+ window.setTimeout(()=>section.classList.remove('acaf-nav-highlight'),1400);
+}
+</script>
+<style>.acaf-nav-highlight{outline:3px solid #8ab5e3!important;outline-offset:2px;transition:outline-color .3s}</style>
 </body>
 </html>
