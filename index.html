@@ -173,10 +173,26 @@ button.bad{background:#ffebeb;border-color:#efc0c0;color:#9c2828}
 html{scroll-behavior:smooth;scroll-padding-top:90px}
 @media(max-width:700px){.acaf-quicknav{position:relative;top:auto}.acaf-quicknav button{flex:1 1 42%;white-space:normal}}
 </style>
+<style id="acaf-v637-workflow-ui">
+.acaf-workflow{border:1px solid #dbe3ec;border-radius:16px;padding:16px;margin:0 0 18px;background:linear-gradient(135deg,#f8fbff,#fff);box-shadow:0 5px 18px rgba(24,59,99,.06)}
+.acaf-workflow-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}.acaf-workflow h2{margin:0 0 5px;color:#183b63;font-size:1.15rem}.acaf-workflow p{margin:0;color:#637487;font-size:.92rem}
+.acaf-flowsteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:15px}
+.acaf-flowstep{border:1px solid #dbe3ec;border-radius:12px;padding:12px;min-width:0;background:white;position:relative}
+.acaf-flowstep .num{display:inline-flex;width:27px;height:27px;align-items:center;justify-content:center;border-radius:50%;font-weight:700;margin-bottom:8px}
+.acaf-flowstep strong{display:block;font-size:.91rem;margin-bottom:4px}.acaf-flowstep span{font-size:.79rem;color:#637487;display:block;line-height:1.4}
+.acaf-flowstep.audit{border-top:3px solid #2563a6}.acaf-flowstep.audit .num{background:#eaf2fc;color:#2563a6}
+.acaf-flowstep.evidence{border-top:3px solid #167d78}.acaf-flowstep.evidence .num{background:#ddf4ef;color:#167d78}
+.acaf-flowstep.findings{border-top:3px solid #a76612}.acaf-flowstep.findings .num{background:#fff0d6;color:#8b5700}
+.acaf-flowstep.report{border-top:3px solid #6b4db5}.acaf-flowstep.report .num{background:#eae4fa;color:#6241a6}
+.acaf-flow-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.acaf-flow-actions button{font-size:.85rem}
+@media(max-width:760px){.acaf-flowsteps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){.acaf-flowsteps{grid-template-columns:1fr}.acaf-flowstep{display:grid;grid-template-columns:36px 1fr;column-gap:8px}.acaf-flowstep .num{grid-row:span 2}}
+</style>
+
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.36</h1>
+<h1>ACAF Personal V6.37</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -215,6 +231,23 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 <button type="button" data-group="review" onclick="acafJumpTo(['Evidence Control','Evidence Adequacy Review','Evidence Verification'])">Bizonyítékok</button>
 <button type="button" data-group="reports" onclick="acafJumpTo(['Controlled Audit Report Lifecycle','Professional Report Controls','Audit Report'])">Jelentések és jóváhagyás</button>
 </nav>
+
+<section class="acaf-workflow" aria-labelledby="acafWorkflowTitle">
+ <div class="acaf-workflow-head"><div><h2 id="acafWorkflowTitle">Audit workflow / Audit munkafolyamat</h2><p>Gyors áttekintés: haladj balról jobbra. Ez útmutató és navigáció; nem változtat automatikusan auditstátuszt.</p></div></div>
+ <div class="acaf-flowsteps">
+  <div class="acaf-flowstep audit"><div class="num">1</div><div><strong>Audit & kérdések</strong><span>Audit kiválasztása, kérdések értékelése és auditori megjegyzések.</span></div></div>
+  <div class="acaf-flowstep evidence"><div class="num">2</div><div><strong>Evidence / Bizonyíték</strong><span>Bizonyítékok rögzítése, megfelelőségének ellenőrzése.</span></div></div>
+  <div class="acaf-flowstep findings"><div class="num">3</div><div><strong>Findings & CAPA</strong><span>Eltérések, intézkedések és hatékonyság ellenőrzése.</span></div></div>
+  <div class="acaf-flowstep report"><div class="num">4</div><div><strong>Report lifecycle</strong><span>Draft → Auditor Review → Approved → Final.</span></div></div>
+ </div>
+ <div class="acaf-flow-actions">
+  <button type="button" data-group="audit" onclick="acafJumpTo(['My audits','New Audit','Audit Dashboard'])">1 · Auditok megnyitása</button>
+  <button type="button" data-group="review" onclick="acafJumpTo(['Evidence Control','Evidence Adequacy Review','Evidence Verification'])">2 · Bizonyítékok</button>
+  <button type="button" data-group="findings" onclick="acafJumpTo(['Finding & CAPA Engine','Finding Creation','CAPA Creation'])">3 · Finding / CAPA</button>
+  <button type="button" data-group="reports" onclick="acafJumpTo(['Controlled Audit Report Lifecycle','Professional Report Controls','Audit Report'])">4 · Jelentések</button>
+ </div>
+ <p class="small" style="margin-top:10px">A színek a feladatcsoportokat jelölik; a tényleges készenléti állapotot mindig az adott modulban ellenőrizd.</p>
+</section>
 
 <div id="dashboardView">
 <div class="card">
