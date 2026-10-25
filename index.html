@@ -189,10 +189,21 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 @media(max-width:420px){.acaf-flowsteps{grid-template-columns:1fr}.acaf-flowstep{display:grid;grid-template-columns:36px 1fr;column-gap:8px}.acaf-flowstep .num{grid-row:span 2}}
 </style>
 
+
+<style id="acaf-v638-dashboard">
+.acaf-dashboard-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.acaf-dash-card{border:1px solid #dbe3ec;border-radius:14px;padding:16px;background:#fff;box-shadow:0 3px 12px rgba(22,48,78,.045);min-width:0}
+.acaf-dash-card.audit{border-top:4px solid #2563a6;background:linear-gradient(180deg,#f2f7fe,#fff 72%)}
+.acaf-dash-card.latest{border-top:4px solid #167d78;background:linear-gradient(180deg,#effaf8,#fff 72%)}
+.acaf-dash-card.next{border-top:4px solid #6b4db5;background:linear-gradient(180deg,#f7f4fe,#fff 72%)}
+.acaf-dash-label{font-size:.82rem;color:#617286;font-weight:650}.acaf-dash-value{font-size:1.65rem;font-weight:750;color:#183b63;margin:7px 0;overflow-wrap:anywhere}.acaf-dash-detail{font-size:.84rem;color:#64748b;line-height:1.45}
+@media(max-width:650px){.acaf-dashboard-summary{grid-template-columns:1fr}}
+</style>
+
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.37</h1>
+<h1>ACAF Personal V6.38</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -249,6 +260,11 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
  <p class="small" style="margin-top:10px">A színek a feladatcsoportokat jelölik; a tényleges készenléti állapotot mindig az adott modulban ellenőrizd.</p>
 </section>
 
+<section class="acaf-dashboard-summary" aria-label="Dashboard summary">
+ <div class="acaf-dash-card audit"><div class="acaf-dash-label">AUDIT PORTFOLIO / AUDITOK</div><div class="acaf-dash-value" id="acafDashAuditCount">—</div><div class="acaf-dash-detail">Betöltött auditok a jelenlegi fiókból.</div></div>
+ <div class="acaf-dash-card latest"><div class="acaf-dash-label">LATEST AUDIT / LEGUTÓBBI AUDIT</div><div class="acaf-dash-value" id="acafDashLatestTitle" style="font-size:1.08rem">Betöltés…</div><div class="acaf-dash-detail" id="acafDashLatestDate">Az auditlista betöltése után frissül.</div></div>
+ <div class="acaf-dash-card next"><div class="acaf-dash-label">NEXT STEP / KÖVETKEZŐ LÉPÉS</div><div class="acaf-dash-value" style="font-size:1.08rem">Audit ellenőrzése</div><div class="acaf-dash-detail">Nyisd meg az auditot, és ellenőrizd a kérdések, bizonyítékok, Findingok és CAPA-k állapotát.</div><button type="button" class="secondary" style="margin-top:10px" onclick="acafJumpTo(['My audits','New Audit','Audit Dashboard'])">Ugrás az auditokhoz</button></div>
+</section>
 <div id="dashboardView">
 <div class="card">
 <h2>New Audit / Új audit</h2>
@@ -1049,12 +1065,23 @@ async function importRequirementsCsv(){
  }
 }
 
+function acafV638RenderDashboard(){
+ const rows=Array.isArray(window.acafAudits)?window.acafAudits:[];
+ const count=document.getElementById('acafDashAuditCount');
+ const latest=document.getElementById('acafDashLatestTitle');
+ const date=document.getElementById('acafDashLatestDate');
+ if(count)count.textContent=String(rows.length);
+ if(latest)latest.textContent=rows.length?(rows[0].title||rows[0].audit_no||'Audit'):'Még nincs audit';
+ if(date){const d=rows.length&&rows[0].created_at?new Date(rows[0].created_at):null;date.textContent=d&&!Number.isNaN(d.getTime())?('Létrehozva / Created: '+d.toLocaleDateString()):'Az auditlista alapján frissül.';}
+}
+
 async function loadAudits(){
  try{
   const rows=await api("/rest/v1/audits?select=*&order=created_at.desc");
   // Keep the loaded audits in one shared client-side list so all modules
   // (Impact Assessment, Question Impact and Finding Creation) can use them.
   window.acafAudits=Array.isArray(rows)?rows:[];
+  if(typeof acafV638RenderDashboard==='function')acafV638RenderDashboard();
   document.getElementById("audits").innerHTML=window.acafAudits.length?window.acafAudits.map(x=>`
    <div class="req">
     <b>${esc(x.title||x.audit_no||"Audit")}</b><br>
@@ -4319,5 +4346,6 @@ function acafJumpTo(terms){
 }
 </script>
 <style>.acaf-nav-highlight{outline:3px solid #8ab5e3!important;outline-offset:2px;transition:outline-color .3s}</style>
+<!-- V6.38: dashboard summary uses only the authenticated audit list already loaded by loadAudits; no schema or data mutations. -->
 </body>
 </html>
