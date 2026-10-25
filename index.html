@@ -2372,47 +2372,8 @@ async function v52Finalize(){try{await v52Transition('final')}catch(e){document.
 function v5PrintReport(){if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}window.print();}
 function v5WordReport(){
  if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}
- const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'
-<!-- V6.41: read-only evidence status summary; uses existing evidence records only. -->
-<style id="acaf-v641-evidence-summary-style">
-#acafEvidenceSummary{border-left:4px solid #167d78;background:linear-gradient(135deg,#f0fbf8,#fff);border-radius:12px;padding:16px;margin:16px 0;box-shadow:0 3px 12px rgba(40,50,70,.06)}
-#acafEvidenceSummary .acaf-evidence-value{font-size:1.45rem;font-weight:700;color:#12675f}
-#acafEvidenceSummary .acaf-evidence-detail{color:#475467;margin-top:6px}
-</style>
-<section id="acafEvidenceSummary" class="card" aria-live="polite">
- <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-  <span aria-hidden="true" style="font-size:1.4rem">📎</span>
-  <div style="flex:1;min-width:180px"><strong>Evidence Status / Bizonyítékok állapota</strong><div class="small">A kiválasztott audit bizonyítékainak áttekintése · Read-only</div></div>
-  <div id="acafEvidenceCount" class="acaf-evidence-value">—</div>
- </div>
- <div id="acafEvidenceDetail" class="acaf-evidence-detail">Válassz auditot az Audit Report részben az összesítés betöltéséhez.</div>
- <button type="button" id="acafEvidenceRefresh" style="margin-top:10px">Frissítés / Refresh</button>
-</section>
-<script id="acaf-v641-evidence-summary">
-async function acafRefreshEvidenceSummary(){
- const auditId=document.getElementById('v5AuditSelect')?.value;
- const count=document.getElementById('acafEvidenceCount');
- const detail=document.getElementById('acafEvidenceDetail');
- if(!count||!detail)return;
- if(!auditId){count.textContent='—';detail.textContent='Válassz auditot az Audit Report részben az összesítés betöltéséhez.';return;}
- count.textContent='…';detail.textContent='Bizonyítékok betöltése…';
- try{
-  const rows=await api('/rest/v1/evidence?select=id,audit_id,status,verification_status&audit_id=eq.'+encodeURIComponent(auditId));
-  const list=Array.isArray(rows)?rows:[];
-  const accepted=['verified','accepted','approved'];
-  const verified=list.filter(x=>accepted.includes(String(x.verification_status||x.status||'').toLowerCase())).length;
-  const pending=list.length-verified;
-  count.textContent=String(list.length)+' db';
-  detail.textContent='Ellenőrzött / elfogadott: '+verified+' · Ellenőrzésre vár vagy nem egyértelmű: '+pending;
- }catch(e){count.textContent='Nem elérhető';detail.textContent='A bizonyítékok összesítése nem tölthető be: '+(e.message||String(e));}
-}
-(function(){
- const bind=()=>{const sel=document.getElementById('v5AuditSelect');const btn=document.getElementById('acafEvidenceRefresh');if(btn&&!btn.__acafBound){btn.addEventListener('click',acafRefreshEvidenceSummary);btn.__acafBound=true;}if(sel&&!sel.__acaf641Bound){sel.addEventListener('change',acafRefreshEvidenceSummary);sel.__acaf641Bound=true;}if(sel&&sel.value)acafRefreshEvidenceSummary();};
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
-})();
-<\/script>
-
-</body></html>'],{type:'application/msword'});
+ const reportHtml='\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>';
+ const blob=new Blob([reportHtml],{type:'application/msword'});
  const a=document.createElement('a');
  a.href=URL.createObjectURL(blob);
  a.download=(v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report.doc';
