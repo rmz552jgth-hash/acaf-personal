@@ -191,11 +191,12 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 
 
 <style id="acaf-v638-dashboard">
-.acaf-dashboard-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.acaf-dashboard-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
 .acaf-dash-card{border:1px solid #dbe3ec;border-radius:14px;padding:16px;background:#fff;box-shadow:0 3px 12px rgba(22,48,78,.045);min-width:0}
 .acaf-dash-card.audit{border-top:4px solid #2563a6;background:linear-gradient(180deg,#f2f7fe,#fff 72%)}
 .acaf-dash-card.latest{border-top:4px solid #167d78;background:linear-gradient(180deg,#effaf8,#fff 72%)}
 .acaf-dash-card.next{border-top:4px solid #6b4db5;background:linear-gradient(180deg,#f7f4fe,#fff 72%)}
+.acaf-dash-card.capa{border-top:4px solid #b7791f;background:linear-gradient(180deg,#fff8e9,#fff 72%)}
 .acaf-dash-label{font-size:.82rem;color:#617286;font-weight:650}.acaf-dash-value{font-size:1.65rem;font-weight:750;color:#183b63;margin:7px 0;overflow-wrap:anywhere}.acaf-dash-detail{font-size:.84rem;color:#64748b;line-height:1.45}
 @media(max-width:650px){.acaf-dashboard-summary{grid-template-columns:1fr}}
 </style>
@@ -203,7 +204,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.38</h1>
+<h1>ACAF Personal V6.39</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -264,6 +265,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
  <div class="acaf-dash-card audit"><div class="acaf-dash-label">AUDIT PORTFOLIO / AUDITOK</div><div class="acaf-dash-value" id="acafDashAuditCount">—</div><div class="acaf-dash-detail">Betöltött auditok a jelenlegi fiókból.</div></div>
  <div class="acaf-dash-card latest"><div class="acaf-dash-label">LATEST AUDIT / LEGUTÓBBI AUDIT</div><div class="acaf-dash-value" id="acafDashLatestTitle" style="font-size:1.08rem">Betöltés…</div><div class="acaf-dash-detail" id="acafDashLatestDate">Az auditlista betöltése után frissül.</div></div>
  <div class="acaf-dash-card next"><div class="acaf-dash-label">NEXT STEP / KÖVETKEZŐ LÉPÉS</div><div class="acaf-dash-value" style="font-size:1.08rem">Audit ellenőrzése</div><div class="acaf-dash-detail">Nyisd meg az auditot, és ellenőrizd a kérdések, bizonyítékok, Findingok és CAPA-k állapotát.</div><button type="button" class="secondary" style="margin-top:10px" onclick="acafJumpTo(['My audits','New Audit','Audit Dashboard'])">Ugrás az auditokhoz</button></div>
+ <div class="acaf-dash-card capa"><div class="acaf-dash-label">FINDING / CAPA STATUS</div><div class="acaf-dash-value" id="acafDashFindingCount">—</div><div class="acaf-dash-detail" id="acafDashCapaDetail">Válassz auditot a jelentésgeneráló részben a státuszok összesítéséhez.</div><button type="button" class="secondary" style="margin-top:10px" onclick="acafJumpTo(['Finding & CAPA Engine','Finding Creation','CAPA Creation'])">Finding / CAPA megnyitása</button></div>
 </section>
 <div id="dashboardView">
 <div class="card">
@@ -2372,7 +2374,32 @@ async function v52Finalize(){try{await v52Transition('final')}catch(e){document.
 function v5PrintReport(){if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}window.print();}
 function v5WordReport(){
  if(!v5ReportData){alert('Előbb generáld a jelentést.');return;}
- const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'</body></html>'],{type:'application/msword'});
+ const blob=new Blob(['\ufeff<html><head><meta charset="utf-8"><title>'+v5Esc(v5ReportData.title)+'</title></head><body>'+v5ReportData.html+'
+<script id="acaf-v639-finding-capa-summary">
+// Read-only summary for the currently selected audit. Does not modify records or infer closure.
+async function acafRefreshFindingCapaSummary(){
+ const value=document.getElementById('v5AuditSelect')?.value;
+ const count=document.getElementById('acafDashFindingCount');
+ const detail=document.getElementById('acafDashCapaDetail');
+ if(!count||!detail)return;
+ if(!value){count.textContent='—';detail.textContent='Válassz auditot a jelentésgeneráló részben a státuszok összesítéséhez.';return;}
+ count.textContent='…';detail.textContent='Finding és CAPA státuszok betöltése…';
+ try{
+  const findings=await api('/rest/v1/findings?select=id,status,audit_id&audit_id=eq.'+encodeURIComponent(value));
+  const ids=(findings||[]).map(x=>x.id).filter(Boolean);
+  let capas=[];
+  if(ids.length)capas=await api('/rest/v1/capa_actions?select=id,status,finding_id&finding_id=in.('+ids.map(encodeURIComponent).join(',')+')');
+  const openF=(findings||[]).filter(x=>!['closed','resolved','verified','complete','completed'].includes(String(x.status||'').toLowerCase())).length;
+  const closedF=(findings||[]).length-openF;
+  const openC=(capas||[]).filter(x=>!['closed','resolved','verified','complete','completed'].includes(String(x.status||'').toLowerCase())).length;
+  const closedC=(capas||[]).length-openC;
+  count.textContent=String((findings||[]).length)+' Finding';
+  detail.textContent=`Finding: ${openF} nyitott / ${closedF} lezárt · CAPA: ${openC} nyitott / ${closedC} lezárt`;
+ }catch(e){count.textContent='Nem elérhető';detail.textContent='Az összesítés nem tölthető be: '+(e.message||String(e));}
+}
+(function(){let n=0;const t=setInterval(()=>{const sel=document.getElementById('v5AuditSelect');if(sel&&!sel.__acaf639Bound){sel.addEventListener('change',acafRefreshFindingCapaSummary);sel.__acaf639Bound=true;if(sel.value)acafRefreshFindingCapaSummary();clearInterval(t);}if(++n>60)clearInterval(t)},500);})();
+</script>
+</body></html>'],{type:'application/msword'});
  const a=document.createElement('a');
  a.href=URL.createObjectURL(blob);
  a.download=(v5ReportData.audit?.audit_no||'ACAF_Audit')+'_Report.doc';
@@ -2680,7 +2707,32 @@ function v5WordReport(){
       window.v5WordReport=function(){
         if(!window.v5ReportData){alert('Előbb generáld a jelentést.');return;}
         const d=window.v5ReportData;
-        const html='\\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'</body></html>';
+        const html='\\ufeff<html><head><meta charset="utf-8"><title>'+esc(d.title)+'</title></head><body>'+d.html+'
+<script id="acaf-v639-finding-capa-summary">
+// Read-only summary for the currently selected audit. Does not modify records or infer closure.
+async function acafRefreshFindingCapaSummary(){
+ const value=document.getElementById('v5AuditSelect')?.value;
+ const count=document.getElementById('acafDashFindingCount');
+ const detail=document.getElementById('acafDashCapaDetail');
+ if(!count||!detail)return;
+ if(!value){count.textContent='—';detail.textContent='Válassz auditot a jelentésgeneráló részben a státuszok összesítéséhez.';return;}
+ count.textContent='…';detail.textContent='Finding és CAPA státuszok betöltése…';
+ try{
+  const findings=await api('/rest/v1/findings?select=id,status,audit_id&audit_id=eq.'+encodeURIComponent(value));
+  const ids=(findings||[]).map(x=>x.id).filter(Boolean);
+  let capas=[];
+  if(ids.length)capas=await api('/rest/v1/capa_actions?select=id,status,finding_id&finding_id=in.('+ids.map(encodeURIComponent).join(',')+')');
+  const openF=(findings||[]).filter(x=>!['closed','resolved','verified','complete','completed'].includes(String(x.status||'').toLowerCase())).length;
+  const closedF=(findings||[]).length-openF;
+  const openC=(capas||[]).filter(x=>!['closed','resolved','verified','complete','completed'].includes(String(x.status||'').toLowerCase())).length;
+  const closedC=(capas||[]).length-openC;
+  count.textContent=String((findings||[]).length)+' Finding';
+  detail.textContent=`Finding: ${openF} nyitott / ${closedF} lezárt · CAPA: ${openC} nyitott / ${closedC} lezárt`;
+ }catch(e){count.textContent='Nem elérhető';detail.textContent='Az összesítés nem tölthető be: '+(e.message||String(e));}
+}
+(function(){let n=0;const t=setInterval(()=>{const sel=document.getElementById('v5AuditSelect');if(sel&&!sel.__acaf639Bound){sel.addEventListener('change',acafRefreshFindingCapaSummary);sel.__acaf639Bound=true;if(sel.value)acafRefreshFindingCapaSummary();clearInterval(t);}if(++n>60)clearInterval(t)},500);})();
+</script>
+</body></html>';
         const blob=new Blob([html],{type:'application/msword'});
         const a=document.createElement('a');
         a.href=URL.createObjectURL(blob);
@@ -4347,5 +4399,30 @@ function acafJumpTo(terms){
 </script>
 <style>.acaf-nav-highlight{outline:3px solid #8ab5e3!important;outline-offset:2px;transition:outline-color .3s}</style>
 <!-- V6.38: dashboard summary uses only the authenticated audit list already loaded by loadAudits; no schema or data mutations. -->
+
+<script id="acaf-v639-finding-capa-summary">
+// Read-only summary for the currently selected audit. Does not modify records or infer closure.
+async function acafRefreshFindingCapaSummary(){
+ const value=document.getElementById('v5AuditSelect')?.value;
+ const count=document.getElementById('acafDashFindingCount');
+ const detail=document.getElementById('acafDashCapaDetail');
+ if(!count||!detail)return;
+ if(!value){count.textContent='—';detail.textContent='Válassz auditot a jelentésgeneráló részben a státuszok összesítéséhez.';return;}
+ count.textContent='…';detail.textContent='Finding és CAPA státuszok betöltése…';
+ try{
+  const findings=await api('/rest/v1/findings?select=id,status,audit_id&audit_id=eq.'+encodeURIComponent(value));
+  const ids=(findings||[]).map(x=>x.id).filter(Boolean);
+  let capas=[];
+  if(ids.length)capas=await api('/rest/v1/capa_actions?select=id,status,finding_id&finding_id=in.('+ids.map(encodeURIComponent).join(',')+')');
+  const openF=(findings||[]).filter(x=>!['closed','resolved','verified','complete','completed'].includes(String(x.status||'').toLowerCase())).length;
+  const closedF=(findings||[]).length-openF;
+  const openC=(capas||[]).filter(x=>!['closed','resolved','verified','complete','completed'].includes(String(x.status||'').toLowerCase())).length;
+  const closedC=(capas||[]).length-openC;
+  count.textContent=String((findings||[]).length)+' Finding';
+  detail.textContent=`Finding: ${openF} nyitott / ${closedF} lezárt · CAPA: ${openC} nyitott / ${closedC} lezárt`;
+ }catch(e){count.textContent='Nem elérhető';detail.textContent='Az összesítés nem tölthető be: '+(e.message||String(e));}
+}
+(function(){let n=0;const t=setInterval(()=>{const sel=document.getElementById('v5AuditSelect');if(sel&&!sel.__acaf639Bound){sel.addEventListener('change',acafRefreshFindingCapaSummary);sel.__acaf639Bound=true;if(sel.value)acafRefreshFindingCapaSummary();clearInterval(t);}if(++n>60)clearInterval(t)},500);})();
+</script>
 </body>
 </html>
