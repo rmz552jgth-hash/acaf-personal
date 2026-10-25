@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.29</title>
+<title>ACAF Personal V6.35</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -133,10 +133,39 @@ body{background:#fff!important}body>.container>section,body>.container>div{displ
 </style>
 <style>.v61-evidence-card{margin-top:12px}.v61-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.v61-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:12px 0}.v61-kpi{border:1px solid #d9dde5;border-radius:8px;padding:10px;background:#fafbfc}.v61-kpi strong{display:block;font-size:20px;margin-bottom:3px}.v61-table-wrap{overflow-x:auto;margin-top:10px}.v61-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}.v61-table th,.v61-table td{border:1px solid #bfc5cf;padding:6px 7px;vertical-align:top;overflow-wrap:anywhere;word-break:normal}.v61-table th{font-weight:700;background:#f4f5f7;white-space:nowrap}.v61-table td.v61-code{font-weight:700;white-space:nowrap}.v61-muted{color:#666}@media(max-width:800px){.v61-summary{grid-template-columns:repeat(2,minmax(120px,1fr))}}</style><style id="acaf-v6-2-evidence-css">
 .v62-card{margin-top:12px}.v62-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:12px 0}.v62-kpi{border:1px solid #d9dde5;border-radius:8px;padding:10px;background:#fafbfc}.v62-kpi strong{display:block;font-size:20px;margin-bottom:3px}.v62-table-wrap{overflow-x:auto;margin-top:10px}.v62-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}.v62-table th,.v62-table td{border:1px solid #bfc5cf;padding:6px 7px;vertical-align:top;overflow-wrap:anywhere}.v62-table th{font-weight:700;background:#f4f5f7;white-space:nowrap}.v62-ok{font-weight:700}.v62-warn{font-weight:700}.v62-muted{color:#666}@media(max-width:800px){.v62-summary{grid-template-columns:repeat(2,minmax(120px,1fr))}}
-</style><style id="acaf-v6-3-evidence-verification-css">.v63-card{margin-top:12px}.v63-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.v63-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:12px 0}.v63-kpi{border:1px solid #d9dde5;border-radius:8px;padding:10px;background:#fafbfc}.v63-kpi strong{display:block;font-size:20px;margin-bottom:3px}.v63-table-wrap{overflow-x:auto;margin-top:10px}.v63-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}.v63-table th,.v63-table td{border:1px solid #bfc5cf;padding:6px 7px;vertical-align:top;overflow-wrap:anywhere}.v63-table th{font-weight:700;background:#f4f5f7;white-space:nowrap}.v63-code{font-weight:700;white-space:nowrap}.v63-review{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.v63-review select{font-size:10pt;padding:4px 6px}.v63-review button{font-size:10pt;padding:5px 8px}.v63-note{font-size:9pt;color:#666;margin-top:6px}@media(max-width:800px){.v63-summary{grid-template-columns:repeat(2,minmax(120px,1fr))}}</style></head>
+</style><style id="acaf-v6-3-evidence-verification-css">.v63-card{margin-top:12px}.v63-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.v63-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:12px 0}.v63-kpi{border:1px solid #d9dde5;border-radius:8px;padding:10px;background:#fafbfc}.v63-kpi strong{display:block;font-size:20px;margin-bottom:3px}.v63-table-wrap{overflow-x:auto;margin-top:10px}.v63-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}.v63-table th,.v63-table td{border:1px solid #bfc5cf;padding:6px 7px;vertical-align:top;overflow-wrap:anywhere}.v63-table th{font-weight:700;background:#f4f5f7;white-space:nowrap}.v63-code{font-weight:700;white-space:nowrap}.v63-review{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.v63-review select{font-size:10pt;padding:4px 6px}.v63-review button{font-size:10pt;padding:5px 8px}.v63-note{font-size:9pt;color:#666;margin-top:6px}@media(max-width:800px){.v63-summary{grid-template-columns:repeat(2,minmax(120px,1fr))}}</style><style id="acaf-v635-visual-design-system">
+:root{--acaf-navy:#183b63;--acaf-blue:#2563a6;--acaf-blue-bg:#eef5fc;--acaf-teal:#167d78;--acaf-teal-bg:#edf8f6;--acaf-amber:#a76612;--acaf-amber-bg:#fff7e8;--acaf-purple:#6b4db5;--acaf-purple-bg:#f5f1fc;--acaf-red:#b33a3a;--acaf-red-bg:#fff0f0;--acaf-line:#dbe3ec;--acaf-text:#172b3d;--acaf-muted:#637487}
+body{background:#f3f6fa;color:var(--acaf-text)}
+.container{max-width:1280px;padding:26px}
+.container>h1{color:var(--acaf-navy);letter-spacing:-.025em}
+.card{border:1px solid var(--acaf-line);border-radius:14px;padding:22px;box-shadow:0 3px 14px rgba(22,48,78,.045);transition:border-color .15s,box-shadow .15s}
+.card:hover{box-shadow:0 5px 18px rgba(22,48,78,.075)}
+.card.acaf-group-audit{border-left:5px solid var(--acaf-blue);background:linear-gradient(90deg,var(--acaf-blue-bg) 0, #fff 68px)}
+.card.acaf-group-regulatory{border-left:5px solid var(--acaf-teal);background:linear-gradient(90deg,var(--acaf-teal-bg) 0, #fff 68px)}
+.card.acaf-group-findings{border-left:5px solid var(--acaf-amber);background:linear-gradient(90deg,var(--acaf-amber-bg) 0, #fff 68px)}
+.card.acaf-group-report{border-left:5px solid var(--acaf-purple);background:linear-gradient(90deg,var(--acaf-purple-bg) 0, #fff 68px)}
+.card.acaf-group-risk{border-left:5px solid var(--acaf-red);background:linear-gradient(90deg,var(--acaf-red-bg) 0, #fff 68px)}
+.card h2{color:var(--acaf-navy);font-size:1.18rem;letter-spacing:-.012em;margin-bottom:14px}
+.card h3{color:#294c70}
+input,textarea,select{border-color:#cbd6e2;color:var(--acaf-text);transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#4a83bd;box-shadow:0 0 0 3px rgba(37,99,166,.13)}
+button{border:1px solid #d5deea;background:#edf2f7;color:#243c54;font-weight:600;transition:transform .12s,filter .12s,box-shadow .12s}
+button:hover{filter:brightness(.98);box-shadow:0 2px 7px rgba(25,55,85,.1)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--acaf-navy);border-color:var(--acaf-navy);color:white}
+button.good{background:#e0f5e9;border-color:#b7e5c9;color:#17643b}
+button.warn{background:#fff1d6;border-color:#f0d39b;color:#80510a}
+button.bad{background:#ffebeb;border-color:#efc0c0;color:#9c2828}
+.badge{background:#e7eff9;color:#234f7b;border:1px solid #d5e3f4;font-weight:650}
+.notice,.sourceBox,.stat,.req{border-color:var(--acaf-line)}
+.req.selected{border-color:var(--acaf-blue);background:var(--acaf-blue-bg)}
+.progress>div{background:var(--acaf-blue)}
+@media(max-width:800px){.container{padding:12px}.card{padding:16px;border-radius:12px}.card.acaf-group-audit,.card.acaf-group-regulatory,.card.acaf-group-findings,.card.acaf-group-report,.card.acaf-group-risk{background:#fff}}
+</style>
+</head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.27</h1>
+<h1>ACAF Personal V6.35</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -4205,5 +4234,18 @@ let n=0;const t=setInterval(()=>{install();const sel=document.getElementById('v5
 })();
 </script>
 
+<script id="acaf-v635-card-color-groups">
+(function(){
+ const rules=[
+  {cls:'acaf-group-report',words:['audit report','report lifecycle','jelentés életciklusa','report approval','approval workflow','felülvizsgálat és jóváhagyás','audit closure record','auditlezárási feljegyzés']},
+  {cls:'acaf-group-findings',words:['finding','capa','corrective action','javító intézked','closure checklist','lezárási ellenőrzőlista']},
+  {cls:'acaf-group-risk',words:['risk','safety management','kockázat','safety alert']},
+  {cls:'acaf-group-regulatory',words:['regulatory','requirement library','requirement engine','követelménykönyvtár','szabályozási','compliance matrix','impact assessment']},
+  {cls:'acaf-group-audit',words:['audit','ellenőrzés','audit question','audit readiness','audit closure']}
+ ];
+ function apply(){document.querySelectorAll('.card').forEach(card=>{if(card.closest('#v5PreviewCard'))return;const h=card.querySelector('h2,h3');if(!h)return;const title=(h.textContent||'').toLowerCase();for(const r of rules){if(r.words.some(w=>title.includes(w))){card.classList.add(r.cls);break;}}});}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+})();
+</script>
 </body>
 </html>
