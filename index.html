@@ -1886,6 +1886,8 @@ A FINAL jelentés nem módosítható.
     <li><b>Finalize Report:</b> a jóváhagyott jelentés véglegesítése.</li>
   </ol>
   <p class="small" style="margin:8px 0 0">A gombok az aktuális jelentés státusza szerint aktiválódnak. Ha a jóváhagyás vagy véglegesítés blokkolva van, ellenőrizd az értékeletlen auditkérdéseket, majd generáld újra a tervezetet.</p>
+  <button type="button" id="v634ReadinessBtn" onclick="v634CheckReadiness()" style="margin-top:10px">Check audit readiness / Lezárás előtti ellenőrzés</button>
+  <div id="v634ReadinessResult" class="sourceBox" style="display:none;margin-top:10px" role="status" aria-live="polite"></div>
 </div>
 <div id="v52LifecycleMsg" class="small" style="margin-top:10px" role="status" aria-live="polite"></div>
 </div>
@@ -2192,6 +2194,30 @@ async function v52GenerateAndSave(){
   document.getElementById('v5Status').textContent='Draft jelentés sikeresen mentve.';
   document.getElementById('v5PreviewCard').scrollIntoView({behavior:'smooth'});
  }catch(e){msg.textContent='Mentési hiba: '+e.message;document.getElementById('v5Status').textContent='Report save error: '+e.message;console.error(e);}
+}
+
+async function v634CheckReadiness(){
+ const box=document.getElementById('v634ReadinessResult');
+ const btn=document.getElementById('v634ReadinessBtn');
+ if(!box)return;
+ box.style.display='block'; box.textContent='Ellenőrzés folyamatban…';
+ if(btn)btn.disabled=true;
+ try{
+  if(!v52CurrentReport)throw new Error('Előbb válassz auditot, és mentsd el a jelentéstervezetet.');
+  const built=await v5BuildReport();
+  const questions=built.questions||[];
+  const pending=questions.filter(x=>!x.a||!x.a.assessment||x.a.assessment==='unanswered');
+  const assessed=questions.length-pending.length;
+  const lang=document.getElementById('v5Language')?.value||'en';
+  const codes=pending.map(x=>(x.r||{}).requirement_code||'Requirement').slice(0,12);
+  const extra=pending.length>12?(lang==='hu'?` és további ${pending.length-12}`:` and ${pending.length-12} more`):'';
+  if(pending.length){
+   box.innerHTML='<strong>'+(lang==='hu'?'Még nem áll készen jóváhagyásra':'Not ready for approval')+'</strong><p>'+(lang==='hu'?`Értékelt kérdések: ${assessed}/${questions.length}. Értékeletlen kérdések: ${pending.length}.`:`Assessed questions: ${assessed}/${questions.length}. Unanswered questions: ${pending.length}.`)+'</p><p>'+(lang==='hu'?'Ellenőrizendő követelmények: ':'Requirements to review: ')+v5Esc(codes.join(', ')+extra)+'</p><p>'+(lang==='hu'?'Rögzítsd a tényleges értékeléseket az auditban, majd generáld újra a jelentést. Ez az ellenőrzés nem módosít adatot.':'Record the actual assessments in the audit, then regenerate the report. This check does not modify data.')+'</p>';
+  }else{
+   box.innerHTML='<strong>'+(lang==='hu'?'Nincs értékeletlen auditkérdés':'No unanswered audit questions')+'</strong><p>'+(lang==='hu'?`Értékelt kérdések: ${assessed}/${questions.length}. Az értékeletlenség szempontjából az audit készen áll a következő életciklus-lépésre.`:`Assessed questions: ${assessed}/${questions.length}. The audit is ready for the next lifecycle step with respect to unanswered questions.`)+'</p><p>'+(lang==='hu'?'Ez nem helyettesíti a Findingok, CAPA-k, bizonyítékok és a felülvizsgálati döntés szakmai ellenőrzését.':'This does not replace substantive review of findings, CAPAs, evidence, and the review decision.')+'</p>';
+  }
+ }catch(e){box.textContent='Ellenőrzési hiba: '+e.message;}
+ finally{if(btn)btn.disabled=false;}
 }
 
 async function v52Transition(nextStatus){
