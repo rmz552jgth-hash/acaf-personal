@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.49</title>
+<title>ACAF Personal V6.45</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -236,7 +236,6 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </div>
 </div>
 <nav class="acaf-quicknav" aria-label="ACAF module quick navigation">
-<button type="button" data-group="work" onclick="acafJumpTo(['My Work / Saját munkák'])">My Work</button>
 <button type="button" data-group="audit" onclick="acafJumpTo(['New Audit','My audits','Audit Dashboard'])">Auditok</button>
 <button type="button" data-group="regulatory" onclick="acafJumpTo(['Regulatory & Requirement Engine','Requirement Library','Regulatory Watch'])">Szabályozás és követelmények</button>
 <button type="button" data-group="findings" onclick="acafJumpTo(['Finding & CAPA Engine','Finding Creation','CAPA Creation'])">Finding / CAPA</button>
@@ -264,7 +263,32 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 <section class="acaf-dashboard-summary" aria-label="Dashboard summary">
  <div class="acaf-dash-card audit"><div class="acaf-dash-label">AUDIT PORTFOLIO / AUDITOK</div><div class="acaf-dash-value" id="acafDashAuditCount">—</div><div class="acaf-dash-detail">Betöltött auditok a jelenlegi fiókból.</div></div>
  <div class="acaf-dash-card latest"><div class="acaf-dash-label">LATEST AUDIT / LEGUTÓBBI AUDIT</div><div class="acaf-dash-value" id="acafDashLatestTitle" style="font-size:1.08rem">Betöltés…</div><div class="acaf-dash-detail" id="acafDashLatestDate">Az auditlista betöltése után frissül.</div></div>
- <div class="acaf-dash-card next"><div class="acaf-dash-label">NEXT STEP / KÖVETKEZŐ LÉPÉS</div><div class="acaf-dash-value" style="font-size:1.08rem">Audit ellenőrzése</div><div class="acaf-dash-detail">Nyisd meg az auditot, és ellenőrizd a kérdések, bizonyítékok, Findingok és CAPA-k állapotát.</div><button type="button" class="secondary" style="margin-top:10px" onclick="acafJumpTo(['My Work / Saját munkák'])">My Work megnyitása</button></div>
+ <div class="acaf-dash-card next"><div class="acaf-dash-label">NEXT STEP / KÖVETKEZŐ LÉPÉS</div><div class="acaf-dash-value" id="acafNextStepTitle" style="font-size:1.08rem">Teendők betöltése…</div><div class="acaf-dash-detail" id="acafNextStepDetail">A rendszer a meglévő audit- és feladatadatok alapján választ következő lépést.</div><button type="button" class="secondary" id="acafNextStepOpen" style="margin-top:10px" disabled>Feladat megnyitása</button></div>
+</section>
+
+<style id="acaf-v647-my-work-style">
+#acafMyWork{margin:0 0 18px}
+.acaf-mw-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.acaf-mw-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.acaf-mw-stat{border:1px solid #dce3ec;border-radius:10px;padding:11px;background:#f8fafc;min-width:0}
+.acaf-mw-stat b{display:block;font-size:22px;margin-top:3px}
+.acaf-mw-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.acaf-mw-item{border:1px solid #dce3ec;border-left:4px solid #64748b;border-radius:9px;padding:12px;min-width:0;background:#fff}
+.acaf-mw-item.overdue{border-left-color:#b42318}.acaf-mw-item.urgent{border-left-color:#d97706}
+.acaf-mw-item b{display:block;margin-bottom:4px}.acaf-mw-meta{font-size:12px;color:#64748b;line-height:1.5;margin:4px 0 8px}
+.acaf-mw-item button{margin-top:5px}
+@media(max-width:760px){.acaf-mw-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.acaf-mw-list{grid-template-columns:1fr}}
+</style>
+<section class="card" id="acafMyWork" aria-label="My Work">
+ <div class="acaf-mw-head"><div><h2>My Work / Saját teendők</h2><p class="small">Központi, csak olvasási nézet a már létező feladatokról és auditmunkáról. Nem hoz létre és nem módosít rekordokat.</p></div><button type="button" class="secondary" id="acafMyWorkRefresh">↻ Frissítés</button></div>
+ <div class="acaf-mw-stats">
+  <div class="acaf-mw-stat"><span class="small">Összes nyitott teendő</span><b id="acafMwOpen">—</b></div>
+  <div class="acaf-mw-stat"><span class="small">Lejárt</span><b id="acafMwOverdue">—</b></div>
+  <div class="acaf-mw-stat"><span class="small">Auditkérdés</span><b id="acafMwQuestions">—</b></div>
+  <div class="acaf-mw-stat"><span class="small">Finding / CAPA</span><b id="acafMwCorrective">—</b></div>
+ </div>
+ <div id="acafMyWorkStatus" class="small" role="status">A teendők betöltése folyamatban…</div>
+ <div id="acafMyWorkList" class="acaf-mw-list" style="margin-top:10px"></div>
 </section>
 <div id="dashboardView">
 <div class="card">
@@ -4391,175 +4415,6 @@ async function acafRefreshFindingCapaSummary(){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
 </script>
-
-<!-- V6.50 My Work: read-only Review Task, Finding/CAPA and audit-question integration with next-step suggestion. -->
-<style id="acaf-v650-mywork-style">
-#acafMyWork{border-left:4px solid #2563eb;padding:18px;margin:16px 0}
-#acafMyWork .mw-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
-#acafMyWork .mw-kpi{border:1px solid #dbe3ee;border-radius:9px;padding:12px;background:#f7f9fc}
-#acafMyWork .mw-kpi strong{display:block;font-size:24px;margin-top:4px;color:#173b68}
-#acafMyWork .mw-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-#acafMyWork .mw-panel{border:1px solid #dbe3ee;border-radius:10px;padding:13px;min-width:0}
-#acafMyWork .mw-item{border:1px solid #e0e6ef;border-radius:8px;padding:11px;margin:9px 0;background:#fff;overflow-wrap:anywhere}
-#acafMyWork .mw-meta{font-size:12px;color:#647084;margin:4px 0}
-#acafMyWork .mw-badge{display:inline-block;border-radius:20px;padding:3px 8px;background:#edf2f7;color:#334155;font-size:12px;margin:3px 4px 3px 0}
-#acafMyWork .mw-badge.late{background:#fee2e2;color:#991b1b}
-#acafMyWork .mw-badge.done{background:#dcfce7;color:#166534}
-#acafMyWork .mw-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
-@media(max-width:760px){#acafMyWork .mw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#acafMyWork .mw-grid{grid-template-columns:1fr}}
-</style>
-<section class="card" id="acafMyWork" aria-live="polite">
- <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.50 · My Work + Audit Question integration · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
- <div class="mw-panel" id="mwNextStepPanel" style="margin:12px 0;border-left:4px solid #d97706;background:#fffaf0">
-  <h3 style="margin-top:0">Következő lépés / Next Step</h3>
-  <div id="mwNextStepContent">A feladatok betöltése után jelenik meg.</div>
-  <p class="mw-meta">Javaslat a betöltött Review Task, Finding és CAPA rekordok alapján. Nem hoz létre vagy módosít rekordot, és nem helyettesíti az auditor döntését.</p>
- </div>
- <div class="mw-kpis">
-  <div class="mw-kpi">Review task<strong id="mwReviewCount">—</strong></div>
-  <div class="mw-kpi">Nyitott Finding<strong id="mwFindingCount">—</strong></div>
-  <div class="mw-kpi">Nyitott CAPA<strong id="mwCapaCount">—</strong></div>
-  <div class="mw-kpi">Értékelésre váró auditkérdés<strong id="mwQuestionCount">—</strong></div>
-  <div class="mw-kpi">Lejárt tételek<strong id="mwOverdueCount">—</strong></div>
- </div>
- <div id="mwMessage" class="small">Adatok betöltésére vár…</div>
- <div class="mw-grid">
-  <div class="mw-panel"><h3>Review tasks / Felülvizsgálati teendők</h3><div id="mwReviewList">Betöltés…</div></div>
-  <div class="mw-panel"><h3>Audit questions / Értékelésre váró kérdések</h3><div id="mwQuestionList">Betöltés…</div></div>
-  <div class="mw-panel"><h3>Finding → CAPA workflow</h3><div id="mwFindingList">Betöltés…</div></div>
- </div>
- <p class="small" style="margin-top:12px">A My Work a meglévő rekordokat olvassa. Nem hoz létre, nem módosít és nem zár le Findingot, CAPA-t vagy Review Taskot. A lejárat kizárólag megjelenítési jelzés; a rekord státuszát nem írja át.</p>
-</section>
-<script id="acaf-v650-mywork-script">
-(function(){
- const $=id=>document.getElementById(id);
- const escMW=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const terminalFinding=s=>['closed','resolved','verified','complete','completed'].includes(String(s||'').toLowerCase());
- const terminalCapa=s=>['closed','effective','completed','verified'].includes(String(s||'').toLowerCase());
- const terminalTask=s=>['closed','completed','done','cancelled'].includes(String(s||'').toLowerCase());
- function day(v){if(!v)return null;const d=new Date(String(v).slice(0,10)+'T00:00:00');return Number.isNaN(d.getTime())?null:d;}
- function isLate(status,date,terminal){const d=day(date),today=new Date();today.setHours(0,0,0,0);return !!d&&!terminal(status)&&d<today;}
- function fmt(v){const d=day(v);return d?d.toLocaleDateString('hu-HU'):(v?'—':'Nincs határidő');}
- function renderNextStep(ts,fs,cs,questions){
-  const box=$('mwNextStepContent');if(!box)return;
-  const candidates=[];
-  const today=new Date();today.setHours(0,0,0,0);
-  const add=(kind,row,date,status,isTerminal,title,detail,action,basePriority)=>{
-   if(!isTerminal(status)){
-    const d=day(date),late=!!d&&d<today;
-    const latePriority={finding:10,capa:20,review:30}[kind]||40;
-    candidates.push({kind,row,date,d,late,title,detail,action,priority:late?latePriority:basePriority});
-   }
-  };
-  ts.forEach(t=>add('review',t,t.due_date,t.status,terminalTask,t.title||'Review task',`Review Task · Határidő: ${fmt(t.due_date)}`,()=>openReview(t.id),70));
-  fs.forEach(f=>add('finding',f,f.due_date,f.status,terminalFinding,`Finding #${f.finding_no??f.id}`,`${f.classification||'Finding'} · Határidő: ${fmt(f.due_date)}`,()=>jumpFinding(),50));
-  cs.forEach(c=>add('capa',c,c.target_date,c.status,terminalCapa,c.corrective_action||c.preventive_action||'CAPA intézkedés',`CAPA · Céldátum: ${fmt(c.target_date)} · Felelős: ${c.responsible_person||'nincs megadva'}`,()=>jumpCapa(),60));
-  questions.forEach(q=>{
-   const title=q.requirement_code?`Audit kérdés · ${q.requirement_code}`:'Értékelésre váró auditkérdés';
-   const audit=auditName(q.audit_id);
-   add('question',q,null,'open',()=>false,title,`${audit} · A kérdés még nincs értékelve.`,()=>q.requirement_id?openAuditQuestion(q.audit_id,q.requirement_id):openAuditSafe(q.audit_id),40);
-  });
-  candidates.sort((a,b)=>a.priority-b.priority||(a.d?.getTime()??Infinity)-(b.d?.getTime()??Infinity));
-  const item=candidates[0];
-  if(!item){box.innerHTML='<b>Nincs nyitott Finding, CAPA, Review Task vagy értékelésre váró auditkérdés.</b><div class="mw-meta">A betöltött rekordok alapján nincs további teendő. Ez nem jelenti automatikusan az audit lezárását.</div>';return;}
-  const badge=item.late?'<span class="mw-badge late">LEJÁRT HATÁRIDŐ</span>':item.kind==='question'?'<span class="mw-badge">Audit értékelés szükséges</span>':'<span class="mw-badge">Következő nyitott teendő</span>';
-  const auditId=item.row.audit_id;
-  box.innerHTML=`${badge}<div style="font-size:18px;font-weight:700;margin:8px 0">${escMW(item.title)}</div><div class="mw-meta">${escMW(item.detail)}</div><div class="mw-actions"><button type="button" class="primary" id="mwNextStepOpen">Teendő megnyitása</button>${auditId?`<button type="button" class="secondary" id="mwNextStepAudit">Kapcsolódó audit megnyitása</button>`:''}</div>`;
-  $('mwNextStepOpen')?.addEventListener('click',item.action);
-  if(auditId)$('mwNextStepAudit')?.addEventListener('click',()=>openAuditSafe(auditId));
- }
- function auditName(id){const a=(Array.isArray(window.acafAudits)?window.acafAudits:[]).find(x=>String(x.id)===String(id));return a?(a.audit_no? a.audit_no+' — ':'')+(a.title||'Audit'):'Audit nincs hozzárendelve';}
- function openAuditSafe(id){if(id&&typeof openAudit==='function')openAudit(id);else if(typeof acafJumpTo==='function')acafJumpTo(['My audits','New Audit','Audit Dashboard']);}
- async function openAuditQuestion(auditId,requirementId){
-  try{
-   if(!auditId||!requirementId)throw new Error('Az audit vagy a követelmény azonosítója hiányzik.');
-   if(typeof openAudit!=='function')throw new Error('Az audit megnyitó funkció nem érhető el.');
-   await openAudit(auditId);
-   const req=(Array.isArray(requirements)?requirements:[]).find(r=>String(r.id)===String(requirementId));
-   if(req&&typeof selectRequirement==='function')await selectRequirement(requirementId);
-   else if(typeof acafJumpTo==='function')acafJumpTo(['New Audit','My audits']);
-  }catch(e){alert('Audit kérdés megnyitási hiba: '+(e.message||String(e)));}
- }
- function openReview(id){if(typeof window.v610Select==='function'){window.v610Select(id);if(typeof acafJumpTo==='function')acafJumpTo(['V6.10 – Regulatory Review Task Management','Regulatory Review Task Management']);}else if(typeof acafJumpTo==='function')acafJumpTo(['V6.10 – Regulatory Review Task Management']);}
- function jumpFinding(){if(typeof acafJumpTo==='function')acafJumpTo(['V4.1 – Finding & CAPA Engine','Finding & CAPA Engine']);}
- function jumpCapa(){if(typeof acafJumpTo==='function')acafJumpTo(['V4.4 – CAPA Verification & Closure','CAPA Verification']);}
- window.acafMyWorkRefresh=async function(){
-  const msg=$('mwMessage');if(!msg)return;msg.textContent='Adatok betöltése…';
-  ['mwReviewCount','mwFindingCount','mwCapaCount','mwOverdueCount'].forEach(id=>$(id).textContent='…');
-  try{
-   if(typeof loadAudits==='function')await loadAudits();
-   if(typeof loadRegulatoryWatch==='function')await loadRegulatoryWatch();
-   const [tasks,findings,capas]=await Promise.all([
-    api('/rest/v1/review_tasks?select=*&order=due_date.asc'),
-    api('/rest/v1/findings?select=*&order=due_date.asc'),
-    api('/rest/v1/capa_actions?select=*&order=target_date.asc')
-   ]);
-   const ts=Array.isArray(tasks)?tasks:[],fs=Array.isArray(findings)?findings:[],cs=Array.isArray(capas)?capas:[];
-   let questionRows=[],answerRows=[],questionLoadWarning='';
-   try{
-    [questionRows,answerRows]=await Promise.all([
-     api('/rest/v1/audit_questions?select=id,audit_id,requirement_id,sequence_no&order=sequence_no.asc'),
-     api('/rest/v1/audit_answers?select=id,question_id,assessment,evidence,auditor_notes')
-    ]);
-    questionRows=Array.isArray(questionRows)?questionRows:[];answerRows=Array.isArray(answerRows)?answerRows:[];
-   }catch(qErr){questionRows=[];answerRows=[];questionLoadWarning='Az auditkérdések listája nem érhető el (RLS/jogosultság vagy API hiba).';}
-   const answerByQuestion=new Map(answerRows.map(a=>[String(a.question_id),a]));
-   const unanswered=questionRows.filter(q=>{const a=answerByQuestion.get(String(q.id));return !a||!String(a.assessment||'').trim();});
-   // Requirement labels are optional; if the library query is unavailable, the task remains usable by ID.
-   let requirementMap=new Map();
-   try{
-    const reqIds=[...new Set(unanswered.map(q=>q.requirement_id).filter(Boolean))];
-    if(reqIds.length){const reqs=await api('/rest/v1/requirements?select=id,requirement_code,english_text,hungarian_text&id=in.('+reqIds.map(encodeURIComponent).join(',')+')');
-     (Array.isArray(reqs)?reqs:[]).forEach(r=>requirementMap.set(String(r.id),r));}
-   }catch(_){/* requirement label is optional */}
-   unanswered.forEach(q=>{const r=requirementMap.get(String(q.requirement_id));q.requirement_code=r?.requirement_code||'';q.requirement_label=r?.english_text||r?.hungarian_text||'';});
-   window.acafMyWorkData={reviewTasks:ts,findings:fs,capaActions:cs,auditQuestions:questionRows,auditAnswers:answerRows,unansweredAuditQuestions:unanswered};
-   const openFs=fs.filter(f=>!terminalFinding(f.status));
-   const openCs=cs.filter(c=>!terminalCapa(c.status));
-   const overdueTasks=ts.filter(t=>isLate(t.status,t.due_date,terminalTask));
-   const overdueFindings=openFs.filter(f=>isLate(f.status,f.due_date,terminalFinding));
-   const overdueCapas=openCs.filter(c=>isLate(c.status,c.target_date,terminalCapa));
-   $('mwReviewCount').textContent=ts.filter(t=>!terminalTask(t.status)).length;
-   $('mwFindingCount').textContent=openFs.length;
-   $('mwCapaCount').textContent=openCs.length;
-   $('mwQuestionCount').textContent=unanswered.length;
-   $('mwOverdueCount').textContent=overdueTasks.length+overdueFindings.length+overdueCapas.length;
-   renderNextStep(ts,fs,cs,unanswered);
-   const questionBox=$('mwQuestionList');
-   if(questionBox){
-    questionBox.innerHTML=unanswered.length?unanswered.slice(0,50).map(q=>{
-     const audit=auditName(q.audit_id),label=q.requirement_code||('Requirement ID: '+(q.requirement_id||'—'));
-     return `<div class="mw-item"><b>${escMW(label)}</b><div class="mw-meta">${escMW(audit)} · Audit question #${escMW(q.sequence_no??q.id)}</div>${q.requirement_label?`<div class="mw-meta">${escMW(q.requirement_label)}</div>`:''}<span class="mw-badge">Értékelés hiányzik</span><div class="mw-actions">${q.requirement_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAuditQuestion('${escMW(q.audit_id)}','${escMW(q.requirement_id)}')">Kérdés megnyitása</button>`:`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(q.audit_id)}')">Audit megnyitása</button>`}</div></div>`;
-    }).join(''):'<p class="small">Nincs értékelésre váró auditkérdés.</p>';
-   }
-   if(questionLoadWarning)msg.textContent='✓ Review Task/Finding/CAPA betöltve. '+questionLoadWarning;
-   $('mwReviewList').innerHTML=ts.length?ts.map(t=>{
-    const late=isLate(t.status,t.due_date,terminalTask),done=terminalTask(t.status);
-    const change=(Array.isArray(window.regulatoryChanges)?window.regulatoryChanges:[]).find(x=>String(x.id)===String(t.regulatory_change_id));
-    const context=change?(change.title||change.new_version||change.affected_reference||'Regulatory change'):auditName(t.audit_id);
-    return `<div class="mw-item"><b>${escMW(t.title||'Review task')}</b><div class="mw-meta">${escMW(context)} · ${t.audit_id?escMW(auditName(t.audit_id)):'Nincs audit hozzárendelve'}</div><span class="mw-badge ${done?'done':late?'late':''}">${escMW(t.status||'status nincs megadva')}${late?' · LEJÁRT':''}</span><span class="mw-badge">Határidő: ${escMW(fmt(t.due_date))}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkOpenReview('${escMW(t.id)}')">Review Task megnyitása</button>${t.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(t.audit_id)}')">Audit megnyitása</button>`:''}</div></div>`;
-   }).join(''):'<p class="small">Nincs Review Task rekord.</p>';
-   $('mwFindingList').innerHTML=fs.length?fs.map(f=>{
-    const linked=cs.filter(c=>String(c.finding_id)===String(f.id));
-    const lateF=isLate(f.status,f.due_date,terminalFinding),closedF=terminalFinding(f.status);
-    const capaHtml=linked.length?linked.map(c=>{const lateC=isLate(c.status,c.target_date,terminalCapa),closedC=terminalCapa(c.status);return `<div class="mw-item" style="margin-left:10px"><b>CAPA · ${escMW(c.corrective_action||c.preventive_action||'Intézkedés')}</b><div class="mw-meta">Felelős: ${escMW(c.responsible_person||'Nincs megadva')} · Céldátum: ${escMW(fmt(c.target_date))}</div><span class="mw-badge ${closedC?'done':lateC?'late':''}">${escMW(c.status||'status nincs megadva')}${lateC?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpCapa()">CAPA / Verification modul</button></div></div>`}).join(''):'<p class="mw-meta">Ehhez a Findinghoz nincs CAPA.</p>';
-    return `<div class="mw-item"><b>Finding #${escMW(f.finding_no??f.id)} · ${escMW(f.classification||'Classification nincs megadva')}</b><div class="mw-meta">${escMW(f.objective_statement||'')}<br>${escMW(f.audit_id?auditName(f.audit_id):'Nincs audit hozzárendelve')} · Határidő: ${escMW(fmt(f.due_date))}</div><span class="mw-badge ${closedF?'done':lateF?'late':''}">${escMW(f.status||'status nincs megadva')}${lateF?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpFinding()">Finding modul</button>${f.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(f.audit_id)}')">Audit megnyitása</button>`:''}</div>${capaHtml}</div>`;
-   }).join(''):'<p class="small">Nincs Finding rekord.</p>';
-   msg.textContent=`✓ Frissítve: ${ts.length} Review Task, ${fs.length} Finding, ${cs.length} CAPA, ${unanswered.length} értékelésre váró kérdés. Csak olvasási művelet.`;msg.className='small success';
-  }catch(e){msg.textContent='✕ My Work betöltési hiba: '+(e.message||String(e));msg.className='small error';['mwReviewList','mwFindingList','mwQuestionList'].forEach(id=>$(id).textContent='Az adatok nem tölthetők be. Ellenőrizd a Supabase/RLS jogosultságokat.');}
- };
- window.acafMyWorkOpenReview=openReview;
- window.acafMyWorkOpenAuditQuestion=openAuditQuestion;
- window.acafMyWorkOpenAudit=openAuditSafe;
- window.acafMyWorkJumpFinding=jumpFinding;
- window.acafMyWorkJumpCapa=jumpCapa;
- // Load once after app sign-in and again when the user presses Refresh.
- document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(!document.getElementById('app')?.classList.contains('hidden'))window.acafMyWorkRefresh();},3200);});
-})();
-</script>
-
-</body>
-
 <script id="acaf-v645-audit-selector-recovery">
 (function(){
  let tries=0,timer=null,busy=false;
@@ -4646,5 +4501,76 @@ async function acafRefreshFindingCapaSummary(){
   window.addEventListener('load',bind);
 })();
 </script>
+
+<script id="acaf-v647-my-work">
+(function(){
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const terminal=(v,kind)=>{
+  const s=String(v||'').toLowerCase();
+  const states=kind==='finding'?['closed','resolved','verified','complete','completed']:kind==='capa'?['closed','effective','completed','cancelled','verified']:['closed','completed','effective','cancelled','done'];
+  return states.includes(s);
+ };
+ const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+ const dateOf=v=>{if(!v)return null;const d=new Date(String(v).slice(0,10)+'T00:00:00');return Number.isNaN(d.getTime())?null:d};
+ let items=[],loading=false;
+ function add(item){items.push(item)}
+ function auditName(id){const a=(window.acafAudits||[]).find(x=>String(x.id)===String(id));return a?(a.audit_no?a.audit_no+' · ':'')+(a.title||'Audit'):'Audit';}
+ function render(){
+  const list=$('acafMyWorkList'),status=$('acafMyWorkStatus');if(!list)return;
+  const now=today();items.forEach(x=>{const d=dateOf(x.due);x.overdue=!!(d&&d<now);x.urgent=!!(d&&!x.overdue&&d.getTime()-now.getTime()<=7*86400000);});
+  items.sort((a,b)=>{const p=(x)=>x.priority+(x.overdue?100:0)+(x.urgent?20:0);return p(b)-p(a)||(dateOf(a.due)?.getTime()??Infinity)-(dateOf(b.due)?.getTime()??Infinity);});
+  const open=items.length,overdue=items.filter(x=>x.overdue).length,qCount=items.filter(x=>x.kind==='question').length,cCount=items.filter(x=>x.kind==='finding'||x.kind==='capa').length;
+  $('acafMwOpen').textContent=String(open);$('acafMwOverdue').textContent=String(overdue);$('acafMwQuestions').textContent=String(qCount);$('acafMwCorrective').textContent=String(cCount);
+  if(!items.length){list.innerHTML='<p class="small">Jelenleg nem találtam nyitott teendőt a lekérdezhető rekordok között.</p>';return;}
+  list.innerHTML=items.slice(0,30).map((x,i)=>'<article class="acaf-mw-item '+(x.overdue?'overdue':x.urgent?'urgent':'')+'"><b>'+esc(x.title)+'</b><div class="acaf-mw-meta">'+esc(x.type)+' · '+esc(x.auditLabel||'')+'<br>Státusz: '+esc(x.status||'Nyitott')+' · Határidő: '+esc(x.due||'Nincs megadva')+(x.overdue?' · LEJÁRT':x.urgent?' · 7 napon belül':'')+'</div><div>'+esc(x.detail||'')+'</div><button type="button" class="secondary" data-acaf-mw-index="'+i+'">Megnyitás</button></article>').join('');
+ }
+ async function load(){
+  if(loading)return;loading=true;const status=$('acafMyWorkStatus'),list=$('acafMyWorkList');
+  if(status)status.textContent='Teendők betöltése…';if(list)list.innerHTML='';
+  try{
+   if(typeof api!=='function')throw new Error('Az API még nem érhető el.');
+   if(typeof loadAudits==='function')await loadAudits();
+   const [tasks,questions,answers,findings,reports]=await Promise.all([
+    api('/rest/v1/review_tasks?select=*&order=due_date.asc'),
+    api('/rest/v1/audit_questions?select=*&order=sequence_no.asc'),
+    api('/rest/v1/audit_answers?select=*'),
+    api('/rest/v1/findings?select=*&order=due_date.asc'),
+    api('/rest/v1/audit_reports?select=*&order=generated_at.desc')
+   ]);
+   const qs=Array.isArray(questions)?questions:[],ans=Array.isArray(answers)?answers:[],fs=Array.isArray(findings)?findings:[],ts=Array.isArray(tasks)?tasks:[],rs=Array.isArray(reports)?reports:[];
+   const amap={};ans.forEach(a=>{amap[String(a.question_id)]=a;});
+   items=[];
+   ts.filter(t=>!terminal(t.status,'task')).forEach(t=>add({kind:'review',type:'Regulatory review',title:t.title||'Regulatory review task',status:t.status||'open',due:t.due_date||'',auditId:t.audit_id||null,auditLabel:t.audit_id?auditName(t.audit_id):'Regulatory Watch',detail:t.notes||'Szabályozási felülvizsgálat',priority:55,recordId:t.id}));
+   qs.forEach(q=>{const a=amap[String(q.id)]||{};const assessment=String(a.assessment||'').toLowerCase();const evidence=String(a.evidence||'').trim();const common={auditId:q.audit_id,auditLabel:auditName(q.audit_id),due:'',recordId:q.id};if(!assessment||assessment==='unanswered')add(Object.assign({kind:'question',type:'Audit question',title:'Auditkérdés értékelése',status:'Unanswered',detail:'Kérdés #'+(q.sequence_no??'—')+' · Requirement ID: '+(q.requirement_id||'—'),priority:45},common));else if(assessment!=='na'&&!evidence)add(Object.assign({kind:'question',type:'Evidence review',title:'Bizonyíték rögzítése / ellenőrzése',status:'Evidence missing',detail:'Kérdés #'+(q.sequence_no??'—')+' · Az értékeléshez nincs bizonyíték rögzítve.',priority:50},common));else if(assessment==='partial')add(Object.assign({kind:'question',type:'Audit question',title:'Részleges értékelés felülvizsgálata',status:'Partial',detail:'Kérdés #'+(q.sequence_no??'—')+' · Ellenőrizd a nyitott elemeket.',priority:35},common));});
+   fs.filter(f=>!terminal(f.status,'finding')).forEach(f=>add({kind:'finding',type:'Finding',title:f.objective_statement||f.classification||('Finding #'+(f.finding_no??'')),status:f.status||'open',due:f.due_date||'',auditId:f.audit_id,auditLabel:auditName(f.audit_id),detail:'Finding #'+(f.finding_no??'—')+' · Kockázat: '+(f.risk||'nincs megadva'),priority:/critical|high/i.test(String(f.risk||''))?105:85,recordId:f.id}));
+   const fids=fs.map(f=>f.id).filter(Boolean);let capas=[];if(fids.length)capas=await api('/rest/v1/capa_actions?select=*&finding_id=in.('+fids.map(encodeURIComponent).join(',')+')');
+   (Array.isArray(capas)?capas:[]).filter(c=>!terminal(c.status,'capa')).forEach(c=>{const f=fs.find(x=>String(x.id)===String(c.finding_id));add({kind:'capa',type:'CAPA action',title:c.corrective_action||c.preventive_action||'CAPA intézkedés',status:c.status||'open',due:c.target_date||'',auditId:f?.audit_id||null,auditLabel:f?auditName(f.audit_id):'Kapcsolódó Finding',detail:'Felelős: '+(c.responsible_person||'nincs megadva'),priority:75,recordId:c.id,findingId:c.finding_id});});
+   rs.filter(r=>['draft','pending_review','review_required','submitted','under_review'].includes(String(r.status||'').toLowerCase())).forEach(r=>add({kind:'report',type:'Audit report',title:'Jelentés felülvizsgálata – '+(r.report_title||'Audit report'),status:r.status,due:'',auditId:r.audit_id,auditLabel:auditName(r.audit_id),detail:'Report v'+(r.version??'—'),priority:25,recordId:r.id}));
+   render();if(status)status.textContent='Frissítve: '+new Date().toLocaleString()+' · '+items.length+' nyitott teendő · csak olvasási nézet.';
+   const next=items[0],title=$('acafNextStepTitle'),detail=$('acafNextStepDetail'),btn=$('acafNextStepOpen');
+   if(title&&detail&&btn){if(next){title.textContent=next.title;detail.textContent=next.type+' · '+(next.auditLabel||'')+(next.overdue?' · Lejárt határidő':next.due?' · Határidő: '+next.due:'');btn.disabled=false;btn.onclick=()=>openItem(next);}else{title.textContent='Nincs azonosított nyitott teendő';detail.textContent='A lekérdezhető adatok alapján jelenleg nincs következő feladat.';btn.disabled=true;btn.onclick=null;}}
+  }catch(e){if(status)status.textContent='A My Work lista nem tölthető be: '+(e.message||String(e));if(list)list.innerHTML='<p class="small error">Ellenőrizd a bejelentkezést, az API-kapcsolatot és a táblák olvasási jogosultságát.</p>';const t=$('acafNextStepTitle');if(t)t.textContent='A teendők nem érhetők el';}
+  finally{loading=false;}
+ }
+ function openItem(x){
+  if(x.auditId){const sel=$('v5AuditSelect');if(sel){sel.value=String(x.auditId);sel.dispatchEvent(new Event('change',{bubbles:true}));}}
+  if(x.kind==='question'&&x.auditId&&typeof openAudit==='function'){
+   openAudit(x.auditId).then(()=>{const target=document.getElementById('auditView');if(target)target.scrollIntoView({behavior:'smooth',block:'start'});});return;
+  }
+  const terms=x.kind==='review'?['Regulatory Review Task Management','Felülvizsgálati teendők kezelése']:x.kind==='finding'?['Finding & CAPA','Finding Creation','Finding Management']:x.kind==='capa'?['Action Tracker','Finding & CAPA']:x.kind==='report'?['Audit Report','Report generation','Audit Review']:['My audits'];
+  if(typeof acafJumpTo==='function')acafJumpTo(terms);
+ }
+ document.addEventListener('click',e=>{const b=e.target.closest('[data-acaf-mw-index]');if(!b)return;const x=items[Number(b.dataset.acafMwIndex)];if(x)openItem(x);});
+ const refresh=()=>load();
+ function bind(){const b=$('acafMyWorkRefresh');if(b&&!b.__acafBound){b.addEventListener('click',refresh);b.__acafBound=true;}if(!$('acafMyWork'))return false;return true;}
+ let tries=0;const timer=setInterval(()=>{tries++;if(bind()||tries>60)clearInterval(timer);},500);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bind();setTimeout(load,1800);},{once:true});else{bind();setTimeout(load,1800);}
+ window.acafMyWorkRefresh=load;window.acafMyWorkOpen=openItem;
+})();
+</script>
+
+</body>
 
 </html>
