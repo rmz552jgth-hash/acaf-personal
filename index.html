@@ -169,6 +169,7 @@ button.bad{background:#ffebeb;border-color:#efc0c0;color:#9c2828}
 .acaf-quicknav button[data-group="findings"]{background:var(--acaf-amber-bg);border-color:#f0dfbd;color:var(--acaf-amber)}
 .acaf-quicknav button[data-group="reports"]{background:var(--acaf-purple-bg);border-color:#ddd2f4;color:var(--acaf-purple)}
 .acaf-quicknav button[data-group="review"]{background:#eef1f5;border-color:#d9e0e8;color:#46586a}
+.acaf-quicknav button[data-group="work"]{background:#e9f1ff;border-color:#b9d2f5;color:#174f91;font-weight:700}
 .acaf-quicknav button:focus-visible{outline:3px solid #7aa7d8;outline-offset:2px}
 html{scroll-behavior:smooth;scroll-padding-top:90px}
 @media(max-width:700px){.acaf-quicknav{position:relative;top:auto}.acaf-quicknav button{flex:1 1 42%;white-space:normal}}
@@ -203,7 +204,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.38</h1>
+<h1>ACAF Personal V6.51</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -236,7 +237,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </div>
 </div>
 <nav class="acaf-quicknav" aria-label="ACAF module quick navigation">
-<button type="button" data-group="work" onclick="acafJumpTo(['My Work / Saját munkák'])">My Work</button>
+<button type="button" data-group="work" aria-controls="acafMyWork" onclick="document.getElementById('acafMyWork')?.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('acafMyWork')?.classList.add('acaf-nav-highlight');setTimeout(()=>document.getElementById('acafMyWork')?.classList.remove('acaf-nav-highlight'),1400)">My Work / Saját munkák</button>
 <button type="button" data-group="audit" onclick="acafJumpTo(['New Audit','My audits','Audit Dashboard'])">Auditok</button>
 <button type="button" data-group="regulatory" onclick="acafJumpTo(['Regulatory & Requirement Engine','Requirement Library','Regulatory Watch'])">Szabályozás és követelmények</button>
 <button type="button" data-group="findings" onclick="acafJumpTo(['Finding & CAPA Engine','Finding Creation','CAPA Creation'])">Finding / CAPA</button>
@@ -4392,6 +4393,7 @@ async function acafRefreshFindingCapaSummary(){
 })();
 </script>
 
+<!-- V6.51: My Work quick navigation points directly to the existing read-only My Work section. No database/schema changes. -->
 <!-- V6.50 My Work: read-only Review Task, Finding/CAPA and audit-question integration with next-step suggestion. -->
 <style id="acaf-v650-mywork-style">
 #acafMyWork{border-left:4px solid #2563eb;padding:18px;margin:16px 0}
@@ -4409,7 +4411,7 @@ async function acafRefreshFindingCapaSummary(){
 @media(max-width:760px){#acafMyWork .mw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#acafMyWork .mw-grid{grid-template-columns:1fr}}
 </style>
 <section class="card" id="acafMyWork" aria-live="polite">
- <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.51 · My Work filters + priority sorting · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
+ <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.51 · My Work quick navigation + existing V6.50 module · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
  <div class="mw-panel" id="mwNextStepPanel" style="margin:12px 0;border-left:4px solid #d97706;background:#fffaf0">
   <h3 style="margin-top:0">Következő lépés / Next Step</h3>
   <div id="mwNextStepContent">A feladatok betöltése után jelenik meg.</div>
@@ -4421,10 +4423,6 @@ async function acafRefreshFindingCapaSummary(){
   <div class="mw-kpi">Nyitott CAPA<strong id="mwCapaCount">—</strong></div>
   <div class="mw-kpi">Értékelésre váró auditkérdés<strong id="mwQuestionCount">—</strong></div>
   <div class="mw-kpi">Lejárt tételek<strong id="mwOverdueCount">—</strong></div>
- </div>
- <div class="mw-filters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:12px 0">
-  <div><label for="mwStatusFilter">Státusz / Status</label><select id="mwStatusFilter" onchange="acafMyWorkRefresh()"><option value="all">Összes / All</option><option value="open">Nyitott / Open</option><option value="overdue">Lejárt / Overdue</option><option value="in_progress">Folyamatban / In Progress</option><option value="completed">Befejezett / Completed</option></select></div>
-  <div><label for="mwSortOrder">Rendezés / Sort by</label><select id="mwSortOrder" onchange="acafMyWorkRefresh()"><option value="priority">Prioritás</option><option value="due_asc">Határidő: legrégebbi elöl</option><option value="due_desc">Határidő: legkésőbbi elöl</option><option value="status">Státusz</option></select></div>
  </div>
  <div id="mwMessage" class="small">Adatok betöltésére vár…</div>
  <div class="mw-grid">
@@ -4487,27 +4485,6 @@ async function acafRefreshFindingCapaSummary(){
  function openReview(id){if(typeof window.v610Select==='function'){window.v610Select(id);if(typeof acafJumpTo==='function')acafJumpTo(['V6.10 – Regulatory Review Task Management','Regulatory Review Task Management']);}else if(typeof acafJumpTo==='function')acafJumpTo(['V6.10 – Regulatory Review Task Management']);}
  function jumpFinding(){if(typeof acafJumpTo==='function')acafJumpTo(['V4.1 – Finding & CAPA Engine','Finding & CAPA Engine']);}
  function jumpCapa(){if(typeof acafJumpTo==='function')acafJumpTo(['V4.4 – CAPA Verification & Closure','CAPA Verification']);}
- function filterMatch(status,date,terminal){
-  const filter=$('mwStatusFilter')?.value||'all';
-  const done=terminal(status),late=isLate(status,date,terminal),st=String(status||'').toLowerCase();
-  if(filter==='all')return true;
-  if(filter==='open')return !done;
-  if(filter==='overdue')return late;
-  if(filter==='in_progress')return ['in_progress','in progress','working','ongoing'].includes(st);
-  if(filter==='completed')return done;
-  return true;
- }
- function sortRows(rows,dateField,statusField,terminal){
-  const mode=$('mwSortOrder')?.value||'priority';
-  return rows.slice().sort((a,b)=>{
-   if(mode==='status')return String(a[statusField]||'').localeCompare(String(b[statusField]||''));
-   const da=day(a[dateField])?.getTime()??Infinity,db=day(b[dateField])?.getTime()??Infinity;
-   if(mode==='due_desc')return db-da;
-   if(mode==='due_asc')return da-db;
-   const la=isLate(a[statusField],a[dateField],terminal),lb=isLate(b[statusField],b[dateField],terminal);
-   return Number(lb)-Number(la)||da-db;
-  });
- }
  window.acafMyWorkRefresh=async function(){
   const msg=$('mwMessage');if(!msg)return;msg.textContent='Adatok betöltése…';
   ['mwReviewCount','mwFindingCount','mwCapaCount','mwOverdueCount'].forEach(id=>$(id).textContent='…');
@@ -4552,23 +4529,20 @@ async function acafRefreshFindingCapaSummary(){
    renderNextStep(ts,fs,cs,unanswered);
    const questionBox=$('mwQuestionList');
    if(questionBox){
-    const visibleQuestions=unanswered.filter(q=>filterMatch('open',null,()=>false));
-    questionBox.innerHTML=visibleQuestions.length?visibleQuestions.slice(0,50).map(q=>{
+    questionBox.innerHTML=unanswered.length?unanswered.slice(0,50).map(q=>{
      const audit=auditName(q.audit_id),label=q.requirement_code||('Requirement ID: '+(q.requirement_id||'—'));
      return `<div class="mw-item"><b>${escMW(label)}</b><div class="mw-meta">${escMW(audit)} · Audit question #${escMW(q.sequence_no??q.id)}</div>${q.requirement_label?`<div class="mw-meta">${escMW(q.requirement_label)}</div>`:''}<span class="mw-badge">Értékelés hiányzik</span><div class="mw-actions">${q.requirement_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAuditQuestion('${escMW(q.audit_id)}','${escMW(q.requirement_id)}')">Kérdés megnyitása</button>`:`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(q.audit_id)}')">Audit megnyitása</button>`}</div></div>`;
     }).join(''):'<p class="small">Nincs értékelésre váró auditkérdés.</p>';
    }
    if(questionLoadWarning)msg.textContent='✓ Review Task/Finding/CAPA betöltve. '+questionLoadWarning;
-   const visibleTasks=sortRows(ts.filter(t=>filterMatch(t.status,t.due_date,terminalTask)),'due_date','status',terminalTask);
-   $('mwReviewList').innerHTML=visibleTasks.length?visibleTasks.map(t=>{
+   $('mwReviewList').innerHTML=ts.length?ts.map(t=>{
     const late=isLate(t.status,t.due_date,terminalTask),done=terminalTask(t.status);
     const change=(Array.isArray(window.regulatoryChanges)?window.regulatoryChanges:[]).find(x=>String(x.id)===String(t.regulatory_change_id));
     const context=change?(change.title||change.new_version||change.affected_reference||'Regulatory change'):auditName(t.audit_id);
     return `<div class="mw-item"><b>${escMW(t.title||'Review task')}</b><div class="mw-meta">${escMW(context)} · ${t.audit_id?escMW(auditName(t.audit_id)):'Nincs audit hozzárendelve'}</div><span class="mw-badge ${done?'done':late?'late':''}">${escMW(t.status||'status nincs megadva')}${late?' · LEJÁRT':''}</span><span class="mw-badge">Határidő: ${escMW(fmt(t.due_date))}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkOpenReview('${escMW(t.id)}')">Review Task megnyitása</button>${t.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(t.audit_id)}')">Audit megnyitása</button>`:''}</div></div>`;
    }).join(''):'<p class="small">Nincs Review Task rekord.</p>';
-   const visibleFindings=sortRows(fs.filter(f=>filterMatch(f.status,f.due_date,terminalFinding)||cs.some(c=>String(c.finding_id)===String(f.id)&&filterMatch(c.status,c.target_date,terminalCapa))),'due_date','status',terminalFinding);
-   $('mwFindingList').innerHTML=visibleFindings.length?visibleFindings.map(f=>{
-    const linked=sortRows(cs.filter(c=>String(c.finding_id)===String(f.id)&&filterMatch(c.status,c.target_date,terminalCapa)),'target_date','status',terminalCapa);
+   $('mwFindingList').innerHTML=fs.length?fs.map(f=>{
+    const linked=cs.filter(c=>String(c.finding_id)===String(f.id));
     const lateF=isLate(f.status,f.due_date,terminalFinding),closedF=terminalFinding(f.status);
     const capaHtml=linked.length?linked.map(c=>{const lateC=isLate(c.status,c.target_date,terminalCapa),closedC=terminalCapa(c.status);return `<div class="mw-item" style="margin-left:10px"><b>CAPA · ${escMW(c.corrective_action||c.preventive_action||'Intézkedés')}</b><div class="mw-meta">Felelős: ${escMW(c.responsible_person||'Nincs megadva')} · Céldátum: ${escMW(fmt(c.target_date))}</div><span class="mw-badge ${closedC?'done':lateC?'late':''}">${escMW(c.status||'status nincs megadva')}${lateC?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpCapa()">CAPA / Verification modul</button></div></div>`}).join(''):'<p class="mw-meta">Ehhez a Findinghoz nincs CAPA.</p>';
     return `<div class="mw-item"><b>Finding #${escMW(f.finding_no??f.id)} · ${escMW(f.classification||'Classification nincs megadva')}</b><div class="mw-meta">${escMW(f.objective_statement||'')}<br>${escMW(f.audit_id?auditName(f.audit_id):'Nincs audit hozzárendelve')} · Határidő: ${escMW(fmt(f.due_date))}</div><span class="mw-badge ${closedF?'done':lateF?'late':''}">${escMW(f.status||'status nincs megadva')}${lateF?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpFinding()">Finding modul</button>${f.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(f.audit_id)}')">Audit megnyitása</button>`:''}</div>${capaHtml}</div>`;
@@ -4585,6 +4559,8 @@ async function acafRefreshFindingCapaSummary(){
  document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(!document.getElementById('app')?.classList.contains('hidden'))window.acafMyWorkRefresh();},3200);});
 })();
 </script>
+
+</body>
 
 <script id="acaf-v645-audit-selector-recovery">
 (function(){
@@ -4672,7 +4648,5 @@ async function acafRefreshFindingCapaSummary(){
   window.addEventListener('load',bind);
 })();
 </script>
-
-</body>
 
 </html>
