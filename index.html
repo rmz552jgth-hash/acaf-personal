@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.56</title>
+<title>ACAF Personal V6.57</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -204,7 +204,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.56</h1>
+<h1>ACAF Personal V6.57</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -4393,6 +4393,7 @@ async function acafRefreshFindingCapaSummary(){
 })();
 </script>
 
+<!-- V6.57: My Work selection persistence across refresh/navigation; session-only, read-only. -->
 <!-- V6.54: My Work exact Finding/CAPA record navigation; read-only. -->\n<!-- V6.53: My Work status filters; read-only, no database changes. -->\n<!-- V6.55: My Work cross-navigation and in-session record traceability; read-only. -->
 <!-- V6.51: My Work quick navigation points directly to the existing read-only My Work section. No database/schema changes. -->
 <!-- V6.50 My Work: read-only Review Task, Finding/CAPA and audit-question integration with next-step suggestion. -->
@@ -4417,7 +4418,7 @@ async function acafRefreshFindingCapaSummary(){
 @media(max-width:760px){#acafMyWork .mw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#acafMyWork .mw-grid{grid-template-columns:1fr}}
 </style>
 <section class="card" id="acafMyWork" aria-live="polite">
- <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.56 · My Work Finding ↔ CAPA traceability · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
+ <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.57 · My Work persistent record traceability · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
  <div class="mw-panel" id="mwNextStepPanel" style="margin:12px 0;border-left:4px solid #d97706;background:#fffaf0">
   <h3 style="margin-top:0">Következő lépés / Next Step</h3>
   <div id="mwNextStepContent">A feladatok betöltése után jelenik meg.</div>
@@ -4516,14 +4517,24 @@ async function acafRefreshFindingCapaSummary(){
   const el=document.getElementById(id);
   if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('acaf-nav-highlight');window.setTimeout(()=>el.classList.remove('acaf-nav-highlight'),1600);}
  }
- function showFindingRecord(findingId){
+ const selectionKey='acaf_mywork_selection_v657';
+ function saveSelection(value){
+  window.acafMyWorkSelection=value||null;
+  try{if(value)sessionStorage.setItem(selectionKey,JSON.stringify(value));else sessionStorage.removeItem(selectionKey);}catch(_){/* storage may be unavailable; in-memory navigation still works */}
+ }
+ function readSelection(){
+  if(window.acafMyWorkSelection)return window.acafMyWorkSelection;
+  try{const raw=sessionStorage.getItem(selectionKey);return raw?JSON.parse(raw):null;}catch(_){return null;}
+ }
+ function showFindingRecord(findingId,shouldScroll=true){
   const f=(window.acafMyWorkData?.findings||[]).find(x=>String(x.id)===String(findingId));
   if(!f){alert('A kiválasztott Finding rekord nem található a frissített My Work adatok között.');return;}
   const host=document.getElementById('findingCard');if(!host){alert('A Finding modul nem található.');return;}
   let panel=document.getElementById('acafMyWorkSelectedFinding');
   if(!panel){panel=document.createElement('div');panel.id='acafMyWorkSelectedFinding';panel.className='sourceBox';panel.style.cssText='margin:12px 0;border-left:4px solid #2563a6;padding:14px;border-radius:8px;background:#f3f8ff';host.insertBefore(panel,host.firstChild);}
   const linked=(window.acafMyWorkData?.capaActions||[]).filter(c=>String(c.finding_id)===String(f.id));
-  window.acafMyWorkSelection={type:'finding',findingId:f.id,capaId:null};
+  const previous=readSelection();
+  saveSelection({type:'finding',findingId:f.id,capaId:previous?.findingId===f.id?previous.capaId:null});
   panel.innerHTML='<b>My Work – kiválasztott Finding / Selected Finding</b>'+
    '<div style="margin-top:8px"><b>Finding #'+escMW(f.finding_no??f.id)+'</b> · '+escMW(f.classification||'Classification nincs megadva')+'</div>'+
    '<div class="mw-meta">Státusz: '+escMW(f.status||'—')+' · Határidő: '+escMW(fmt(f.due_date))+'</div>'+
@@ -4532,10 +4543,10 @@ async function acafRefreshFindingCapaSummary(){
    (linked.length?'<div class="mw-actions">'+linked.map(c=>'<button type="button" class="secondary" data-mw-capa-link="'+escMW(c.id)+'">CAPA megnyitása · '+escMW(c.status||'státusz nélkül')+'</button>').join('')+'</div>':'<div class="mw-meta">Ehhez a Findinghoz még nincs kapcsolódó CAPA rekord.</div>')+
    '<button type="button" class="secondary" id="acafMyWorkFindingClose">Kijelölés bezárása</button>';
   panel.querySelectorAll('[data-mw-capa-link]').forEach(btn=>btn.addEventListener('click',()=>jumpCapa(btn.dataset.mwCapaLink)));
-  document.getElementById('acafMyWorkFindingClose')?.addEventListener('click',()=>{panel.remove();window.acafMyWorkSelection=null;});
-  scrollToRecordModule('findingCard');
+  document.getElementById('acafMyWorkFindingClose')?.addEventListener('click',()=>{panel.remove();saveSelection(null);});
+  if(shouldScroll)scrollToRecordModule('findingCard');
  }
- async function showCapaRecord(capaId){
+ async function showCapaRecord(capaId,shouldScroll=true){
   const capa=(window.acafMyWorkData?.capaActions||[]).find(x=>String(x.id)===String(capaId));
   if(!capa){alert('A kiválasztott CAPA rekord nem található a frissített My Work adatok között.');return;}
   const host=document.getElementById('verificationCard'),sel=document.getElementById('verificationCapaSelect');
@@ -4546,12 +4557,12 @@ async function acafRefreshFindingCapaSummary(){
    window.acafCapas=window.acafCapas||[];
    if(!window.acafCapas.some(x=>String(x.id)===String(capa.id)))window.acafCapas.push(capa);
    if(typeof renderVerificationForm==='function')renderVerificationForm();
-   window.acafMyWorkSelection={type:'capa',findingId:capa.finding_id||null,capaId:capa.id};
+   saveSelection({type:'capa',findingId:capa.finding_id||null,capaId:capa.id});
    let trace=document.getElementById('acafMyWorkCapaTrace');
    if(!trace){trace=document.createElement('div');trace.id='acafMyWorkCapaTrace';trace.className='sourceBox';trace.style.cssText='margin:12px 0;border-left:4px solid #b7791f;padding:14px;border-radius:8px;background:#fffaf0';host.appendChild(trace);}
    trace.innerHTML='<b>My Work – kapcsolódó rekord / Record traceability</b><div class="mw-meta">Kiválasztott CAPA: '+escMW(capa.status||'—')+' · Finding ID: '+escMW(capa.finding_id||'—')+'</div>'+(capa.finding_id?'<button type="button" class="secondary" id="acafMyWorkParentFinding">Kapcsolódó Finding megnyitása</button>':'<div class="mw-meta">Ehhez a CAPA-hoz nincs Finding ID rendelve.</div>');
    document.getElementById('acafMyWorkParentFinding')?.addEventListener('click',()=>jumpFinding(capa.finding_id));
-   scrollToRecordModule('verificationCard');
+   if(shouldScroll)scrollToRecordModule('verificationCard');
   }catch(e){alert('CAPA megnyitási hiba: '+(e.message||String(e)));}
  }
  function jumpFinding(id){if(id)showFindingRecord(id);else if(typeof acafJumpTo==='function')acafJumpTo(['V4.1 – Finding & CAPA Engine','Finding & CAPA Engine']);}
@@ -4619,6 +4630,11 @@ async function acafRefreshFindingCapaSummary(){
     return `<div class="mw-item" data-mw-state="${closedF?'completed':lateF?'overdue':'open'}"><b>Finding #${escMW(f.finding_no??f.id)} · ${escMW(f.classification||'Classification nincs megadva')}</b><div class="mw-meta">${escMW(f.objective_statement||'')}<br>${escMW(f.audit_id?auditName(f.audit_id):'Nincs audit hozzárendelve')} · Határidő: ${escMW(fmt(f.due_date))}</div><span class="mw-badge ${closedF?'done':lateF?'late':''}">${escMW(f.status||'status nincs megadva')}${lateF?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpFinding('${escMW(f.id)}')">Finding megnyitása</button>${f.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(f.audit_id)}')">Audit megnyitása</button>`:''}</div>${capaHtml}</div>`;
    }).join(''):'<p class="small">Nincs Finding rekord.</p>';
    applyMyWorkFilter();
+   // Restore the last selected Finding/CAPA after a refresh or same-tab reload.
+   const savedSelection=readSelection();
+   if(savedSelection?.type==='finding'&&fs.some(x=>String(x.id)===String(savedSelection.findingId)))showFindingRecord(savedSelection.findingId,false);
+   else if(savedSelection?.type==='capa'&&cs.some(x=>String(x.id)===String(savedSelection.capaId)))await showCapaRecord(savedSelection.capaId,false);
+   else if(savedSelection)saveSelection(null);
    msg.textContent=`✓ Betöltve: ${ts.length} Review Task, ${fs.length} Finding, ${cs.length} CAPA rekord; nyitott: ${ts.filter(t=>!terminalTask(t.status)).length} Review Task, ${openFs.length} Finding, ${openCs.length} CAPA; ${unanswered.length} értékelésre váró kérdés. Csak olvasási művelet.`;msg.className='small success';
   }catch(e){msg.textContent='✕ My Work betöltési hiba: '+(e.message||String(e));msg.className='small error';['mwReviewList','mwFindingList','mwQuestionList'].forEach(id=>$(id).textContent='Az adatok nem tölthetők be. Ellenőrizd a Supabase/RLS jogosultságokat.');}
  };
