@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.55</title>
+<title>ACAF Personal V6.56</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -204,7 +204,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.55</h1>
+<h1>ACAF Personal V6.56</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -4417,7 +4417,7 @@ async function acafRefreshFindingCapaSummary(){
 @media(max-width:760px){#acafMyWork .mw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#acafMyWork .mw-grid{grid-template-columns:1fr}}
 </style>
 <section class="card" id="acafMyWork" aria-live="polite">
- <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.55 · My Work Finding ↔ CAPA traceability · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
+ <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.56 · My Work Finding ↔ CAPA traceability · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
  <div class="mw-panel" id="mwNextStepPanel" style="margin:12px 0;border-left:4px solid #d97706;background:#fffaf0">
   <h3 style="margin-top:0">Következő lépés / Next Step</h3>
   <div id="mwNextStepContent">A feladatok betöltése után jelenik meg.</div>
@@ -4529,6 +4529,7 @@ async function acafRefreshFindingCapaSummary(){
    '<div class="mw-meta">Státusz: '+escMW(f.status||'—')+' · Határidő: '+escMW(fmt(f.due_date))+'</div>'+
    '<p class="small">'+escMW(f.objective_statement||'Nincs finding leírás.')+'</p>'+
    '<div class="mw-meta">Kapcsolódó CAPA rekordok: '+linked.length+'</div>'+
+   (linked.length?'<div class="mw-actions">'+linked.map(c=>'<button type="button" class="secondary" data-mw-capa-link="'+escMW(c.id)+'">CAPA megnyitása · '+escMW(c.status||'státusz nélkül')+'</button>').join('')+'</div>':'<div class="mw-meta">Ehhez a Findinghoz még nincs kapcsolódó CAPA rekord.</div>')+
    '<button type="button" class="secondary" id="acafMyWorkFindingClose">Kijelölés bezárása</button>';
   panel.querySelectorAll('[data-mw-capa-link]').forEach(btn=>btn.addEventListener('click',()=>jumpCapa(btn.dataset.mwCapaLink)));
   document.getElementById('acafMyWorkFindingClose')?.addEventListener('click',()=>{panel.remove();window.acafMyWorkSelection=null;});
