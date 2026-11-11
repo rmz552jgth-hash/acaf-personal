@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.52</title>
+<title>ACAF Personal V6.53</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -204,7 +204,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.52</h1>
+<h1>ACAF Personal V6.53</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -4393,7 +4393,7 @@ async function acafRefreshFindingCapaSummary(){
 })();
 </script>
 
-<!-- V6.51: My Work quick navigation points directly to the existing read-only My Work section. No database/schema changes. -->
+<!-- V6.53: My Work status filters; read-only, no database changes. -->\n<!-- V6.51: My Work quick navigation points directly to the existing read-only My Work section. No database/schema changes. -->
 <!-- V6.50 My Work: read-only Review Task, Finding/CAPA and audit-question integration with next-step suggestion. -->
 <style id="acaf-v650-mywork-style">
 #acafMyWork{border-left:4px solid #2563eb;padding:18px;margin:16px 0}
@@ -4408,10 +4408,15 @@ async function acafRefreshFindingCapaSummary(){
 #acafMyWork .mw-badge.late{background:#fee2e2;color:#991b1b}
 #acafMyWork .mw-badge.done{background:#dcfce7;color:#166534}
 #acafMyWork .mw-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+#acafMyWork .mw-filterbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0 14px;padding:10px;border:1px solid #dbe3ee;border-radius:9px;background:#f8fafc}
+#acafMyWork .mw-filter-label{font-size:13px;font-weight:650;color:#475569;margin-right:3px}
+#acafMyWork .mw-filter{padding:7px 11px;border:1px solid #cbd5e1;border-radius:18px;background:#fff;color:#334155;font-size:13px;cursor:pointer}
+#acafMyWork .mw-filter.active{background:#173b68;border-color:#173b68;color:#fff}
+#acafMyWork .mw-item[hidden]{display:none!important}
 @media(max-width:760px){#acafMyWork .mw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#acafMyWork .mw-grid{grid-template-columns:1fr}}
 </style>
 <section class="card" id="acafMyWork" aria-live="polite">
- <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.52 · My Work status clarity · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
+ <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.53 · My Work filters · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
  <div class="mw-panel" id="mwNextStepPanel" style="margin:12px 0;border-left:4px solid #d97706;background:#fffaf0">
   <h3 style="margin-top:0">Következő lépés / Next Step</h3>
   <div id="mwNextStepContent">A feladatok betöltése után jelenik meg.</div>
@@ -4425,6 +4430,13 @@ async function acafRefreshFindingCapaSummary(){
   <div class="mw-kpi">Lejárt tételek<strong id="mwOverdueCount">—</strong></div>
  </div>
  <div id="mwMessage" class="small">Adatok betöltésére vár…</div>
+ <div class="mw-filterbar" role="group" aria-label="My Work szűrő / My Work filter">
+  <span class="mw-filter-label">Megjelenítés / Show:</span>
+  <button type="button" class="mw-filter active" data-mw-filter="all" aria-pressed="true" onclick="acafMyWorkSetFilter('all')">Összes / All</button>
+  <button type="button" class="mw-filter" data-mw-filter="open" aria-pressed="false" onclick="acafMyWorkSetFilter('open')">Nyitott / Open</button>
+  <button type="button" class="mw-filter" data-mw-filter="overdue" aria-pressed="false" onclick="acafMyWorkSetFilter('overdue')">Lejárt / Overdue</button>
+  <button type="button" class="mw-filter" data-mw-filter="completed" aria-pressed="false" onclick="acafMyWorkSetFilter('completed')">Lezárt / Completed</button>
+ </div>
  <div class="mw-grid">
   <div class="mw-panel"><h3>Review tasks / Felülvizsgálati teendők</h3><div id="mwReviewList">Betöltés…</div></div>
   <div class="mw-panel"><h3>Audit questions / Értékelésre váró kérdések</h3><div id="mwQuestionList">Betöltés…</div></div>
@@ -4435,6 +4447,22 @@ async function acafRefreshFindingCapaSummary(){
 <script id="acaf-v650-mywork-script">
 (function(){
  const $=id=>document.getElementById(id);
+ let myWorkFilter='all';
+ function applyMyWorkFilter(){
+  document.querySelectorAll('#acafMyWork .mw-item[data-mw-state]').forEach(item=>{
+   const state=item.dataset.mwState||'open';
+   item.hidden=myWorkFilter!=='all' && state!==myWorkFilter;
+  });
+  document.querySelectorAll('#acafMyWork [data-mw-filter]').forEach(btn=>{
+   const active=btn.dataset.mwFilter===myWorkFilter;
+   btn.classList.toggle('active',active);
+   btn.setAttribute('aria-pressed',active?'true':'false');
+  });
+ }
+ window.acafMyWorkSetFilter=function(filter){
+  myWorkFilter=['all','open','overdue','completed'].includes(filter)?filter:'all';
+  applyMyWorkFilter();
+ };
  const escMW=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const terminalFinding=s=>['closed','resolved','verified','complete','completed'].includes(String(s||'').toLowerCase());
  const terminalCapa=s=>['closed','effective','completed','verified'].includes(String(s||'').toLowerCase());
@@ -4531,7 +4559,7 @@ async function acafRefreshFindingCapaSummary(){
    if(questionBox){
     questionBox.innerHTML=unanswered.length?unanswered.slice(0,50).map(q=>{
      const audit=auditName(q.audit_id),label=q.requirement_code||('Requirement ID: '+(q.requirement_id||'—'));
-     return `<div class="mw-item"><b>${escMW(label)}</b><div class="mw-meta">${escMW(audit)} · Audit question #${escMW(q.sequence_no??q.id)}</div>${q.requirement_label?`<div class="mw-meta">${escMW(q.requirement_label)}</div>`:''}<span class="mw-badge">Értékelés hiányzik</span><div class="mw-actions">${q.requirement_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAuditQuestion('${escMW(q.audit_id)}','${escMW(q.requirement_id)}')">Kérdés megnyitása</button>`:`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(q.audit_id)}')">Audit megnyitása</button>`}</div></div>`;
+     return `<div class="mw-item" data-mw-state="open"><b>${escMW(label)}</b><div class="mw-meta">${escMW(audit)} · Audit question #${escMW(q.sequence_no??q.id)}</div>${q.requirement_label?`<div class="mw-meta">${escMW(q.requirement_label)}</div>`:''}<span class="mw-badge">Értékelés hiányzik</span><div class="mw-actions">${q.requirement_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAuditQuestion('${escMW(q.audit_id)}','${escMW(q.requirement_id)}')">Kérdés megnyitása</button>`:`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(q.audit_id)}')">Audit megnyitása</button>`}</div></div>`;
     }).join(''):'<p class="small">Nincs értékelésre váró auditkérdés.</p>';
    }
    if(questionLoadWarning)msg.textContent='✓ Review Task/Finding/CAPA betöltve. '+questionLoadWarning;
@@ -4539,14 +4567,15 @@ async function acafRefreshFindingCapaSummary(){
     const late=isLate(t.status,t.due_date,terminalTask),done=terminalTask(t.status);
     const change=(Array.isArray(window.regulatoryChanges)?window.regulatoryChanges:[]).find(x=>String(x.id)===String(t.regulatory_change_id));
     const context=change?(change.title||change.new_version||change.affected_reference||'Regulatory change'):auditName(t.audit_id);
-    return `<div class="mw-item"><b>${escMW(t.title||'Review task')}</b><div class="mw-meta">${escMW(context)} · ${t.audit_id?escMW(auditName(t.audit_id)):'Nincs audit hozzárendelve'}</div><span class="mw-badge ${done?'done':late?'late':''}">${escMW(t.status||'status nincs megadva')}${late?' · LEJÁRT':''}</span><span class="mw-badge">Határidő: ${escMW(fmt(t.due_date))}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkOpenReview('${escMW(t.id)}')">Review Task megnyitása</button>${t.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(t.audit_id)}')">Audit megnyitása</button>`:''}</div></div>`;
+    return `<div class="mw-item" data-mw-state="${done?'completed':late?'overdue':'open'}"><b>${escMW(t.title||'Review task')}</b><div class="mw-meta">${escMW(context)} · ${t.audit_id?escMW(auditName(t.audit_id)):'Nincs audit hozzárendelve'}</div><span class="mw-badge ${done?'done':late?'late':''}">${escMW(t.status||'status nincs megadva')}${late?' · LEJÁRT':''}</span><span class="mw-badge">Határidő: ${escMW(fmt(t.due_date))}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkOpenReview('${escMW(t.id)}')">Review Task megnyitása</button>${t.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(t.audit_id)}')">Audit megnyitása</button>`:''}</div></div>`;
    }).join(''):'<p class="small">Nincs Review Task rekord.</p>';
    $('mwFindingList').innerHTML=fs.length?fs.map(f=>{
     const linked=cs.filter(c=>String(c.finding_id)===String(f.id));
     const lateF=isLate(f.status,f.due_date,terminalFinding),closedF=terminalFinding(f.status);
-    const capaHtml=linked.length?linked.map(c=>{const lateC=isLate(c.status,c.target_date,terminalCapa),closedC=terminalCapa(c.status);return `<div class="mw-item" style="margin-left:10px"><b>CAPA · ${escMW(c.corrective_action||c.preventive_action||'Intézkedés')}</b><div class="mw-meta">Felelős: ${escMW(c.responsible_person||'Nincs megadva')} · Céldátum: ${escMW(fmt(c.target_date))}</div><span class="mw-badge ${closedC?'done':lateC?'late':''}">${escMW(c.status||'status nincs megadva')}${lateC?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpCapa()">CAPA / Verification modul</button></div></div>`}).join(''):'<p class="mw-meta">Ehhez a Findinghoz nincs CAPA.</p>';
-    return `<div class="mw-item"><b>Finding #${escMW(f.finding_no??f.id)} · ${escMW(f.classification||'Classification nincs megadva')}</b><div class="mw-meta">${escMW(f.objective_statement||'')}<br>${escMW(f.audit_id?auditName(f.audit_id):'Nincs audit hozzárendelve')} · Határidő: ${escMW(fmt(f.due_date))}</div><span class="mw-badge ${closedF?'done':lateF?'late':''}">${escMW(f.status||'status nincs megadva')}${lateF?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpFinding()">Finding modul</button>${f.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(f.audit_id)}')">Audit megnyitása</button>`:''}</div>${capaHtml}</div>`;
+    const capaHtml=linked.length?linked.map(c=>{const lateC=isLate(c.status,c.target_date,terminalCapa),closedC=terminalCapa(c.status);return `<div class="mw-item" data-mw-state="${closedC?'completed':lateC?'overdue':'open'}" style="margin-left:10px"><b>CAPA · ${escMW(c.corrective_action||c.preventive_action||'Intézkedés')}</b><div class="mw-meta">Felelős: ${escMW(c.responsible_person||'Nincs megadva')} · Céldátum: ${escMW(fmt(c.target_date))}</div><span class="mw-badge ${closedC?'done':lateC?'late':''}">${escMW(c.status||'status nincs megadva')}${lateC?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpCapa()">CAPA / Verification modul</button></div></div>`}).join(''):'<p class="mw-meta">Ehhez a Findinghoz nincs CAPA.</p>';
+    return `<div class="mw-item" data-mw-state="${closedF?'completed':lateF?'overdue':'open'}"><b>Finding #${escMW(f.finding_no??f.id)} · ${escMW(f.classification||'Classification nincs megadva')}</b><div class="mw-meta">${escMW(f.objective_statement||'')}<br>${escMW(f.audit_id?auditName(f.audit_id):'Nincs audit hozzárendelve')} · Határidő: ${escMW(fmt(f.due_date))}</div><span class="mw-badge ${closedF?'done':lateF?'late':''}">${escMW(f.status||'status nincs megadva')}${lateF?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpFinding()">Finding modul</button>${f.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(f.audit_id)}')">Audit megnyitása</button>`:''}</div>${capaHtml}</div>`;
    }).join(''):'<p class="small">Nincs Finding rekord.</p>';
+   applyMyWorkFilter();
    msg.textContent=`✓ Betöltve: ${ts.length} Review Task, ${fs.length} Finding, ${cs.length} CAPA rekord; nyitott: ${ts.filter(t=>!terminalTask(t.status)).length} Review Task, ${openFs.length} Finding, ${openCs.length} CAPA; ${unanswered.length} értékelésre váró kérdés. Csak olvasási művelet.`;msg.className='small success';
   }catch(e){msg.textContent='✕ My Work betöltési hiba: '+(e.message||String(e));msg.className='small error';['mwReviewList','mwFindingList','mwQuestionList'].forEach(id=>$(id).textContent='Az adatok nem tölthetők be. Ellenőrizd a Supabase/RLS jogosultságokat.');}
  };
