@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ACAF Personal V6.53</title>
+<title>ACAF Personal V6.54</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{margin:0;background:#f5f7fa;color:#17202a}
@@ -204,7 +204,7 @@ html{scroll-behavior:smooth;scroll-padding-top:90px}
 </head>
 <body>
 <div class="container">
-<h1>ACAF Personal V6.53</h1>
+<h1>ACAF Personal V6.54</h1>
 <div id="status" class="small">Connecting…</div>
 
 <section id="auth" class="card">
@@ -4393,7 +4393,7 @@ async function acafRefreshFindingCapaSummary(){
 })();
 </script>
 
-<!-- V6.53: My Work status filters; read-only, no database changes. -->\n<!-- V6.51: My Work quick navigation points directly to the existing read-only My Work section. No database/schema changes. -->
+<!-- V6.54: My Work exact Finding/CAPA record navigation; read-only. -->\n<!-- V6.53: My Work status filters; read-only, no database changes. -->\n<!-- V6.51: My Work quick navigation points directly to the existing read-only My Work section. No database/schema changes. -->
 <!-- V6.50 My Work: read-only Review Task, Finding/CAPA and audit-question integration with next-step suggestion. -->
 <style id="acaf-v650-mywork-style">
 #acafMyWork{border-left:4px solid #2563eb;padding:18px;margin:16px 0}
@@ -4416,7 +4416,7 @@ async function acafRefreshFindingCapaSummary(){
 @media(max-width:760px){#acafMyWork .mw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#acafMyWork .mw-grid{grid-template-columns:1fr}}
 </style>
 <section class="card" id="acafMyWork" aria-live="polite">
- <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.53 · My Work filters · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
+ <div class="statusbar" style="flex-wrap:wrap"><div><h2 style="margin:0">My Work / Saját munkák</h2><p class="small">V6.54 · My Work direct record navigation · Existing records only</p></div><button type="button" class="primary" onclick="acafMyWorkRefresh()">↻ Frissítés / Refresh</button></div>
  <div class="mw-panel" id="mwNextStepPanel" style="margin:12px 0;border-left:4px solid #d97706;background:#fffaf0">
   <h3 style="margin-top:0">Következő lépés / Next Step</h3>
   <div id="mwNextStepContent">A feladatok betöltése után jelenik meg.</div>
@@ -4482,8 +4482,8 @@ async function acafRefreshFindingCapaSummary(){
    }
   };
   ts.forEach(t=>add('review',t,t.due_date,t.status,terminalTask,t.title||'Review task',`Review Task · Határidő: ${fmt(t.due_date)}`,()=>openReview(t.id),70));
-  fs.forEach(f=>add('finding',f,f.due_date,f.status,terminalFinding,`Finding #${f.finding_no??f.id}`,`${f.classification||'Finding'} · Határidő: ${fmt(f.due_date)}`,()=>jumpFinding(),50));
-  cs.forEach(c=>add('capa',c,c.target_date,c.status,terminalCapa,c.corrective_action||c.preventive_action||'CAPA intézkedés',`CAPA · Céldátum: ${fmt(c.target_date)} · Felelős: ${c.responsible_person||'nincs megadva'}`,()=>jumpCapa(),60));
+  fs.forEach(f=>add('finding',f,f.due_date,f.status,terminalFinding,`Finding #${f.finding_no??f.id}`,`${f.classification||'Finding'} · Határidő: ${fmt(f.due_date)}`,()=>jumpFinding(f.id),50));
+  cs.forEach(c=>add('capa',c,c.target_date,c.status,terminalCapa,c.corrective_action||c.preventive_action||'CAPA intézkedés',`CAPA · Céldátum: ${fmt(c.target_date)} · Felelős: ${c.responsible_person||'nincs megadva'}`,()=>jumpCapa(c.id),60));
   questions.forEach(q=>{
    const title=q.requirement_code?`Audit kérdés · ${q.requirement_code}`:'Értékelésre váró auditkérdés';
    const audit=auditName(q.audit_id);
@@ -4511,8 +4511,42 @@ async function acafRefreshFindingCapaSummary(){
   }catch(e){alert('Audit kérdés megnyitási hiba: '+(e.message||String(e)));}
  }
  function openReview(id){if(typeof window.v610Select==='function'){window.v610Select(id);if(typeof acafJumpTo==='function')acafJumpTo(['V6.10 – Regulatory Review Task Management','Regulatory Review Task Management']);}else if(typeof acafJumpTo==='function')acafJumpTo(['V6.10 – Regulatory Review Task Management']);}
- function jumpFinding(){if(typeof acafJumpTo==='function')acafJumpTo(['V4.1 – Finding & CAPA Engine','Finding & CAPA Engine']);}
- function jumpCapa(){if(typeof acafJumpTo==='function')acafJumpTo(['V4.4 – CAPA Verification & Closure','CAPA Verification']);}
+ function scrollToRecordModule(id){
+  const el=document.getElementById(id);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('acaf-nav-highlight');window.setTimeout(()=>el.classList.remove('acaf-nav-highlight'),1600);}
+ }
+ function showFindingRecord(findingId){
+  const f=(window.acafMyWorkData?.findings||[]).find(x=>String(x.id)===String(findingId));
+  if(!f){alert('A kiválasztott Finding rekord nem található a frissített My Work adatok között.');return;}
+  const host=document.getElementById('findingCard');if(!host){alert('A Finding modul nem található.');return;}
+  let panel=document.getElementById('acafMyWorkSelectedFinding');
+  if(!panel){panel=document.createElement('div');panel.id='acafMyWorkSelectedFinding';panel.className='sourceBox';panel.style.cssText='margin:12px 0;border-left:4px solid #2563a6;padding:14px;border-radius:8px;background:#f3f8ff';host.insertBefore(panel,host.firstChild);}
+  const linked=(window.acafMyWorkData?.capaActions||[]).filter(c=>String(c.finding_id)===String(f.id));
+  panel.innerHTML='<b>My Work – kiválasztott Finding / Selected Finding</b>'+
+   '<div style="margin-top:8px"><b>Finding #'+escMW(f.finding_no??f.id)+'</b> · '+escMW(f.classification||'Classification nincs megadva')+'</div>'+
+   '<div class="mw-meta">Státusz: '+escMW(f.status||'—')+' · Határidő: '+escMW(fmt(f.due_date))+'</div>'+
+   '<p class="small">'+escMW(f.objective_statement||'Nincs finding leírás.')+'</p>'+
+   '<div class="mw-meta">Kapcsolódó CAPA rekordok: '+linked.length+'</div>'+
+   '<button type="button" class="secondary" id="acafMyWorkFindingClose">Kijelölés bezárása</button>';
+  document.getElementById('acafMyWorkFindingClose')?.addEventListener('click',()=>panel.remove());
+  scrollToRecordModule('findingCard');
+ }
+ async function showCapaRecord(capaId){
+  const capa=(window.acafMyWorkData?.capaActions||[]).find(x=>String(x.id)===String(capaId));
+  if(!capa){alert('A kiválasztott CAPA rekord nem található a frissített My Work adatok között.');return;}
+  const host=document.getElementById('verificationCard'),sel=document.getElementById('verificationCapaSelect');
+  if(!host||!sel){alert('A CAPA Verification modul vagy a CAPA választó nem található.');return;}
+  try{
+   sel.innerHTML='<option value="'+escMW(capa.id)+'">CAPA · '+escMW(capa.status||'')+' · Finding '+escMW(capa.finding_id||'')+'</option>';
+   sel.value=String(capa.id);
+   window.acafCapas=window.acafCapas||[];
+   if(!window.acafCapas.some(x=>String(x.id)===String(capa.id)))window.acafCapas.push(capa);
+   if(typeof renderVerificationForm==='function')renderVerificationForm();
+   scrollToRecordModule('verificationCard');
+  }catch(e){alert('CAPA megnyitási hiba: '+(e.message||String(e)));}
+ }
+ function jumpFinding(id){if(id)showFindingRecord(id);else if(typeof acafJumpTo==='function')acafJumpTo(['V4.1 – Finding & CAPA Engine','Finding & CAPA Engine']);}
+ function jumpCapa(id){if(id)showCapaRecord(id);else if(typeof acafJumpTo==='function')acafJumpTo(['V4.4 – CAPA Verification & Closure','CAPA Verification']);}
  window.acafMyWorkRefresh=async function(){
   const msg=$('mwMessage');if(!msg)return;msg.textContent='Adatok betöltése…';
   ['mwReviewCount','mwFindingCount','mwCapaCount','mwOverdueCount'].forEach(id=>$(id).textContent='…');
@@ -4572,8 +4606,8 @@ async function acafRefreshFindingCapaSummary(){
    $('mwFindingList').innerHTML=fs.length?fs.map(f=>{
     const linked=cs.filter(c=>String(c.finding_id)===String(f.id));
     const lateF=isLate(f.status,f.due_date,terminalFinding),closedF=terminalFinding(f.status);
-    const capaHtml=linked.length?linked.map(c=>{const lateC=isLate(c.status,c.target_date,terminalCapa),closedC=terminalCapa(c.status);return `<div class="mw-item" data-mw-state="${closedC?'completed':lateC?'overdue':'open'}" style="margin-left:10px"><b>CAPA · ${escMW(c.corrective_action||c.preventive_action||'Intézkedés')}</b><div class="mw-meta">Felelős: ${escMW(c.responsible_person||'Nincs megadva')} · Céldátum: ${escMW(fmt(c.target_date))}</div><span class="mw-badge ${closedC?'done':lateC?'late':''}">${escMW(c.status||'status nincs megadva')}${lateC?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpCapa()">CAPA / Verification modul</button></div></div>`}).join(''):'<p class="mw-meta">Ehhez a Findinghoz nincs CAPA.</p>';
-    return `<div class="mw-item" data-mw-state="${closedF?'completed':lateF?'overdue':'open'}"><b>Finding #${escMW(f.finding_no??f.id)} · ${escMW(f.classification||'Classification nincs megadva')}</b><div class="mw-meta">${escMW(f.objective_statement||'')}<br>${escMW(f.audit_id?auditName(f.audit_id):'Nincs audit hozzárendelve')} · Határidő: ${escMW(fmt(f.due_date))}</div><span class="mw-badge ${closedF?'done':lateF?'late':''}">${escMW(f.status||'status nincs megadva')}${lateF?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpFinding()">Finding modul</button>${f.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(f.audit_id)}')">Audit megnyitása</button>`:''}</div>${capaHtml}</div>`;
+    const capaHtml=linked.length?linked.map(c=>{const lateC=isLate(c.status,c.target_date,terminalCapa),closedC=terminalCapa(c.status);return `<div class="mw-item" data-mw-state="${closedC?'completed':lateC?'overdue':'open'}" style="margin-left:10px"><b>CAPA · ${escMW(c.corrective_action||c.preventive_action||'Intézkedés')}</b><div class="mw-meta">Felelős: ${escMW(c.responsible_person||'Nincs megadva')} · Céldátum: ${escMW(fmt(c.target_date))}</div><span class="mw-badge ${closedC?'done':lateC?'late':''}">${escMW(c.status||'status nincs megadva')}${lateC?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpCapa('${escMW(c.id)}')">CAPA megnyitása</button></div></div>`}).join(''):'<p class="mw-meta">Ehhez a Findinghoz nincs CAPA.</p>';
+    return `<div class="mw-item" data-mw-state="${closedF?'completed':lateF?'overdue':'open'}"><b>Finding #${escMW(f.finding_no??f.id)} · ${escMW(f.classification||'Classification nincs megadva')}</b><div class="mw-meta">${escMW(f.objective_statement||'')}<br>${escMW(f.audit_id?auditName(f.audit_id):'Nincs audit hozzárendelve')} · Határidő: ${escMW(fmt(f.due_date))}</div><span class="mw-badge ${closedF?'done':lateF?'late':''}">${escMW(f.status||'status nincs megadva')}${lateF?' · LEJÁRT':''}</span><div class="mw-actions"><button type="button" class="secondary" onclick="acafMyWorkJumpFinding('${escMW(f.id)}')">Finding megnyitása</button>${f.audit_id?`<button type="button" class="secondary" onclick="acafMyWorkOpenAudit('${escMW(f.audit_id)}')">Audit megnyitása</button>`:''}</div>${capaHtml}</div>`;
    }).join(''):'<p class="small">Nincs Finding rekord.</p>';
    applyMyWorkFilter();
    msg.textContent=`✓ Betöltve: ${ts.length} Review Task, ${fs.length} Finding, ${cs.length} CAPA rekord; nyitott: ${ts.filter(t=>!terminalTask(t.status)).length} Review Task, ${openFs.length} Finding, ${openCs.length} CAPA; ${unanswered.length} értékelésre váró kérdés. Csak olvasási művelet.`;msg.className='small success';
